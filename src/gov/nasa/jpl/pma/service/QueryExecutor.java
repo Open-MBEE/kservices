@@ -1,0 +1,125 @@
+package gov.nasa.jpl.pma.service;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+
+import gov.nasa.jpl.ae.event.Expression;
+import gov.nasa.jpl.pma.KToAe;
+import k.frontend.Exp;
+import k.frontend.Annotation;
+import k.frontend.EntityDecl;
+import k.frontend.EntityToken;
+import k.frontend.Frontend;
+import k.frontend.MemberDecl;
+import k.frontend.Type;
+import k.frontend.TypeParam;
+import scala.Option;
+import scala.collection.immutable.List;
+import sysml.SystemModel;
+
+public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > {
+
+    public Model model;
+    public Exp kExpression;
+    
+    /**
+     * Update the model with the input k definitions and instances.
+     * @param k
+     * @return
+     */
+    public Result<String> updateK( String k ) {
+		// TODO  --  Maybe this goes in a different class?
+        List<Annotation> annotations = null;
+		EntityToken token = null;
+		Option<String> keyword = null;
+		String ident = null;
+		List<TypeParam> typeParams = null;
+		List<Type> extending = null;
+		List<MemberDecl> members = null;
+    	EntityDecl e = new EntityDecl(annotations, token, keyword, ident, typeParams, extending, members);
+        return null;
+    }
+
+    /**
+     * Update the model with the input json definitions and instances.
+     * @param json
+     * @return
+     */
+    public Result<String> updateJson( String json ) {
+        // TODO -- To handle CRUD should have a sysml json interface or pass through to another server.
+        String k = Frontend.json2exp2( json );
+        Result<String> result = updateK( k );
+        return result;
+    }
+
+    /**
+     * Evaluate the input k expression and return the result.
+     * @param k the input k expression to be evaluated
+     * @return a Result object with evaluation result as as string and with any errors.
+     */
+    public Result<String> kQuery( String k ) {
+        KToAe k2ae = new KToAe();
+        Exp kExpr = Frontend.exp2KExp( k );
+        kExpression = kExpr;
+        Object expr = k2ae.astToAeExpr( kExpr, null, true, true, true, true, null );
+        Object value = null;
+        ArrayList<String> errors = null;
+
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter writer = new PrintWriter(stringWriter);
+        
+        String error = null;
+        try {
+            value = Expression.evaluateDeep( expr, null, true, false );
+        } catch ( ClassCastException e ) {
+            e.printStackTrace( writer );
+        } catch ( IllegalAccessException e ) {
+            e.printStackTrace( writer );
+        } catch ( InvocationTargetException e ) {
+            e.printStackTrace( writer );
+        } catch ( InstantiationException e ) {
+            e.printStackTrace( writer );
+        }
+        error = stringWriter.toString();
+        if (error != null && error.length() > 0) {
+            errors = new ArrayList<String>();
+            errors.add( error );
+        }
+        Result<String> result = 
+                new Result< String >( errors, "" + value, String.class );
+        try {
+            writer.close();
+            stringWriter.close();
+        } catch ( IOException e ) {
+            e.printStackTrace();
+        }
+        
+        return result;
+    }
+
+    /**
+     * Evaluate the input json expression and return the result.
+     * @param json
+     * @return
+     */
+    public Result<String> jsonQuery( String json ) {
+        String k = Frontend.json2exp2( json );
+        Result<String> result = kQuery( k );
+        return result;
+    }
+
+    public static void main( String[] args ) {
+        QueryExecutor< SystemModel<?,?,?,?,?,?,?,?,?,?,?> > qe = new QueryExecutor< SystemModel<?,?,?,?,?,?,?,?,?,?,?> >();
+        Result<String> r = qe.kQuery("2 * 6.3");
+        if ( r.errors != null && !r.errors.isEmpty() ) { 
+            System.err.println( r.errors );
+        }
+        System.out.println( "result = " + r.value );
+        System.out.println( "Double.class.isAssignableFrom(Integer.class) = " + Double.class.isAssignableFrom(Integer.class) );
+    }
+
+    
+}

@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>gov.nasa.jpl</groupId>
+	<artifactId>pma</artifactId>
+	<version>2.4.0-SNAPSHOT</version>
+	<name>pma project</name>
+	<packaging>jar</packaging>
+	<description>Manages the lifecycle of the pma project</description>
+
+<!-- 	<parent>
+ 		<groupId>org.alfresco.maven</groupId>
+		<artifactId>alfresco-sdk-parent</artifactId>
+		<version>1.1.1</version>
+	</parent>
+ -->
+ 
+	<distributionManagement>
+		<!-- use mvn -U deploy -DgeneratePom=true -Dpackaging=jar -->
+		<repository>
+			<id>artifactory</id>
+			<name>releases</name>
+			<url>http://cae-artifactory.jpl.nasa.gov/artifactory/libs-release-local</url>
+		</repository>
+		<snapshotRepository>
+			<id>artifactory</id>
+			<name>snapshots</name>
+			<url>http://cae-artifactory.jpl.nasa.gov/artifactory/libs-snapshot-local</url>
+		</snapshotRepository>
+	</distributionManagement>
+
+	<!-- | SDK properties have sensible defaults in the SDK parent, | but you 
+		can override the properties below to use another version. | For more available 
+		properties see the alfresco-sdk-parent POM. -->
+	<properties>
+		<app.log.root.level>WARN</app.log.root.level>
+		<env>local</env>
+		<maven.test.skip>false</maven.test.skip>
+		<mbee.version>2.3.3-SNAPSHOT</mbee.version>
+	</properties>
+
+	<!-- profiles for specific dependencies for developers or users -->
+	<profiles>
+		<profile>
+			<id>mms-dev</id>
+			<dependencies>
+				<dependency>
+					<groupId>gov.nasa.jpl.ae</groupId>
+					<artifactId>AE</artifactId>
+					<version>1.0</version>
+					<scope>system</scope>
+					<type>jar</type>
+					<systemPath>${project.basedir}/lib/AE.jar</systemPath>
+				</dependency>
+				<dependency>
+					<groupId>sysml</groupId>
+					<artifactId>sysml</artifactId>
+					<version>1.0</version>
+					<scope>system</scope>
+					<type>jar</type>
+					<systemPath>${project.basedir}/lib/sysml.jar</systemPath>
+				</dependency>
+				<dependency>
+					<groupId>mbee_util</groupId>
+					<artifactId>mbee_util</artifactId>
+					<version>1.0</version>
+					<scope>system</scope>
+					<type>jar</type>
+					<systemPath>${project.basedir}/lib/mbee_util.jar</systemPath>
+				</dependency>
+				<dependency>
+					<groupId>klang</groupId>
+					<artifactId>klang</artifactId>
+					<version>1.0</version>
+					<scope>system</scope>
+					<type>jar</type>
+					<systemPath>${project.basedir}/lib/klang.jar</systemPath>
+				</dependency>
+			</dependencies>
+			<properties>
+				<env.BUILD_NUMBER>1</env.BUILD_NUMBER>
+			</properties>
+		</profile>
+		<profile>
+			<id>mbee-dev</id>
+			<dependencies>
+				<dependency>
+					<groupId>gov.nasa.jpl.mbee.util</groupId>
+					<artifactId>mbee_util</artifactId>
+					<version>${mbee.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>gov.nasa.jpl.mbee.sysml</groupId>
+					<artifactId>sysml</artifactId>
+					<version>${mbee.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>gov.nasa.jpl.mbee.bae</groupId>
+					<artifactId>bae</artifactId>
+					<version>${mbee.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>gov.nasa.jpl.mbee.klang</groupId>
+					<artifactId>klang</artifactId>
+					<version>${mbee.version}</version>
+				</dependency>
+			</dependencies>
+			<properties>
+				<env.BUILD_NUMBER>1</env.BUILD_NUMBER>
+			</properties>
+		</profile>
+		<profile>
+			<id>jenkins</id>
+			<dependencies>
+				<dependency>
+					<groupId>gov.nasa.jpl.mbee.util</groupId>
+					<artifactId>mbee_util</artifactId>
+					<version>${mbee.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>gov.nasa.jpl.mbee.sysml</groupId>
+					<artifactId>sysml</artifactId>
+					<version>${mbee.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>gov.nasa.jpl.mbee.bae</groupId>
+					<artifactId>bae</artifactId>
+					<version>${mbee.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>gov.nasa.jpl.mbee.klang</groupId>
+					<artifactId>klang</artifactId>
+					<version>${mbee.version}</version>
+				</dependency>
+			</dependencies>
+		</profile>
+        <!-- Maven profiles allow you to support both Scala 2.10 and Scala 2.11 
+             with the right dependencies for modules specified for each version separately -->
+        <profile>
+            <id>scala-2.11</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <scalaVersion>2.11.8</scalaVersion>
+                <!-- change to "2.11" once Scala 2.11.0 final is out -->
+                <scalaBinaryVersion>2.11</scalaBinaryVersion>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-library</artifactId>
+                    <version>${scalaVersion}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-actors</artifactId>
+                    <version>${scalaVersion}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.scala-lang.modules</groupId>
+                    <artifactId>scala-xml_${scalaBinaryVersion}</artifactId>
+                    <version>1.0.3</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.scala-lang.modules</groupId>
+                    <artifactId>scala-parser-combinators_${scalaBinaryVersion}</artifactId>
+                    <version>1.0.3</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.scala-lang.modules</groupId>
+                    <artifactId>scala-swing_${scalaBinaryVersion}</artifactId>
+                    <version>1.0.1</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>scala-2.10</id>
+            <properties>
+                <scalaVersion>2.10.4</scalaVersion>
+                <scalaBinaryVersion>2.10</scalaBinaryVersion>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-library</artifactId>
+                    <version>${scalaVersion}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-swing</artifactId>
+                    <version>${scalaVersion}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+
+	<dependencyManagement>
+		<dependencies>
+		</dependencies>
+	</dependencyManagement>
+
+	<!-- Following dependencies are needed for compiling Java code in src/main/java; 
+		<scope>provided</scope> is inherited for each of the following; for more 
+		info, please refer to alfresco-platform-distribution POM -->
+	<dependencies>
+		<!-- Test dependencies -->
+ 		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.8.1</version>
+			<scope>compile</scope>
+		</dependency>
+
+        <!-- https://mvnrepository.com/artifact/log4j/log4j -->
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+        </dependency>
+        <!-- required for mapping slf4j to log4j -->
+        <!-- <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>jcl-over-slf4j</artifactId>
+                <version>1.5.11</version>
+                <scope>provided</scope>
+        </dependency> -->
+        
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.11.8</version>
+        </dependency>
+
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20140107</version>
+		</dependency>
+
+ 		<dependency>
+			<groupId>org.antlr</groupId>
+			<artifactId>antlr4</artifactId>
+			<version>4.5</version>
+		</dependency>
+	</dependencies>
+
+
+	<!-- This repository is only needed to retrieve Alfresco parent POM. NOTE: 
+		This can be removed when/if Alfresco will be on Maven Central NOTE: The repository 
+		to be used for Alfresco Enterprise artifacts is https://artifacts.alfresco.com/nexus/content/groups/private/. 
+		Please check with Alfresco Support to get credentials to add to your ~/.m2/settings.xml 
+		if you are a Enterprise customer or Partner -->
+	<repositories>
+		<repository>
+			<id>artifactory-snapshots</id>
+			<name>snapshots</name>
+			<url>http://cae-artifactory.jpl.nasa.gov/artifactory/libs-snapshot-local</url>
+		</repository>
+		<repository>
+			<id>artifactory-releases</id>
+			<name>releases</name>
+			<url>http://cae-artifactory.jpl.nasa.gov/artifactory/libs-release-local</url>
+		</repository>
+		<repository>
+			<id>artifactory-external-releases</id>
+			<name>external-releases</name>
+			<url>http://cae-artifactory.jpl.nasa.gov/artifactory/ext-release-local</url>
+		</repository>
+
+		<!-- soap ui plugin -->
+		<repository>
+			<id>smartbear-sweden-plugin-repository</id>
+			<url>http://www.soapui.org/repository/maven2/</url>
+		</repository>
+	</repositories>
+
+    <build>
+        <sourceDirectory>src</sourceDirectory>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+                <configuration>
+                    <source />
+                    <target />
+                    <compilerArgument>-proc:none</compilerArgument>
+                    <excludes>
+                        <exclude>**/*.scala</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.1.6</version>
+                <executions>
+                    <execution>
+                        <id>scala-compile-first</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>scala-test-compile</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <scalaCompatVersion>${scalaVersion}</scalaCompatVersion>
+                    <sourceDir>src</sourceDir>
+                    <args>
+                        <!-- work-around for https://issues.scala-lang.org/browse/SI-8358 -->
+                        <arg>-nobootcp</arg>
+                    </args>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+	<reporting>
+		<plugins>
+		</plugins>
+	</reporting>
+</project>
