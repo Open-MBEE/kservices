@@ -1,4 +1,4 @@
-package gov.nasa.jpl.pma;
+package gov.nasa.jpl.kservices;
 
 import k.frontend.Model;
 import k.frontend.PackageDecl;

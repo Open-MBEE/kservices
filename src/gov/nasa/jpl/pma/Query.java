@@ -1,4 +1,4 @@
-package gov.nasa.jpl.pma;
+package gov.nasa.jpl.kservices;
 
 public interface Query< Model, Expression, VariableType, Result, Constraint, Objective >
         extends Problem< Model, Expression, VariableType, Constraint, Objective > {

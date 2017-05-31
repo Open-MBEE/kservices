@@ -1,4 +1,4 @@
-package gov.nasa.jpl.pma.service;
+package gov.nasa.jpl.kservices.service;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -7,7 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 
 import gov.nasa.jpl.ae.event.Expression;
-import gov.nasa.jpl.pma.KToAe;
+import gov.nasa.jpl.kservices.KToAe;
 import k.frontend.Exp;
 import k.frontend.Annotation;
 import k.frontend.EntityDecl;

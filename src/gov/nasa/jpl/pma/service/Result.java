@@ -1,4 +1,4 @@
-package gov.nasa.jpl.pma.service;
+package gov.nasa.jpl.kservices.service;
 
 import java.util.ArrayList;
 

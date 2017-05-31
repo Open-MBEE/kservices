@@ -1,4 +1,4 @@
-package gov.nasa.jpl.pma;
+package gov.nasa.jpl.kservices;
 
 import k.frontend.Model;
 import k.frontend.PackageDecl;
@@ -11,7 +11,7 @@ import java.util.Vector;
 
 import gov.nasa.jpl.mbee.util.Debug;
 
-//import gov.nasa.jpl.pma.scala.AeKUtil;
+//import gov.nasa.jpl.kservices.scala.AeKUtil;
 
 import gov.nasa.jpl.ae.solver.*;
 import gov.nasa.jpl.ae.sysml.SystemModelSolver;
@@ -646,7 +646,7 @@ public class AeToK {
         } catch (IllegalArgumentException e ) {
             return null;
         }
-        //AeKUtil u = new AeKUtil();//nil;//gov.nasa.jpl.pma.AeKUtil();
+        //AeKUtil u = new AeKUtil();//nil;//gov.nasa.jpl.kservices.AeKUtil();
         op = AeKUtil.aeToKBinaryOp(aeOp);
         if ( op == null ) {
             // TODO -- ERROR?

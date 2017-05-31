@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<!-- <?xml version="1.0" encoding="UTF-8"?> -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>gov.nasa.jpl</groupId>
@@ -35,10 +34,12 @@
 		can override the properties below to use another version. | For more available 
 		properties see the alfresco-sdk-parent POM. -->
 	<properties>
-		<app.log.root.level>WARN</app.log.root.level>
+<!--         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+ -->
+ 		<app.log.root.level>WARN</app.log.root.level>
 		<env>local</env>
-		<maven.test.skip>false</maven.test.skip>
-		<mbee.version>2.3.3-SNAPSHOT</mbee.version>
+		<maven.test.skip>true</maven.test.skip>
+		<mbee.version>2.3.4-SNAPSHOT</mbee.version>
 	</properties>
 
 	<!-- profiles for specific dependencies for developers or users -->
@@ -136,65 +137,6 @@
 				</dependency>
 			</dependencies>
 		</profile>
-        <!-- Maven profiles allow you to support both Scala 2.10 and Scala 2.11 
-             with the right dependencies for modules specified for each version separately -->
-        <profile>
-            <id>scala-2.11</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <properties>
-                <scalaVersion>2.11.8</scalaVersion>
-                <!-- change to "2.11" once Scala 2.11.0 final is out -->
-                <scalaBinaryVersion>2.11</scalaBinaryVersion>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>org.scala-lang</groupId>
-                    <artifactId>scala-library</artifactId>
-                    <version>${scalaVersion}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.scala-lang</groupId>
-                    <artifactId>scala-actors</artifactId>
-                    <version>${scalaVersion}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.scala-lang.modules</groupId>
-                    <artifactId>scala-xml_${scalaBinaryVersion}</artifactId>
-                    <version>1.0.3</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.scala-lang.modules</groupId>
-                    <artifactId>scala-parser-combinators_${scalaBinaryVersion}</artifactId>
-                    <version>1.0.3</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.scala-lang.modules</groupId>
-                    <artifactId>scala-swing_${scalaBinaryVersion}</artifactId>
-                    <version>1.0.1</version>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>scala-2.10</id>
-            <properties>
-                <scalaVersion>2.10.4</scalaVersion>
-                <scalaBinaryVersion>2.10</scalaBinaryVersion>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>org.scala-lang</groupId>
-                    <artifactId>scala-library</artifactId>
-                    <version>${scalaVersion}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.scala-lang</groupId>
-                    <artifactId>scala-swing</artifactId>
-                    <version>${scalaVersion}</version>
-                </dependency>
-            </dependencies>
-        </profile>
     </profiles>
 
 	<dependencyManagement>
@@ -310,7 +252,7 @@
                     <target>1.6</target>
                 </configuration>
             </plugin>
-            <plugin>
+ <!--            <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
                 <version>3.1.6</version>
@@ -335,12 +277,12 @@
                     <scalaCompatVersion>${scalaVersion}</scalaCompatVersion>
                     <sourceDir>src</sourceDir>
                     <args>
-                        <!-- work-around for https://issues.scala-lang.org/browse/SI-8358 -->
+                        work-around for https://issues.scala-lang.org/browse/SI-8358
                         <arg>-nobootcp</arg>
                     </args>
                 </configuration>
             </plugin>
-        </plugins>
+ -->        </plugins>
     </build>
 	<reporting>
 		<plugins>
