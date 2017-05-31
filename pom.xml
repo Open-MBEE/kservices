@@ -4,11 +4,11 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>gov.nasa.jpl</groupId>
-	<artifactId>pma</artifactId>
+	<artifactId>kservices</artifactId>
 	<version>2.4.0-SNAPSHOT</version>
-	<name>pma project</name>
+	<name>kservices project</name>
 	<packaging>jar</packaging>
-	<description>Manages the lifecycle of the pma project</description>
+	<description>Manages the lifecycle of the kservices project</description>
 
 <!-- 	<parent>
  		<groupId>org.alfresco.maven</groupId>
