@@ -24,7 +24,7 @@ import scala.Option;
 import scala.collection.immutable.List;
 import sysml.SystemModel;
 
-public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > extends ProblemSolver<String,String,String,String,String,String,String,String,String,String,String>{
+public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > implements sysml.ProblemSolver<String,String,String,String,String,String,String,String,String,String,String>{
 
     public Model model;
     public Exp kExpression;
@@ -114,27 +114,6 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > e
         Result<String> result = kQuery( k );
         return result;
     }
-    /*
-    // Constraint CRUD
-    public String getDomainConstraint( String element, String version, String workspace );
-    // TODO -- easier i/f for adding constraint that
-    public void addConstraint( String constraint, String version, String workspace );
-    public void addDomainConstraint( String constraint, String version, Set<String> valueDomainSet, String workspace );
-    public void addDomainConstraint( String constraint, String version, Pair<String,String> valueDomainRange, String workspace );
-    public void relaxDomain( String constraint, String version, Set<String> valueDomainSet, String workspace );
-    public void relaxDomain( String constraint, String version, Pair<String,String> valueDomainRange, String workspace );
-    public Collection<String> getConstraintsOfElement( E element, String version, String workspace );
-    //public Collection<String> getConstraintsOfContext( C context );
-    public Collection<String> getViolatedConstraintsOfElement( String element, String version );
-    //public Collection<String> getViolatedConstraintsOfContext( C context );
-    public void setOptimizationFunction( Method method, Object... arguments ); // REVIEW -- should these be elements? should the function be an interface type (add F to ModelItem)?
-    public Number getScore();
-    //public <B> Number getScore(B objective); // TODO -- add B to class parameters?
-    // TODO -- add other functions? like for delete? update?
-
-    // TODO -- invoke solver/fix
-    public boolean fixConstraintViolations( String element, String version );
-*/
 
     public static void main( String[] args ) {
         QueryExecutor< SystemModel<?,?,?,?,?,?,?,?,?,?,?> > qe = new QueryExecutor< SystemModel<?,?,?,?,?,?,?,?,?,?,?> >();
@@ -144,6 +123,84 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > e
         }
         System.out.println( "result = " + r.value );
         System.out.println( "Double.class.isAssignableFrom(Integer.class) = " + Double.class.isAssignableFrom(Integer.class) );
+    }
+
+    @Override
+    public String getDomainConstraint( String element, String version,
+                                       String workspace ) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void addConstraint( String constraint, String version,
+                               String workspace ) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void addDomainConstraint( String constraint, String version,
+                                     Set< String > valueDomainSet,
+                                     String workspace ) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void addDomainConstraint( String constraint, String version,
+                                     Pair< String, String > valueDomainRange,
+                                     String workspace ) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void relaxDomain( String constraint, String version,
+                             Set< String > valueDomainSet, String workspace ) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void relaxDomain( String constraint, String version,
+                             Pair< String, String > valueDomainRange,
+                             String workspace ) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public Collection< String > getConstraintsOfElement( String element,
+                                                         String version,
+                                                         String workspace ) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Collection< String >
+           getViolatedConstraintsOfElement( String element, String version ) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void setOptimizationFunction( Method method, Object... arguments ) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public Number getScore() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public boolean fixConstraintViolations( String element, String version ) {
+        // TODO Auto-generated method stub
+        return false;
     }
 
     
