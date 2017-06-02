@@ -39,7 +39,7 @@
  		<app.log.root.level>WARN</app.log.root.level>
 		<env>local</env>
 		<maven.test.skip>true</maven.test.skip>
-		<mbee.version>2.3.3-SNAPSHOT</mbee.version>
+		<mbee.version>2.3.4-SNAPSHOT</mbee.version>
 	</properties>
 
 	<!-- profiles for specific dependencies for developers or users -->

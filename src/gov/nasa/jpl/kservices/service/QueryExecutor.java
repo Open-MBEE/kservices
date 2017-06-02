@@ -4,10 +4,14 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Set;
 
 import gov.nasa.jpl.ae.event.Expression;
 import gov.nasa.jpl.kservices.KToAe;
+import gov.nasa.jpl.mbee.util.Pair;
 import k.frontend.Exp;
 import k.frontend.Annotation;
 import k.frontend.EntityDecl;
@@ -20,7 +24,7 @@ import scala.Option;
 import scala.collection.immutable.List;
 import sysml.SystemModel;
 
-public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > {
+public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > extends ProblemSolver<String,String,String,String,String,String,String,String,String,String,String>{
 
     public Model model;
     public Exp kExpression;
@@ -110,6 +114,27 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > {
         Result<String> result = kQuery( k );
         return result;
     }
+    /*
+    // Constraint CRUD
+    public String getDomainConstraint( String element, String version, String workspace );
+    // TODO -- easier i/f for adding constraint that
+    public void addConstraint( String constraint, String version, String workspace );
+    public void addDomainConstraint( String constraint, String version, Set<String> valueDomainSet, String workspace );
+    public void addDomainConstraint( String constraint, String version, Pair<String,String> valueDomainRange, String workspace );
+    public void relaxDomain( String constraint, String version, Set<String> valueDomainSet, String workspace );
+    public void relaxDomain( String constraint, String version, Pair<String,String> valueDomainRange, String workspace );
+    public Collection<String> getConstraintsOfElement( E element, String version, String workspace );
+    //public Collection<String> getConstraintsOfContext( C context );
+    public Collection<String> getViolatedConstraintsOfElement( String element, String version );
+    //public Collection<String> getViolatedConstraintsOfContext( C context );
+    public void setOptimizationFunction( Method method, Object... arguments ); // REVIEW -- should these be elements? should the function be an interface type (add F to ModelItem)?
+    public Number getScore();
+    //public <B> Number getScore(B objective); // TODO -- add B to class parameters?
+    // TODO -- add other functions? like for delete? update?
+
+    // TODO -- invoke solver/fix
+    public boolean fixConstraintViolations( String element, String version );
+*/
 
     public static void main( String[] args ) {
         QueryExecutor< SystemModel<?,?,?,?,?,?,?,?,?,?,?> > qe = new QueryExecutor< SystemModel<?,?,?,?,?,?,?,?,?,?,?> >();
