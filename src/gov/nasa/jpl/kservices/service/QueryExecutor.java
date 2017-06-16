@@ -65,10 +65,14 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
      * @return a Result object with evaluation result as as string and with any errors.
      */
     public Result<String> kQuery( String k ) {
-        KToAe k2ae = new KToAe();
-        Exp kExpr = Frontend.exp2KExp( k );
-        kExpression = kExpr;
-        Object expr = k2ae.astToAeExpr( kExpr, null, true, true, true, true, null );
+        KToAe k2ae = new KToAe( k  );
+        //Exp kExpr = Frontend.exp2KExp( k );
+
+        Object kObj = Frontend.stringToClass( k );
+        //kExpression = kExpr;
+        //Object expr = k2ae.astToAeExpr( kExpr, null, true, true, true, true, null );
+        Object expr = k2ae.astToAeExpr( k, null, true, true, true, true, null );
+
         Object value = null;
         ArrayList<String> errors = null;
 
@@ -117,7 +121,7 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
 
     public static void main( String[] args ) {
         QueryExecutor< SystemModel<?,?,?,?,?,?,?,?,?,?,?> > qe = new QueryExecutor< SystemModel<?,?,?,?,?,?,?,?,?,?,?> >();
-        Result<String> r = qe.kQuery("2 * 6.3");
+        Result<String> r = qe.kQuery("y: yo class hi {val x:Int = 2 } class yo extends hi {y:Int req y = x+2}");
         if ( r.errors != null && !r.errors.isEmpty() ) { 
             System.err.println( r.errors );
         }
