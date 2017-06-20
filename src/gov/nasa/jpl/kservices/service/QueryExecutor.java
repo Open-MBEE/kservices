@@ -66,11 +66,7 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
      */
     public Result<String> kQuery( String k ) {
         KToAe k2ae = new KToAe( k  );
-        //Exp kExpr = Frontend.exp2KExp( k );
 
-        Object kObj = Frontend.stringToClass( k );
-        //kExpression = kExpr;
-        //Object expr = k2ae.astToAeExpr( kExpr, null, true, true, true, true, null );
         Object expr = k2ae.astToAeExpr( k, null, true, true, true, true, null );
 
         Object value = null;
