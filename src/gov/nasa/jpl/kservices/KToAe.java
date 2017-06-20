@@ -121,56 +121,8 @@ public class KToAe {
     private ClassData classData;
 
     public KToAe(String k) {
-    	this.k = k;
-//    	init();
     }
-    
-    
-    
-//	public void init() {
-//		expressionTranslator = new JavaToConstraintExpression( //packagename
-//				null);
-//		this.tc = new TypeChecker(Frontend.getModelFromString(this.k));
-//		
-//		
-//		buildParamTable( this.k, getClassData().getParamTable() );
-//	    //buildMethodTable( this.k, getClassData().getMethodTable() ); TODO, do I even need this?
-//		
-//	}
-//	
-//	public ClassData getClassData() {
-//		return this.classData;
-//	}
-//    
-//	public void buildParamTable(String k, Map< String, Map< String, ClassData.Param > > paramTable) {
-//		Map< String, ClassData.Param > params = new TreeMap <String, ClassData.Param >();
-//        ArrayList< EntityDecl > entityList = new ArrayList< EntityDecl >(JavaConversions.asJavaCollection(Frontend.getEntities(k)));
-//		ListIterator<EntityDecl> i = entityList.listIterator();
-//		while (i.hasNext()) {
-//			EntityDecl entity = i.next();
-//			String entityName = entity.ident();
-//			params = new TreeMap<String, ClassData.Param>();
-//			ArrayList< PropertyDecl> propertyList = new ArrayList< PropertyDecl >(JavaConversions.asJavaCollection(entity.getAllPropertyDecls()));
-//			for ( PropertyDecl p : propertyList ) {
-//				ClassData.Param param = makeParam( p );
-//				params.put(p.name(), param);
-//			}
-//			paramTable.put(entityName, params);
-//    	
-//        }
-//        
-//	
-//	}
-//	
-//	
-//	
-//	public ClassData.Param makeParam ( PropertyDecl p ) {
-//		String name = p.name();
-//		String type = JavaToConstraintExpression.typeToClass(p.ty().toString());
-//		String value = expressionTranslator.fixValue(p.expr().toString());
-//		return new ClassData.Param(name, type, value);
-//		
-//	}
+
     
     
     public Object kASTToAe(Object kObj,
@@ -194,10 +146,7 @@ public class KToAe {
                                StringBuffer error ) {
         if ( kExpr == null ) return null;
         
-        
-        //tc.hi();
-        //ArrayList< EntityDecl > lst = new ArrayList(JavaConversions.asJavaCollection(Frontend.getEntities((String)kExpr)));
-        //System.out.println(lst.get(1).getAllPropertyDecls());
+
         
         KAstClass cls = null;
         try {

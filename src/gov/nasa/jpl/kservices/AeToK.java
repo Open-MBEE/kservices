@@ -320,9 +320,9 @@ public class AeToK {
         if ( Expression.class.isAssignableFrom( objClass ) ) {
             return Expression.class;
         }
-        if ( Query.class.isAssignableFrom( objClass ) ) {
-            return Query.class;
-        }
+//        if ( Query.class.isAssignableFrom( objClass ) ) { NEED TO MAKE QUERY A PUBLIC CLASS
+//            return Query.class;
+//        }
 //        if ( HowManyQuery.class.isAssignableFrom( objClass ) ) {
 //            return HowManyQuery.class;
 //        }
@@ -556,7 +556,7 @@ public class AeToK {
                     } else {
                     	//Exp arg0 = kArgs.isEmpty() ? null : kArgs.get( 0 );
                     	//kArgs.remove(0);
-                    	aeExpr = AeKUtil.makeFunApplExp(fNameExp, kArgs);
+                    	//aeExpr = AeKUtil.makeFunApplExp(fNameExp, kArgs);
 //                    	List<Argument> list = AeKUtil.arrayListToList(kArgs);
 //                    	aeExpr = new FunApplExp(fNameExp, list);
                     }
@@ -647,7 +647,7 @@ public class AeToK {
             return null;
         }
         //AeKUtil u = new AeKUtil();//nil;//gov.nasa.jpl.kservices.AeKUtil();
-        op = AeKUtil.aeToKBinaryOp(aeOp);
+        //op = AeKUtil.aeToKBinaryOp(aeOp);
         if ( op == null ) {
             // TODO -- ERROR?
         }
@@ -669,7 +669,7 @@ public class AeToK {
         } catch (IllegalArgumentException e ) {
             return null;
         }
-        op = AeKUtil.aeToKUnaryOp( aeOp );
+        //op = AeKUtil.aeToKUnaryOp( aeOp );
         return op;
     }
 

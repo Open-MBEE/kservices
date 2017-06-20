@@ -413,8 +413,7 @@ public class KtoJava {
         tryStmt.setTryBlock( mainBody );
         stmts.add( tryStmt );
         BlockStmt newBody = new BlockStmt( stmts );
-        //mainBody.setBody( newBody );
-        
+        mainMethodDecl.setBody( newBody );
 
         
 
@@ -1279,9 +1278,7 @@ public class KtoJava {
         for (String arg : args) {
             kToExecute += arg + " ";
         }
-        
-        System.out.println( kToExecute );
-
+       
         KtoJava kToJava =
                 new KtoJava( kToExecute, "generatedCode" );
 
