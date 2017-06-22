@@ -188,6 +188,7 @@ public class KtoJava {
     String k;
     String packageName;
     JavaToConstraintExpression expressionTranslator;
+    KToAe k2ae;
     int counter;
     TypeChecker typeChecker;
     Model model;
@@ -217,7 +218,7 @@ public class KtoJava {
         } else {
             translateClasses();
         }
-        
+
     }
 
     public void init() {
@@ -226,8 +227,9 @@ public class KtoJava {
         this.model = Frontend.getModelFromString( this.k );
         typeChecker = new TypeChecker( this.model );
         this.isExpression = Frontend.isExpression( this.model );
+        this.k2ae = new KToAe();
+        buildParamTable( getClassData().getParamTable() );
 
-        
         // buildMethodTable( this.k, getClassData().getMethodTable() ); TODO, do
         // I even need this?
 
@@ -285,18 +287,19 @@ public class KtoJava {
         }
     }
 
-//    public Collection< MethodDeclaration > getMethods( EntityDecl entity ) {
-//        ArrayList< MethodDeclaration > methodDeclarations =
-//                new ArrayList< MethodDeclaration >();
-//        ArrayList< FunDecl > functions =
-//                new ArrayList< FunDecl >( JavaConversions.asJavaCollection( entity.getFunDecls() ) );
-//        for ( FunDecl funDecl : functions ) {
-//            MethodDeclaration methodDecl = new MethodDeclaration();
-//            methodDecl.setType( funDecl.ty().get() );
-//           
-//        }
-//        return methodDeclarations;
-//    }
+    public Collection< MethodDeclaration > getMethods( EntityDecl entity ) {
+        ArrayList< MethodDeclaration > methodDeclarations =
+                new ArrayList< MethodDeclaration >();
+        ArrayList< FunDecl > functions =
+                new ArrayList< FunDecl >( JavaConversions.asJavaCollection( entity.getFunDecls() ) );
+        for ( FunDecl funDecl : functions ) {
+            MethodDeclaration methodDecl = new MethodDeclaration();
+            methodDecl.setType( new ClassOrInterfaceType( funDecl.ty().get()
+                                                                 .toString() ) );
+
+        }
+        return methodDeclarations;
+    }
 
     public ClassData.Param makeParam( PropertyDecl p ) {
         String name = p.name();
@@ -305,14 +308,20 @@ public class KtoJava {
         String value;
         if ( p.expr().isEmpty() ) {
             value = "null";
+            if ( !( type.equals( "BooleanParameter" )
+                    || type.equals( "DoubleParameter" )
+                    || type.equals( "IntegerParameter" )
+                    || type.equals( "LongParameter" )
+                    || type.equals( "StringParameter" ) ) ) {
+                value = "new " + type + "()";
+            }
         } else {
             value = expressionTranslator.fixValue( p.expr().get().toString() );
         }
         return new ClassData.Param( name, type, value );
 
     }
-    
-    
+
     public void translateExpression() {
         getClassData().setCurrentClass( "Main" );
         initClassCompilationUnit( getClassData().getCurrentClass() );
@@ -322,18 +331,13 @@ public class KtoJava {
                                                  getClassData().getCurrentClass() );
         ASTHelper.addTypeDeclaration( getClassData().getCurrentCompilationUnit(),
                                       newClassDecl );
-        
-        
 
-        // Create public static main( String args[] ) { }
-        // First, create main() { }
         int mods = ModifierSet.PUBLIC | ModifierSet.STATIC;
 
         MethodDeclaration mainMethodDecl =
                 new MethodDeclaration( mods, new VoidType(), "main" );
         BlockStmt mainBody = new BlockStmt();
         mainMethodDecl.setBody( mainBody );
-
 
         ConstructorDeclaration ctor =
                 new ConstructorDeclaration( ModifierSet.PUBLIC,
@@ -342,46 +346,21 @@ public class KtoJava {
         BlockStmt ctorBody = new BlockStmt();
         ctor.setBlock( ctorBody );
 
-        // Need to set the epoch and units first thing.
-        // REVIEW -- We need a scenario event that requires these arguments in
-        // the
-        // constructor to ensure they are set up front.
-        // String epochString = Timepoint.toTimestamp(
-        // Timepoint.getEpoch().getTime() );
-
-        // Create String args[].
         Type type = ASTHelper.createReferenceType( "String", 1 );
         VariableDeclaratorId id = new VariableDeclaratorId( "args" );
         japa.parser.ast.body.Parameter parameter =
                 new japa.parser.ast.body.Parameter( type, id );
-        // Wire everything together.
+
         ASTHelper.addParameter( mainMethodDecl, parameter );
         ASTHelper.addMember( newClassDecl, mainMethodDecl );
 
-        // Now add statements to main()
-
-        // Get the name/class of the event to execute
-//        List< PropertyDecl > topLevelProperties = new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model ) ) );
-//        PropertyDecl toExecute = topLevelProperties.get( 0 );
-//        String className = toExecute.ty().toString();
-//        String instanceName = toExecute.name();
-//        if ( instanceName == null || instanceName.isEmpty() ) {
-//            instanceName = className + ( counter++ );
-//        }
-
-        // The Main class will extend the event to execute.
-//        addExtends( newClassDecl, className );
-
-        // Use a StringBuffer to collect the statements.
         StringBuffer stmtsMain = new StringBuffer();
-        // StringBuffer stmtsCtor = new StringBuffer();
 
-        // Get constructor arguments and create a statement constructing the
-        // instance.
         List< Expression > args = new ArrayList< Expression >();
         Expression expr = expressionTranslator.parseExpression( this.k );
-        String aeString =  expressionTranslator.astToAeExpr( expr, null, true, true, true, true );
-        stmtsMain.append( "Object value = " + aeString + ";" );        
+        String aeString = expressionTranslator.astToAeExpr( expr, null, true,
+                                                            true, true, true );
+        stmtsMain.append( "Object value = " + aeString + ";" );
         stmtsMain.append( "System.out.println( value );" );
         ASTHelper.addStmt( ctorBody,
                            new ExplicitConstructorInvocationStmt( false, null,
@@ -389,20 +368,17 @@ public class KtoJava {
 
         addImport( "gov.nasa.jpl.ae.event.Expression" );
 
-        // Put the statements in main().
         addStatements( mainBody, stmtsMain.toString() );
-        
+
         String tryCatchString = "try{\n" + ";\n" + "} catch ( Exception e ) {\n"
-                + "  // TODO Auto-generated catch block\n"
-                + "  e.printStackTrace();\n" + "}\n";
-        
+                                + "  // TODO Auto-generated catch block\n"
+                                + "  e.printStackTrace();\n" + "}\n";
+
         List< Statement > stmts = new ArrayList< Statement >();
         if ( Debug.isOn() ) Debug.outln( "trying to parse \"" + stmts + "\"" );
 
-        
-        
         TryStmt tryStmt = null;
-        
+
         ASTParser parser = new ASTParser( new StringReader( tryCatchString ) );
         try {
             tryStmt = parser.TryStatement();
@@ -415,31 +391,6 @@ public class KtoJava {
         BlockStmt newBody = new BlockStmt( stmts );
         mainMethodDecl.setBody( newBody );
 
-        
-
-        
-        // if ( argumentsNode != null ) {
-        // List< Node > argNodeList = XmlUtils.getChildNodes( argumentsNode,
-        // "parameter" );
-        // boolean first = true;
-        // for ( int j = 0; j < argNodeList.size(); j++ ) {
-        // if ( first ) {
-        // first = false;
-        // } else {
-        // //stmtsCtor.append( ", " );
-        // }
-        // Node argNode = argNodeList.get( j );
-        // ClassData.Param p = makeParam( argNode );
-        // String exprStr = expressionTranslator.javaToAeExpr( p.value, p.type,
-        // true );
-        // japa.parser.ast.expr.Expression expr = new NameExpr( exprStr );
-        // args.add( expr );
-        // //stmtsCtor.append( exprStr );
-        // }
-        // }
-        // stmtsCtor.append(");\n");
-        
-        
     }
 
     public void translateClasses() {
@@ -1045,7 +996,8 @@ public class KtoJava {
         // Now add statements to main()
 
         // Get the name/class of the event to execute
-        List< PropertyDecl > topLevelProperties = new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model ) ) );
+        List< PropertyDecl > topLevelProperties =
+                new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model ) ) );
         PropertyDecl toExecute = topLevelProperties.get( 0 );
         String className = toExecute.ty().toString();
         String instanceName = toExecute.name();
@@ -1275,16 +1227,16 @@ public class KtoJava {
         // p.satisfy( true, null );
         // System.out.println( "i = " + i.getValue() );
         String kToExecute = "";
-        for (String arg : args) {
+        for ( String arg : args ) {
             kToExecute += arg + " ";
         }
-       
-        KtoJava kToJava =
-                new KtoJava( kToExecute, "generatedCode" );
+
+        kToExecute =
+                "class A {x:Int req x > 2 req x < 4} class B {a:A  } class C {b:B}  class D {z:Int c:C req z = c.b.a.x} d :D";
+
+        KtoJava kToJava = new KtoJava( kToExecute, "generatedCode" );
 
         kToJava.writeFiles( kToJava, "/Users/ayelaman/git/kservices" );
-
-        
 
     }
 
