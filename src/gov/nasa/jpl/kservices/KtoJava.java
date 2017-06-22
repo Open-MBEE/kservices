@@ -25,6 +25,7 @@ import japa.parser.ast.stmt.ExplicitConstructorInvocationStmt;
 import japa.parser.ast.stmt.Statement;
 import japa.parser.ast.stmt.TryStmt;
 import japa.parser.ast.type.ClassOrInterfaceType;
+import japa.parser.ast.type.PrimitiveType;
 import japa.parser.ast.type.Type;
 // import japa.parser.ast.type.Type;
 import japa.parser.ast.type.VoidType;
@@ -188,7 +189,6 @@ public class KtoJava {
     String k;
     String packageName;
     JavaToConstraintExpression expressionTranslator;
-    KToAe k2ae;
     int counter;
     TypeChecker typeChecker;
     Model model;
@@ -227,11 +227,9 @@ public class KtoJava {
         this.model = Frontend.getModelFromString( this.k );
         typeChecker = new TypeChecker( this.model );
         this.isExpression = Frontend.isExpression( this.model );
-        this.k2ae = new KToAe();
         buildParamTable( getClassData().getParamTable() );
 
-        // buildMethodTable( this.k, getClassData().getMethodTable() ); TODO, do
-        // I even need this?
+        buildMethodTable( getClassData().getMethodTable() );
 
     }
 
@@ -271,8 +269,8 @@ public class KtoJava {
                         new TreeMap< String, Set< MethodDeclaration > >();
                 methodTable.put( entityName, classMethods );
             }
-            Collection< MethodDeclaration > methodCollection = null;
-            // getMethods( entity );
+            Collection< MethodDeclaration > methodCollection =
+                    getMethods( entity );
 
             for ( MethodDeclaration methodDecl : methodCollection ) {
                 Set< MethodDeclaration > methodSet =
@@ -293,12 +291,64 @@ public class KtoJava {
         ArrayList< FunDecl > functions =
                 new ArrayList< FunDecl >( JavaConversions.asJavaCollection( entity.getFunDecls() ) );
         for ( FunDecl funDecl : functions ) {
-            MethodDeclaration methodDecl = new MethodDeclaration();
-            methodDecl.setType( new ClassOrInterfaceType( funDecl.ty().get()
-                                                                 .toString() ) );
+            MethodDeclaration methodDecl = makeMethodDecl( funDecl );
+            methodDeclarations.add( methodDecl );
 
         }
         return methodDeclarations;
+
+    }
+
+    public MethodDeclaration makeMethodDecl( FunDecl funDecl ) {
+        MethodDeclaration methodDecl = new MethodDeclaration();
+        methodDecl.setType( makeType( funDecl.ty().get().toString() ) );
+        methodDecl.setModifiers( 1 );
+        methodDecl.setName( funDecl.ident() );
+        List< Param > funParams =
+                new ArrayList< Param >( JavaConversions.asJavaCollection( funDecl.params() ) );
+        List< japa.parser.ast.body.Parameter > params =
+                new ArrayList< japa.parser.ast.body.Parameter >();
+        japa.parser.ast.body.Parameter param;
+        for ( Param p : funParams ) {
+            param = ASTHelper.createParameter( makeType( p.ty().toString() ),
+                                               p.name() );
+            params.add( param );
+        }
+        methodDecl.setParameters( params );
+        BlockStmt body = new BlockStmt();
+        Expression expr =
+                expressionTranslator.parseExpression( ( (ExpressionDecl)funDecl.body()
+                                                                               .apply( 0 ) ).exp()
+                                                                                            .toJavaString() );
+        String aeString = expressionTranslator.astToAeExpr( expr, null, true,
+                                                            true, true, true );
+        addStatements( body,
+                       "return "
+                             + ( (ExpressionDecl)funDecl.body().apply( 0 ) )
+                                                                            .exp().toJavaString()
+                             + ";" );
+        methodDecl.setBody( body );
+
+        return methodDecl;
+    }
+
+    public Type makeType( String typeString ) {
+        Type type;
+        switch ( typeString ) {
+            case "Int":
+                type = new PrimitiveType( PrimitiveType.Primitive.Int );
+                break;
+            case "Bool":
+                type = new PrimitiveType( PrimitiveType.Primitive.Boolean );
+                break;
+            case "Real":
+                type = new PrimitiveType( PrimitiveType.Primitive.Double );
+                break;
+            default:
+                type = new ClassOrInterfaceType( typeString );
+        }
+        return type;
+
     }
 
     public ClassData.Param makeParam( PropertyDecl p ) {
@@ -316,7 +366,7 @@ public class KtoJava {
                 value = "new " + type + "()";
             }
         } else {
-            value = expressionTranslator.fixValue( p.expr().get().toString() );
+            value = null;
         }
         return new ClassData.Param( name, type, value );
 
@@ -517,8 +567,28 @@ public class KtoJava {
     // }
     // TODO
 
+    public Set< MethodDeclaration > getMethodsForClass( String className ) {
+        Map< String, Set< MethodDeclaration > > classMethods =
+                getClassData().getMethodTable().get( className );
+        if ( classMethods == null ) return ClassData.emptyMethodDeclarationSet;
+        Set< MethodDeclaration > methodsForClass =
+                new TreeSet< MethodDeclaration >( new CompareUtils.GenericComparator< MethodDeclaration >() );
+        for ( Set< MethodDeclaration > methodsByName : classMethods.values() ) {
+            methodsForClass.addAll( methodsByName );
+        }
+        return methodsForClass;
+    }
+
     protected void createMembers( TypeDeclaration newClassDecl,
                                   EntityDecl entity ) {
+
+        Collection< MethodDeclaration > methods =
+                getMethodsForClass( getClassData().getCurrentClass() );
+        for ( MethodDeclaration methodDecl : methods ) {
+
+            ASTHelper.addMember( newClassDecl, methodDecl );
+        }
+
         MethodDeclaration initMembers =
                 createPublicVoidMethod( "init" + newClassDecl.getName()
                                         + "Members" );
@@ -578,7 +648,7 @@ public class KtoJava {
 
             String name = constraint.name().isEmpty() ? null
                                                       : constraint.name().get();
-            expression = constraint.exp().toString().replace( "=", "==" );
+            expression = constraint.exp().toJavaString();
             f = createConstraintField( name, expression, initMembers );
             if ( f != null ) {
                 constraints.add( f );
@@ -616,6 +686,10 @@ public class KtoJava {
                                          constructorArgs );
 
     }
+
+    // public String translateExpression(String expression) {
+    //
+    // }
 
     public FieldDeclaration
            createConstraintField( String name, String expression,
@@ -1231,8 +1305,8 @@ public class KtoJava {
             kToExecute += arg + " ";
         }
 
-        kToExecute =
-                "class A {x:Int req x > 2 req x < 4} class B {a:A  } class C {b:B}  class D {z:Int c:C req z = c.b.a.x} d :D";
+//        kToExecute =
+//                "class A {fun sq(x:Int): Int { x*x} x:Int y:Bool req y = true req y = (x = sq(9))} a:A";
 
         KtoJava kToJava = new KtoJava( kToExecute, "generatedCode" );
 
