@@ -1090,8 +1090,7 @@ public class KtoJava {
         // instance.
         stmtsMain.append( "Main scenario = new Main();" );
         stmtsMain.append( "scenario.satisfy( true, null );" );
-        stmtsMain.append( "System.out.println( scenario );" );
-        stmtsMain.append( "System.out.println( scenario.isSatisfied( true, null ) );" );
+        stmtsMain.append( "System.out.println((scenario.isSatisfied(true, null) ? \"Satisfied\" : \"Not Satisfied\") + \"\\n\" + scenario);"  );
         // stmtsSB.append( className + " " + instanceName + " = new " +
         // className + "(");
         // stmtsCtor.append( "super(");
@@ -1304,9 +1303,6 @@ public class KtoJava {
         for ( String arg : args ) {
             kToExecute += arg + " ";
         }
-
-//        kToExecute =
-//                "class A {fun sq(x:Int): Int { x*x} x:Int y:Bool req y = true req y = (x = sq(9))} a:A";
 
         KtoJava kToJava = new KtoJava( kToExecute, "generatedCode" );
 

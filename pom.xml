@@ -97,11 +97,11 @@
 					<artifactId>sysml</artifactId>
 					<version>${mbee.version}</version>
 				</dependency>
-				<dependency>
+<!--  				<dependency>
 					<groupId>gov.nasa.jpl.mbee.bae</groupId>
 					<artifactId>bae</artifactId>
 					<version>${mbee.version}</version>
-				</dependency>
+				</dependency> -->
                 <dependency>
                     <groupId>klang</groupId>
                     <artifactId>klang</artifactId>
