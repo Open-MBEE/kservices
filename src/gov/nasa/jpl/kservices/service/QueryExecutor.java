@@ -110,14 +110,21 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
      * @return
      */
     public Result<String> jsonQuery( String json ) {
-        String k = Frontend.json2exp2( json );
+    	System.out.println("DEBUG: --- START jsonQuery ---"); //DEBUG
+    	System.out.printf("DEBUG: json: %s%n", json); //DEBUG
+    	String k = Frontend.json2exp2( json );
+    	System.out.printf("DEBUG: k: %s%n", k); //DEBUG
         Result<String> result = kQuery( k );
+        System.out.printf("DEBUG: result: %s%n", result); //DEBUG
+        System.out.println("DEBUG: --- END jsonQuery ---"); //DEBUG
         return result;
     }
 
     public static void main( String[] args ) {
         QueryExecutor< SystemModel<?,?,?,?,?,?,?,?,?,?,?> > qe = new QueryExecutor< SystemModel<?,?,?,?,?,?,?,?,?,?,?> >();
-        Result<String> r = qe.kQuery("y: yo class hi {val x:Int = 2 } class yo extends hi {y:Int req y = x+2}");
+//        Result<String> r = qe.kQuery("y: yo class hi {val x:Int = 2 } class yo extends hi {y:Int req y = x+2}");
+        Result<String> r = qe.jsonQuery("{\"elements\": [{\"specialization\": {\"integer\": 1, \"type\": \"LiteralInteger\"}}]}");
+        System.out.println("DEBUG: r: " + r.toString()); //DEBUG
         if ( r.errors != null && !r.errors.isEmpty() ) { 
             System.err.println( r.errors );
         }
