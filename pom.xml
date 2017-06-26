@@ -96,6 +96,10 @@
 					<groupId>gov.nasa.jpl.mbee.sysml</groupId>
 					<artifactId>sysml</artifactId>
 					<version>${mbee.version}</version>
+					<!-- Needed for development only: -->
+					<!-- <scope>system</scope>
+					<type>jar</type>
+					<systemPath>${project.basedir}/../sysml/target/sysml-2.3.4-SNAPSHOT.jar</systemPath> -->
 				</dependency>
 				<dependency>
 					<groupId>gov.nasa.jpl.mbee.bae</groupId>
@@ -195,6 +199,11 @@
 			<artifactId>antlr4</artifactId>
 			<version>4.5</version>
 		</dependency>
+ 		<dependency>
+ 			<groupId>com.googlecode.json-simple</groupId>
+ 			<artifactId>json-simple</artifactId>
+ 			<version>1.1.1</version>
+ 		</dependency>
 	</dependencies>
 
 

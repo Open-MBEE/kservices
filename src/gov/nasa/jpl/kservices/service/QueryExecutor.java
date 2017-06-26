@@ -1,5 +1,6 @@
 package gov.nasa.jpl.kservices.service;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -7,10 +8,15 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 import gov.nasa.jpl.ae.event.Expression;
 import gov.nasa.jpl.kservices.KToAe;
+import gov.nasa.jpl.kservices.S2KParseException;
+import gov.nasa.jpl.kservices.SysMLtoK;
+import gov.nasa.jpl.kservices.SysMLtoK.Interpolator;
+import gov.nasa.jpl.kservices.SysMLtoK.TranslationMap;
 import gov.nasa.jpl.mbee.util.Pair;
 import k.frontend.Exp;
 import k.frontend.Annotation;
@@ -110,26 +116,25 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
      * @return
      */
     public Result<String> jsonQuery( String json ) {
-    	System.out.println("DEBUG: --- START jsonQuery ---"); //DEBUG
-    	System.out.printf("DEBUG: json: %s%n", json); //DEBUG
     	String k = Frontend.json2exp2( json );
-    	System.out.printf("DEBUG: k: %s%n", k); //DEBUG
         Result<String> result = kQuery( k );
-        System.out.printf("DEBUG: result: %s%n", result); //DEBUG
-        System.out.println("DEBUG: --- END jsonQuery ---"); //DEBUG
         return result;
     }
 
     public static void main( String[] args ) {
-        QueryExecutor< SystemModel<?,?,?,?,?,?,?,?,?,?,?> > qe = new QueryExecutor< SystemModel<?,?,?,?,?,?,?,?,?,?,?> >();
-//        Result<String> r = qe.kQuery("y: yo class hi {val x:Int = 2 } class yo extends hi {y:Int req y = x+2}");
-        Result<String> r = qe.jsonQuery("{\"elements\": [{\"specialization\": {\"integer\": 1, \"type\": \"LiteralInteger\"}}]}");
-        System.out.println("DEBUG: r: " + r.toString()); //DEBUG
-        if ( r.errors != null && !r.errors.isEmpty() ) { 
-            System.err.println( r.errors );
-        }
-        System.out.println( "result = " + r.value );
-        System.out.println( "Double.class.isAssignableFrom(Integer.class) = " + Double.class.isAssignableFrom(Integer.class) );
+  		try {
+  		  TranslationMap tm = SysMLtoK.translateElements( SysMLtoK.readJSONFile(
+  		    "/Users/dlegg/git/kservices/testdata/simple-project.json"
+  		  ));
+  		  for (Map.Entry<String, Interpolator> entry : tm.entrySet()) {
+  		    System.out.println("DEBUG: --- MARK ---"); //DEBUG
+  		    System.out.printf("DEBUG: entry.getKey(): %s%n", entry.getKey()); //DEBUG
+  		    System.out.printf("DEBUG: entry.getValue(): %s%n", entry.getValue()); //DEBUG
+  		    System.out.printf("DEBUG: entry.getValue().interpolate(): %s%n", entry.getValue().interpolate(tm)); //DEBUG
+  		  }
+  		} catch (Exception e) {
+  			e.printStackTrace();
+  		}
     }
 
     @Override

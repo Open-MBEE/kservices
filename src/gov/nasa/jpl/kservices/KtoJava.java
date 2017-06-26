@@ -227,7 +227,7 @@ public class KtoJava {
         this.model = Frontend.getModelFromString( this.k );
         typeChecker = new TypeChecker( this.model );
         this.isExpression = Frontend.isExpression( this.model );
-        this.k2ae = new KToAe();
+        this.k2ae = new KToAe("");
         buildParamTable( getClassData().getParamTable() );
 
         // buildMethodTable( this.k, getClassData().getMethodTable() ); TODO, do
