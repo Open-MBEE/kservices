@@ -51,7 +51,7 @@ public class SysMLtoK {
      * @param jsonObj The element to translate.
      * @throws JSONException if element 
      */
-    public Interpolator translate(JSONObject jsonObj) throws JSONException, S2KParseException;
+    public Interpolator translate(JSONObject jsonObj) throws S2KParseException;
   }
   
   /**
@@ -63,7 +63,7 @@ public class SysMLtoK {
      * @param tm TranslationMap for all fragments
      * @return Resultant code
      */
-    public String interpolate(TranslationMap tm);
+    public String interpolate(TranslationMap tm) throws S2KParseException;
   }
   
   /**
@@ -329,21 +329,25 @@ public class SysMLtoK {
       private String name;
       private Interpolator contentIp;
       public ClassIp(String myName, JSONObject contentJson) throws S2KParseException {
-        name = myName;
-        contentIp = translateElement(contentJson);
+        name      = myName;
+        contentIp = (contentJson == null ? null : translateElement(contentJson));
       }
-      public String interpolate(TranslationMap tm) {
+      public String interpolate(TranslationMap tm) throws S2KParseException {
         // TODO: figure out what needs to be called for interpolation
-        return String.format(
-            "class %1$s {%n"
-          + "  %2$s%n"
-          + "}",
-            name,
-            contentIp.interpolate(tm));
+        if (contentIp == null) {
+          return String.format("class %1$s", name);
+        } else {
+          return String.format(
+              "class %1$s {%n"
+            + "  %2$s%n"
+            + "}",
+              name,
+              contentIp.interpolate(tm));
+        }
       }
     }
     public Interpolator translate(JSONObject jsonObj) throws S2KParseException, JSONException {
-      return new ClassIp(jsonObj.getString("name"), jsonObj.getJSONObject("_contents"));
+      return new ClassIp(jsonObj.getString("name"), jsonObj.optJSONObject("_contents"));
     }
   }
 
@@ -499,13 +503,25 @@ public class SysMLtoK {
 
   public static class ExpressionTr implements Translator {
     protected class ExpressionIp implements Interpolator {
-      public String interpolate(TranslationMap tm) {
-        return "-- Expression";
+      private Interpolator[] operandIps;
+      public ExpressionIp(JSONArray operands) throws S2KParseException, JSONException {
+        operandIps = new Interpolator[operands.length()];
+        for (int i = 0; i < operandIps.length; ++i) {
+          operandIps[i] = translateElement(operands.getJSONObject(i));
+        }
+      }
+      public String interpolate(TranslationMap tm) throws S2KParseException {
+        // TODO: actually parse the expression, once operators/operand structure is understood
+        String output = "(";
+        for (Interpolator opIp : operandIps) {
+          output += opIp.interpolate(tm) + ",";
+        }
+        return output + ")";
       }
     }
-    public Interpolator translate(JSONObject jsonObj) {
+    public Interpolator translate(JSONObject jsonObj) throws S2KParseException, JSONException {
       // TODO: Implement ExpressionTr.translate
-      return new ExpressionIp();
+      return new ExpressionIp(jsonObj.getJSONArray("operand"));
     }
   }
 
@@ -618,62 +634,35 @@ public class SysMLtoK {
   }
 
   public static class LiteralBooleanTr implements Translator {
-    protected class LiteralBooleanIp implements Interpolator {
-      public String interpolate(TranslationMap tm) {
-        return "-- LiteralBoolean";
-      }
-    }
     public Interpolator translate(JSONObject jsonObj) {
-      // TODO: Implement LiteralBooleanTr.translate
-      return new LiteralBooleanIp();
+      return new ConstantIp(jsonObj.getBoolean("value") ? "true" : "false");
     }
   }
 
   public static class LiteralIntegerTr implements Translator {
-    protected class LiteralIntegerIp implements Interpolator {
-      public String interpolate(TranslationMap tm) {
-        return "-- LiteralInteger";
-      }
-    }
     public Interpolator translate(JSONObject jsonObj) {
-      // TODO: Implement LiteralIntegerTr.translate
-      return new LiteralIntegerIp();
+      // Explicitly check that the value is integral
+      return new FormatIp("%d", jsonObj.getInt("value"));
     }
   }
 
   public static class LiteralRealTr implements Translator {
-    protected class LiteralRealIp implements Interpolator {
-      public String interpolate(TranslationMap tm) {
-        return "-- LiteralReal";
-      }
-    }
     public Interpolator translate(JSONObject jsonObj) {
-      // TODO: Implement LiteralRealTr.translate
-      return new LiteralRealIp();
+      return new FormatIp("%f", jsonObj.getDouble("value"));
     }
   }
 
   public static class LiteralStringTr implements Translator {
-    protected class LiteralStringIp implements Interpolator {
-      public String interpolate(TranslationMap tm) {
-        return "-- LiteralString";
-      }
-    }
     public Interpolator translate(JSONObject jsonObj) {
-      // TODO: Implement LiteralStringTr.translate
-      return new LiteralStringIp();
+      // TODO: think about adding some kind of "K-escaping" to this string, or to the translation more generally
+      return new FormatIp("\"%s\"", jsonObj.getString("value"));
     }
   }
 
   public static class LiteralUnlimitedNaturalTr implements Translator {
-    protected class LiteralUnlimitedNaturalIp implements Interpolator {
-      public String interpolate(TranslationMap tm) {
-        return "-- LiteralUnlimitedNatural";
-      }
-    }
     public Interpolator translate(JSONObject jsonObj) {
-      // TODO: Implement LiteralUnlimitedNaturalTr.translate
-      return new LiteralUnlimitedNaturalIp();
+      // TODO: Think about adding a "SysML Prolog" in K to every translation to better accomodate things like this...
+      return new FormatIp("%d", jsonObj.getInt("value"));
     }
   }
 
@@ -834,12 +823,37 @@ public class SysMLtoK {
   }
 
   public static class PropertyTr implements Translator {
-    public Interpolator translate(JSONObject jsonObj) {
-      // TODO: translate the typeId into a meaningful type name
-      return new FormatIp(
-          "%1$s : %2$s",
+    public class PropertyIp implements Interpolator {
+      private String name;
+      private Interpolator defaultValueIp;
+      private String typeName;
+      public PropertyIp(String myName, JSONObject defaultValue, String typeId) throws S2KParseException, JSONException {
+        name = myName;
+        // TODO: translate the typeId into a meaningful type name
+        if (defaultValue == null) {
+          if (typeId == null) {
+            throw new S2KParseException("Property has no type.");
+          } else {
+            typeName = typeId;
+          }
+          defaultValueIp = null;
+        } else {
+          typeName = (typeId == null ? defaultValue.getString("typeId") : typeId);
+          defaultValueIp = translateElement(defaultValue);
+        }
+      }
+      public String interpolate(TranslationMap tm) throws S2KParseException {
+        return String.format(
+            "%1$s : %2$s",
+            name, typeName
+          ) + (defaultValueIp == null ? "" : " = " + defaultValueIp.interpolate(tm));
+      }
+    }
+    public Interpolator translate(JSONObject jsonObj) throws S2KParseException, JSONException {
+      return new PropertyIp(
           jsonObj.getString("name"),
-          jsonObj.getString("typeId"));
+          jsonObj.optJSONObject("defaultValue"),
+          jsonObj.optString("typeId"));
     }
   }
 

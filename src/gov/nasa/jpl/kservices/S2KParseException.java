@@ -1,5 +1,8 @@
 package gov.nasa.jpl.kservices;
 
+/**
+ * Thrown by SysMLtoK operations when input is not understood.
+ */
 public class S2KParseException extends S2KException {
 
 	public S2KParseException() {

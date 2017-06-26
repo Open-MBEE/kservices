@@ -1,5 +1,8 @@
 package gov.nasa.jpl.kservices;
 
+/**
+ * Thrown by SysMLtoK when something goes wrong.
+ */
 public class S2KException extends Exception {
   public S2KException() {
   }

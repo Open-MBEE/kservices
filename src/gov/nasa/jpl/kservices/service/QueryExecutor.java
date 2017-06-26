@@ -124,7 +124,7 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
     public static void main( String[] args ) {
   		try {
   		  TranslationMap tm = SysMLtoK.translateElements( SysMLtoK.readJSONFile(
-  		    "/Users/dlegg/git/kservices/testdata/simple-project.json"
+  		    "/Users/dlegg/git/kservices/testdata/project.json"
   		  ));
   		  for (Map.Entry<String, Interpolator> entry : tm.entrySet()) {
   		    System.out.println("DEBUG: --- MARK ---"); //DEBUG
