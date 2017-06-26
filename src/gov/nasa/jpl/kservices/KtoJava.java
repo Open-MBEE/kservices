@@ -237,6 +237,7 @@ public class KtoJava {
            buildParamTable( Map< String, Map< String, ClassData.Param > > paramTable ) {
         Map< String, ClassData.Param > params =
                 new TreeMap< String, ClassData.Param >();
+        ClassData.Param param;
         ArrayList< EntityDecl > entityList =
                 new ArrayList< EntityDecl >( JavaConversions.asJavaCollection( Frontend.getEntitiesFromModel( this.model ) ) );
         for ( EntityDecl entity : entityList ) {
@@ -245,8 +246,18 @@ public class KtoJava {
             ArrayList< PropertyDecl > propertyList =
                     new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getAllPropertyDecls() ) );
             for ( PropertyDecl p : propertyList ) {
-                ClassData.Param param = makeParam( p );
+                param = makeParam( p );
                 params.put( p.name(), param );
+            }
+            ArrayList<FunDecl> funList = new ArrayList<FunDecl>(JavaConversions.asJavaCollection( entity.getAllFunDecls() ));
+            for (FunDecl funDecl : funList ) {
+                List< Param > funParams =
+                        new ArrayList< Param >( JavaConversions.asJavaCollection( funDecl.params() ) );
+                for (Param p : funParams) {
+                    param = new ClassData.Param( p.name(), p.ty().toString() , null );
+                    params.put( p.name(), param );
+                }
+                
             }
             paramTable.put( entityName, params );
 
@@ -282,6 +293,7 @@ public class KtoJava {
                 }
                 methodSet.add( methodDecl );
             }
+
         }
     }
 
@@ -292,8 +304,9 @@ public class KtoJava {
                 new ArrayList< FunDecl >( JavaConversions.asJavaCollection( entity.getFunDecls() ) );
         for ( FunDecl funDecl : functions ) {
             MethodDeclaration methodDecl = makeMethodDecl( funDecl );
-            methodDeclarations.add( methodDecl );
-
+            if ( methodDecl != null ) {
+                methodDeclarations.add( methodDecl );
+            }
         }
         return methodDeclarations;
 
@@ -301,7 +314,8 @@ public class KtoJava {
 
     public MethodDeclaration makeMethodDecl( FunDecl funDecl ) {
         MethodDeclaration methodDecl = new MethodDeclaration();
-        methodDecl.setType( makeType( funDecl.ty().get().toString() ) );
+        String typeString = funDecl.ty().get().toString();
+        methodDecl.setType( makeType( typeString ) );
         methodDecl.setModifiers( 1 );
         methodDecl.setName( funDecl.ident() );
         List< Param > funParams =
@@ -315,19 +329,12 @@ public class KtoJava {
             params.add( param );
         }
         methodDecl.setParameters( params );
-        BlockStmt body = new BlockStmt();
-        Expression expr =
-                expressionTranslator.parseExpression( ( (ExpressionDecl)funDecl.body()
-                                                                               .apply( 0 ) ).exp()
-                                                                                            .toJavaString() );
-        String aeString = expressionTranslator.astToAeExpr( expr, null, true,
-                                                            true, true, true );
-        addStatements( body,
-                       "return "
-                             + ( (ExpressionDecl)funDecl.body().apply( 0 ) )
-                                                                            .exp().toJavaString()
-                             + ";" );
-        methodDecl.setBody( body );
+         if ( funDecl.body().isEmpty() ) { // in the case where a method is
+         // declared but not defined, not sure
+         // if this is the best thing to do
+             return null;
+         }
+        methodDecl.setThrows( Arrays.asList( new NameExpr( "Exception" ) ) );
 
         return methodDecl;
     }
@@ -506,12 +513,39 @@ public class KtoJava {
             newClassDecl = getClassData().getClassDeclaration( currentClass ); // need
                                                                                // to
                                                                                // fix
-                                                                               // this
+            setMethodBodies( entity ); // this
             createMembers( newClassDecl, entity );
         }
 
         return newClassDecl;
 
+    }
+
+    public void setMethodBodies( EntityDecl entity){
+        String entityName = entity.ident();
+        Map< String, Set< MethodDeclaration > > classMethods =
+                getClassData().getMethodTable().get( entityName );
+        List<FunDecl> funDecls = new ArrayList<FunDecl>(JavaConversions.asJavaCollection( entity.getFunDecls() ));
+        
+        for (FunDecl funDecl : funDecls) {
+            Set <MethodDeclaration > methodSet = classMethods.get( funDecl.ident() );
+            if ( methodSet != null ) {
+                for (MethodDeclaration methodDecl : methodSet ) {
+                    BlockStmt body = new BlockStmt();
+                    String typeString = funDecl.ty().get().toString();
+                    if ( !funDecl.body().isEmpty() ) { 
+                        Expression expr = expressionTranslator.parseExpression( ((ExpressionDecl)funDecl.body().apply( 0 ) ).exp().toJavaString() );
+                        String aeString = expressionTranslator.astToAeExpr( expr, typeString, true, true, true, true );
+                        addStatements( body, "return " + aeString + ".getValue( true );" );
+                       
+                       
+                        methodDecl.setBody( body );
+                    }
+                }
+            }
+            
+        }
+ 
     }
 
     protected void createDefaultConstructor( TypeDeclaration newClassDecl ) {
@@ -533,7 +567,6 @@ public class KtoJava {
 
     }
 
-    // TODO
     protected void getSuperClasses( EntityDecl entity,
                                     ClassOrInterfaceDeclaration newClassDecl ) {
         List< ClassOrInterfaceType > extendsList = getInheritsFrom( entity );
@@ -546,15 +579,27 @@ public class KtoJava {
     }
 
     public List< ClassOrInterfaceType > getInheritsFrom( EntityDecl entity ) {
-        List< String > extendsStringList =
-                new ArrayList< String >( JavaConversions.asJavaCollection( TypeChecker.getSuperClasses( entity.ident() ) ) );
-        List< ClassOrInterfaceType > extendsList =
-                new ArrayList< ClassOrInterfaceType >();
-        for ( String e : extendsStringList ) {
-            ClassOrInterfaceType c = new ClassOrInterfaceType( e );
-            extendsList.add( c );
+
+        // Need to figure out how to do multiple extends TODO
+        // List< String > extendsStringList =
+        // new ArrayList< String >( JavaConversions.asJavaCollection(
+        // TypeChecker.getSuperClasses( entity.ident() ) ) );
+        // List< ClassOrInterfaceType > extendsList =
+        // new ArrayList< ClassOrInterfaceType >();
+        // for ( String e : extendsStringList ) {
+        // ClassOrInterfaceType c = new ClassOrInterfaceType( e );
+        // extendsList.add( c );
+        // }
+        // return extendsList;
+        // only do one for now
+        List< k.frontend.Type > types =
+                new ArrayList< k.frontend.Type >( JavaConversions.asJavaCollection( entity.extending() ) );
+        if ( types.isEmpty() ) {
+            return new ArrayList< ClassOrInterfaceType >();
         }
-        return extendsList;
+        k.frontend.Type type =
+                new ArrayList< k.frontend.Type >( JavaConversions.asJavaCollection( entity.extending() ) ).get( 0 );
+        return Arrays.asList( new ClassOrInterfaceType( type.toString() ) );
     }
 
     //
@@ -1090,7 +1135,8 @@ public class KtoJava {
         // instance.
         stmtsMain.append( "Main scenario = new Main();" );
         stmtsMain.append( "scenario.satisfy( true, null );" );
-        stmtsMain.append( "System.out.println((scenario.isSatisfied(true, null) ? \"Satisfied\" : \"Not Satisfied\") + \"\\n\" + scenario);"  );
+        stmtsMain.append( "System.out.println((scenario.isSatisfied(true, null) ? \"Satisfied\" : \"Not Satisfied\") + \"\\n\" + scenario);" );
+        //stmtsMain.append( "System.out.println(scenario.toKString());" );
         // stmtsSB.append( className + " " + instanceName + " = new " +
         // className + "(");
         // stmtsCtor.append( "super(");
