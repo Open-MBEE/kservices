@@ -254,7 +254,7 @@ public class KtoJava {
                 List< Param > funParams =
                         new ArrayList< Param >( JavaConversions.asJavaCollection( funDecl.params() ) );
                 for (Param p : funParams) {
-                    param = new ClassData.Param( p.name(), p.ty().toString() , null );
+                    param = new ClassData.Param( p.name(), JavaToConstraintExpression.typeToClass( p.ty().toString() ) , null );
                     params.put( p.name(), param );
                 }
                 
@@ -1080,8 +1080,7 @@ public class KtoJava {
         ASTHelper.addTypeDeclaration( getClassData().getCurrentCompilationUnit(),
                                       newClassDecl );
 
-        // Create public static main( String args[] ) { }
-        // First, create main() { }
+
         int mods = ModifierSet.PUBLIC | ModifierSet.STATIC;
 
         MethodDeclaration mainMethodDecl =
@@ -1096,14 +1095,7 @@ public class KtoJava {
         BlockStmt ctorBody = new BlockStmt();
         ctor.setBlock( ctorBody );
 
-        // Need to set the epoch and units first thing.
-        // REVIEW -- We need a scenario event that requires these arguments in
-        // the
-        // constructor to ensure they are set up front.
-        // String epochString = Timepoint.toTimestamp(
-        // Timepoint.getEpoch().getTime() );
 
-        // Create String args[].
         Type type = ASTHelper.createReferenceType( "String", 1 );
         VariableDeclaratorId id = new VariableDeclaratorId( "args" );
         japa.parser.ast.body.Parameter parameter =
@@ -1112,9 +1104,7 @@ public class KtoJava {
         ASTHelper.addParameter( mainMethodDecl, parameter );
         ASTHelper.addMember( newClassDecl, mainMethodDecl );
 
-        // Now add statements to main()
 
-        // Get the name/class of the event to execute
         List< PropertyDecl > topLevelProperties =
                 new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model ) ) );
         PropertyDecl toExecute = topLevelProperties.get( 0 );
@@ -1124,54 +1114,24 @@ public class KtoJava {
             instanceName = className + ( counter++ );
         }
 
-        // The Main class will extend the event to execute.
         addExtends( newClassDecl, className );
 
-        // Use a StringBuffer to collect the statements.
-        StringBuffer stmtsMain = new StringBuffer();
-        // StringBuffer stmtsCtor = new StringBuffer();
 
-        // Get constructor arguments and create a statement constructing the
-        // instance.
+        StringBuffer stmtsMain = new StringBuffer();
+
         stmtsMain.append( "Main scenario = new Main();" );
         stmtsMain.append( "scenario.satisfy( true, null );" );
         stmtsMain.append( "System.out.println((scenario.isSatisfied(true, null) ? \"Satisfied\" : \"Not Satisfied\") + \"\\n\" + scenario);" );
-        //stmtsMain.append( "System.out.println(scenario.toKString());" );
-        // stmtsSB.append( className + " " + instanceName + " = new " +
-        // className + "(");
-        // stmtsCtor.append( "super(");
-        // Node argumentsNode = XmlUtils.getChildNode( invocationNode,
-        // "arguments" );
-        // List< ClassData.Param > arguments = new ArrayList< ClassData.Param
-        // >();
+        stmtsMain.append( "System.out.println(scenario.toKString());" );
+
         List< Expression > args = new ArrayList< Expression >();
-        // if ( argumentsNode != null ) {
-        // List< Node > argNodeList = XmlUtils.getChildNodes( argumentsNode,
-        // "parameter" );
-        // boolean first = true;
-        // for ( int j = 0; j < argNodeList.size(); j++ ) {
-        // if ( first ) {
-        // first = false;
-        // } else {
-        // //stmtsCtor.append( ", " );
-        // }
-        // Node argNode = argNodeList.get( j );
-        // ClassData.Param p = makeParam( argNode );
-        // String exprStr = expressionTranslator.javaToAeExpr( p.value, p.type,
-        // true );
-        // japa.parser.ast.expr.Expression expr = new NameExpr( exprStr );
-        // args.add( expr );
-        // //stmtsCtor.append( exprStr );
-        // }
-        // }
-        // stmtsCtor.append(");\n");
+
         ASTHelper.addStmt( ctorBody,
                            new ExplicitConstructorInvocationStmt( false, null,
                                                                   args ) );
 
         addImport( "gov.nasa.jpl.ae.event.Expression" );
 
-        // Put the statements in main().
         addStatements( mainBody, stmtsMain.toString() );
     }
 
