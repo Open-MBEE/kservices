@@ -1,0 +1,14 @@
+=========================================================
+SysML to K (S2K) Header
+
+The following define the interface between SysML and K.
+These are injected into every S2K translation.
+=========================================================
+
+-- Universal types for State Machine definitions
+class S2K_State
+class S2K_Event
+
+=========================================================
+End S2K header.
+=========================================================

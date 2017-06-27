@@ -1,93 +1,21 @@
 package gov.nasa.jpl.kservices;
 
-//import org.json.simple.JSONObject;
-//import org.json.simple.JSONArray;
-//import org.json.simple.parser.JSONParser;
-//import org.json.simple.parser.ParseException;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import gov.nasa.jpl.mbee.util.FileUtils;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
-
-//import sysml.json_impl.JsonSystemModel;
-//import sysml.json_impl.JsonElement;
-//import sysml.json_impl.JsonBlock;
-//import sysml.json_impl.JsonConstraintBlock;
-//import sysml.json_impl.JsonPart;
-//import sysml.json_impl.JsonConstraintParameter;
-//import sysml.json_impl.JsonConstraintProperty;
-//import sysml.json_impl.JsonParametricDiagram;
-//import sysml.json_impl.JsonBindingConnector;
-//import sysml.json_impl.JsonBaseElement;
-//import sysml.json_impl.JsonProject;
-//import sysml.json_impl.JsonStereotype;
-//import sysml.json_impl.JsonProperty;
-//import sysml.json_impl.JsonPropertyValues;
-//import sysml.json_impl.JsonValueProperty;
-//import sysml.json_impl.JsonValueType;
-//import sysml.json_impl.JsonGraphElement;
-
 
 public class SysMLtoK {
-  /**
-   * Mapping from sysmlid -> element translation in K
-   */
-  public static class TranslationMap extends HashMap<String,Interpolator>{};
-  
-  /**
-   * For translation of sysml elements to K fragments.
-   */
-  public interface Translator {
-    /**
-     * Perform initial element translation, generating a fragment.
-     * @param jsonObj The element to translate.
-     * @throws JSONException if element 
-     */
-    public Interpolator translate(JSONObject jsonObj) throws S2KParseException;
-  }
-  
-  /**
-   * For interpolation of translated fragments.
-   */
-  public interface Interpolator {
-    /**
-     * Perform the interpolation and return the result.
-     * @param tm TranslationMap for all fragments
-     * @return Resultant code
-     */
-    public String interpolate(TranslationMap tm) throws S2KParseException;
-  }
-  
-  /**
-   * Simple interpolator for elements with no dependencies.
-   */
-  public static class ConstantIp implements Interpolator {
-    private String output;
-    public ConstantIp(String myOutput) {
-      output = myOutput;
-    }
-    public String interpolate(TranslationMap tm) {
-      return output;
-    }
-  }
-  
-  /**
-   * Convenience class, for constant formatted output.
-   */
-  public static class FormatIp extends ConstantIp {
-    public FormatIp(String format, Object... args) {
-      super(String.format(format, args));
-    }
-  }
-  
+  // Constant names, as used in kheader
+  protected static final String S2K_EVENT = "S2K_Event";
+  protected static final String S2K_STATE = "S2K_State";
+
   // Connect element types to the appropriate translator code:
   protected static final HashMap<String,Translator> translations = makeTranslations();
   private static HashMap<String,Translator> makeTranslations() {
@@ -161,6 +89,90 @@ public class SysMLtoK {
   }
   
   /**
+   * Mapping from sysmlid -> element translation in K
+   */
+  public static class TranslationMap extends HashMap<String,Interpolator>{
+    private String rootId;
+    
+    public TranslationMap() {
+      super();
+    }
+    
+    public String getRootId() {
+      return rootId;
+    }
+    public void setRootId(String rootId) throws S2KException {
+      if (!this.containsKey(rootId)) {
+        throw new S2KException("rootId must be a key in the TranslationMap");
+      }
+      this.rootId = rootId;
+    }
+    
+    public Interpolator[] getAll(String[] keys) {
+      Interpolator[] output = new Interpolator[keys.length];
+      for (int i = 0; i < keys.length; i++) {
+        output[i] = this.get(keys[i]);
+      }
+      return output;
+    }
+  };
+  
+  /**
+   * For translation of sysml elements to K fragments.
+   */
+  protected interface Translator {
+    /**
+     * Perform initial element translation, generating a fragment.
+     * @param jsonObj The element to translate.
+     * @throws JSONException if element 
+     */
+    public Interpolator translate(JSONObject jsonObj) throws S2KException;
+  }
+  
+  /**
+   * For interpolation of translated fragments.
+   */
+  protected interface Interpolator {
+    /**
+     * Perform the interpolation and return the result.
+     * @param tm TranslationMap for all fragments
+     * @return Resultant code
+     */
+    public String interpolate(TranslationMap tm) throws S2KException;
+  }
+  
+  /**
+   * Simple interpolator for elements with no dependencies.
+   */
+  protected static class ConstantIp implements Interpolator {
+    private String output;
+    public ConstantIp(String myOutput) {
+      output = myOutput;
+    }
+    public String interpolate(TranslationMap tm) {
+      return output;
+    }
+  }
+  
+  /**
+   * Convenience class, for constant formatted output.
+   */
+  protected static class FormatIp extends ConstantIp {
+    public FormatIp(String format, Object... args) {
+      super(String.format(format, args));
+    }
+  }
+  
+  /**
+   * Interpolator that can expose their reference name in the K code.
+   */
+  protected interface ReferenceInterpolator extends Interpolator {
+    public String reference(TranslationMap tm);
+  }
+  
+  /// Public Interface
+  
+  /**
    * Reads JSON object from a file.
    * @param filePath Any acceptable path to JSON file.
    * @return JSONObject representing contents of file.
@@ -181,23 +193,16 @@ public class SysMLtoK {
    * @param jsonObj The project JSON object, which must have an "elements" attribute.
    * @return TranslationMap of sysmlid's to K translations
    * @throws S2KParseException if JSON does not contain required attributes.
+   * @throws S2KException if other errors occur
    */
-  public static TranslationMap translateElements(JSONObject jsonObj) throws S2KParseException {
+  public static TranslationMap translateElements(JSONObject jsonObj) throws S2KException {
     try {
       TranslationMap translationMap = new TranslationMap();
       JSONArray      jsonElements   = jsonObj.getJSONArray("elements");
-      JSONObject element;
-      String     elId;
+      JSONObject     element;
       for (int i = 0; i < jsonElements.length(); ++i) {
         element = jsonElements.getJSONObject(i);
-        try {
-          elId = element.getString("sysmlid");
-        } catch (JSONException e) {
-          // If the new format failed, try the old format.
-          // If this fails, fall through to "unsupported structure"
-          elId = element.getString("id");
-        }
-        translationMap.put(elId, translateElement(element));
+        translationMap.put(getId(element), translateElement(element));
       }
       return translationMap;
     } catch (JSONException e) {
@@ -210,8 +215,9 @@ public class SysMLtoK {
    * @param element JSONObject for the sysml element to be translated
    * @return Interpolator for the given element
    * @throws S2KParseException if element is missing a necessary attribute
+   * @throws S2KException if other errors occur
    */
-  public static Interpolator translateElement(JSONObject element) throws S2KParseException {
+  protected static Interpolator translateElement(JSONObject element) throws S2KException {
     try {
       Translator elTrans = translations.get(element.getString("type"));
       if (elTrans == null) {
@@ -223,12 +229,52 @@ public class SysMLtoK {
     }
   }
   
+  /**
+   * Generates a full K source program for a given model.
+   * @param elementMap The map of sysmlid's to interpolators built by translateElements
+   * @return The corresponding K program.
+   * @throws S2KException if kheader isn't found.
+   */
+  public static String generateKSource(TranslationMap elementMap) throws S2KException {
+    try (Scanner s = new Scanner( SysMLtoK.class.getResourceAsStream("/kheader.txt") )) {
+      String output = s.useDelimiter("\\Z").next();
+      
+      for (Map.Entry<String, Interpolator> en : elementMap.entrySet()) {
+        System.out.printf("DEBUG: %s  --  %s%n", en.getValue().interpolate(elementMap), en.getKey()); //DEBUG
+      }
+      
+      return output;
+    }
+  }
+  
+  /// Private helpers
+  
+  private static String getId(JSONObject element) throws JSONException {
+    String id = element.optString("sysmlid");
+    if (id == null || id.equals("")) id = element.getString("id");
+    return id;
+  }
+  
+  private static String getReference(JSONObject element) throws JSONException {
+    String ref = element.optString("name");
+    if (ref == null || ref.equals("")) ref = getId(element);
+    return ref;
+  }
+  
+  private static String[] jsonArrToStringArr(JSONArray json) throws S2KParseException {
+    String[] output = new String[json.length()];
+    for (int i = 0; i < output.length; i++) {
+      output[i] = json.getString(i);
+    }
+    return output;
+  }
+  
   // Define each translation individually:
   // For brevity and clarity, all translators should be named "sysml element type" + "Tr"
   // For consistency, all translators should be added to this file in alphabetical order
   // TODO: decide on placeholder format, and implement in every method
 
-  public static class AcceptEventActionTr implements Translator {
+  protected static class AcceptEventActionTr implements Translator {
     protected class AcceptEventActionIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- AcceptEventAction";
@@ -240,7 +286,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class ActivityTr implements Translator {
+  protected static class ActivityTr implements Translator {
     protected class ActivityIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Activity";
@@ -252,7 +298,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class ActivityFinalNodeTr implements Translator {
+  protected static class ActivityFinalNodeTr implements Translator {
     protected class ActivityFinalNodeIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- ActivityFinalNode";
@@ -264,7 +310,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class ActivityParameterNodeTr implements Translator {
+  protected static class ActivityParameterNodeTr implements Translator {
     protected class ActivityParameterNodeIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- ActivityParameterNode";
@@ -276,7 +322,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class AssociationTr implements Translator {
+  protected static class AssociationTr implements Translator {
     protected class AssociationIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Association";
@@ -288,7 +334,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class AssociationClassTr implements Translator {
+  protected static class AssociationClassTr implements Translator {
     protected class AssociationClassIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- AssociationClass";
@@ -300,7 +346,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class CallBehaviorActionTr implements Translator {
+  protected static class CallBehaviorActionTr implements Translator {
     protected class CallBehaviorActionIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- CallBehaviorAction";
@@ -312,27 +358,35 @@ public class SysMLtoK {
     }
   }
 
-  public static class ChangeEventTr implements Translator {
-    protected class ChangeEventIp implements Interpolator {
+  protected static class ChangeEventTr implements Translator {
+    protected class ChangeEventIp implements ReferenceInterpolator {
+      private String referenceName;
+      public ChangeEventIp(String name) {
+        referenceName = name;
+      }
       public String interpolate(TranslationMap tm) {
-        return "-- ChangeEvent";
+        return String.format(
+            "class %1$s extends %2$s",
+            referenceName, S2K_EVENT);
+      }
+      public String reference(TranslationMap tm) {
+        return referenceName;
       }
     }
     public Interpolator translate(JSONObject jsonObj) {
-      // TODO: Implement ChangeEventTr.translate
-      return new ChangeEventIp();
+      return new ChangeEventIp(getReference(jsonObj));
     }
   }
 
-  public static class ClassTr implements Translator {
+  protected static class ClassTr implements Translator {
     protected class ClassIp implements Interpolator {
       private String name;
       private Interpolator contentIp;
-      public ClassIp(String myName, JSONObject contentJson) throws S2KParseException {
+      public ClassIp(String myName, JSONObject contentJson) throws S2KException {
         name      = myName;
         contentIp = (contentJson == null ? null : translateElement(contentJson));
       }
-      public String interpolate(TranslationMap tm) throws S2KParseException {
+      public String interpolate(TranslationMap tm) throws S2KException {
         // TODO: figure out what needs to be called for interpolation
         if (contentIp == null) {
           return String.format("class %1$s", name);
@@ -346,18 +400,18 @@ public class SysMLtoK {
         }
       }
     }
-    public Interpolator translate(JSONObject jsonObj) throws S2KParseException, JSONException {
-      return new ClassIp(jsonObj.getString("name"), jsonObj.optJSONObject("_contents"));
+    public Interpolator translate(JSONObject jsonObj) throws S2KException, JSONException {
+      return new ClassIp(getReference(jsonObj), jsonObj.optJSONObject("_contents"));
     }
   }
 
-  public static class CommentTr implements Translator {
+  protected static class CommentTr implements Translator {
     public Interpolator translate(JSONObject jsonObj) {
       return new FormatIp("-- %s",jsonObj.getString("body"));
     }
   }
 
-  public static class ConnectorTr implements Translator {
+  protected static class ConnectorTr implements Translator {
     protected class ConnectorIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Connector";
@@ -369,7 +423,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class ConnectorEndTr implements Translator {
+  protected static class ConnectorEndTr implements Translator {
     protected class ConnectorEndIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- ConnectorEnd";
@@ -381,7 +435,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class ConstraintTr implements Translator {
+  protected static class ConstraintTr implements Translator {
     protected class ConstraintIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Constraint";
@@ -393,7 +447,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class ControlFlowTr implements Translator {
+  protected static class ControlFlowTr implements Translator {
     protected class ControlFlowIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- ControlFlow";
@@ -405,7 +459,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class DecisionNodeTr implements Translator {
+  protected static class DecisionNodeTr implements Translator {
     protected class DecisionNodeIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- DecisionNode";
@@ -417,7 +471,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class DependencyTr implements Translator {
+  protected static class DependencyTr implements Translator {
     protected class DependencyIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Dependency";
@@ -429,7 +483,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class DiagramTr implements Translator {
+  protected static class DiagramTr implements Translator {
     protected class DiagramIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Diagram";
@@ -441,7 +495,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class DurationTr implements Translator {
+  protected static class DurationTr implements Translator {
     protected class DurationIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Duration";
@@ -453,7 +507,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class DurationConstraintTr implements Translator {
+  protected static class DurationConstraintTr implements Translator {
     protected class DurationConstraintIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- DurationConstraint";
@@ -465,7 +519,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class DurationIntervalTr implements Translator {
+  protected static class DurationIntervalTr implements Translator {
     protected class DurationIntervalIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- DurationInterval";
@@ -477,7 +531,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class DurationObservationTr implements Translator {
+  protected static class DurationObservationTr implements Translator {
     protected class DurationObservationIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- DurationObservation";
@@ -489,7 +543,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class ElementValueTr implements Translator {
+  protected static class ElementValueTr implements Translator {
     protected class ElementValueIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- ElementValue";
@@ -501,16 +555,16 @@ public class SysMLtoK {
     }
   }
 
-  public static class ExpressionTr implements Translator {
+  protected static class ExpressionTr implements Translator {
     protected class ExpressionIp implements Interpolator {
       private Interpolator[] operandIps;
-      public ExpressionIp(JSONArray operands) throws S2KParseException, JSONException {
+      public ExpressionIp(JSONArray operands) throws S2KException {
         operandIps = new Interpolator[operands.length()];
         for (int i = 0; i < operandIps.length; ++i) {
           operandIps[i] = translateElement(operands.getJSONObject(i));
         }
       }
-      public String interpolate(TranslationMap tm) throws S2KParseException {
+      public String interpolate(TranslationMap tm) throws S2KException {
         // TODO: actually parse the expression, once operators/operand structure is understood
         String output = "(";
         for (Interpolator opIp : operandIps) {
@@ -519,13 +573,13 @@ public class SysMLtoK {
         return output + ")";
       }
     }
-    public Interpolator translate(JSONObject jsonObj) throws S2KParseException, JSONException {
+    public Interpolator translate(JSONObject jsonObj) throws S2KException {
       // TODO: Implement ExpressionTr.translate
       return new ExpressionIp(jsonObj.getJSONArray("operand"));
     }
   }
 
-  public static class FinalStateTr implements Translator {
+  protected static class FinalStateTr implements Translator {
     protected class FinalStateIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- FinalState";
@@ -537,7 +591,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class ForkNodeTr implements Translator {
+  protected static class ForkNodeTr implements Translator {
     protected class ForkNodeIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- ForkNode";
@@ -549,7 +603,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class GeneralizationTr implements Translator {
+  protected static class GeneralizationTr implements Translator {
     protected class GeneralizationIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Generalization";
@@ -561,7 +615,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class InitialNodeTr implements Translator {
+  protected static class InitialNodeTr implements Translator {
     protected class InitialNodeIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- InitialNode";
@@ -573,7 +627,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class InputPinTr implements Translator {
+  protected static class InputPinTr implements Translator {
     protected class InputPinIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- InputPin";
@@ -585,7 +639,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class InstanceSpecificationTr implements Translator {
+  protected static class InstanceSpecificationTr implements Translator {
     protected class InstanceSpecificationIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- InstanceSpecification";
@@ -597,7 +651,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class InstanceValueTr implements Translator {
+  protected static class InstanceValueTr implements Translator {
     protected class InstanceValueIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- InstanceValue";
@@ -609,7 +663,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class InterruptibleActivityRegionTr implements Translator {
+  protected static class InterruptibleActivityRegionTr implements Translator {
     protected class InterruptibleActivityRegionIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- InterruptibleActivityRegion";
@@ -621,7 +675,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class JoinNodeTr implements Translator {
+  protected static class JoinNodeTr implements Translator {
     protected class JoinNodeIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- JoinNode";
@@ -633,40 +687,40 @@ public class SysMLtoK {
     }
   }
 
-  public static class LiteralBooleanTr implements Translator {
+  protected static class LiteralBooleanTr implements Translator {
     public Interpolator translate(JSONObject jsonObj) {
       return new ConstantIp(jsonObj.getBoolean("value") ? "true" : "false");
     }
   }
 
-  public static class LiteralIntegerTr implements Translator {
+  protected static class LiteralIntegerTr implements Translator {
     public Interpolator translate(JSONObject jsonObj) {
       // Explicitly check that the value is integral
       return new FormatIp("%d", jsonObj.getInt("value"));
     }
   }
 
-  public static class LiteralRealTr implements Translator {
+  protected static class LiteralRealTr implements Translator {
     public Interpolator translate(JSONObject jsonObj) {
       return new FormatIp("%f", jsonObj.getDouble("value"));
     }
   }
 
-  public static class LiteralStringTr implements Translator {
+  protected static class LiteralStringTr implements Translator {
     public Interpolator translate(JSONObject jsonObj) {
       // TODO: think about adding some kind of "K-escaping" to this string, or to the translation more generally
       return new FormatIp("\"%s\"", jsonObj.getString("value"));
     }
   }
 
-  public static class LiteralUnlimitedNaturalTr implements Translator {
+  protected static class LiteralUnlimitedNaturalTr implements Translator {
     public Interpolator translate(JSONObject jsonObj) {
       // TODO: Think about adding a "SysML Prolog" in K to every translation to better accomodate things like this...
       return new FormatIp("%d", jsonObj.getInt("value"));
     }
   }
 
-  public static class MergeNodeTr implements Translator {
+  protected static class MergeNodeTr implements Translator {
     protected class MergeNodeIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- MergeNode";
@@ -678,7 +732,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class ModelTr implements Translator {
+  protected static class ModelTr implements Translator {
     protected class ModelIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Model";
@@ -690,7 +744,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class MountTr implements Translator {
+  protected static class MountTr implements Translator {
     protected class MountIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Mount";
@@ -702,7 +756,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class ObjectFlowTr implements Translator {
+  protected static class ObjectFlowTr implements Translator {
     protected class ObjectFlowIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- ObjectFlow";
@@ -714,7 +768,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class OpaqueActionTr implements Translator {
+  protected static class OpaqueActionTr implements Translator {
     protected class OpaqueActionIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- OpaqueAction";
@@ -726,7 +780,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class OpaqueExpressionTr implements Translator {
+  protected static class OpaqueExpressionTr implements Translator {
     protected class OpaqueExpressionIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- OpaqueExpression";
@@ -738,7 +792,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class OperationTr implements Translator {
+  protected static class OperationTr implements Translator {
     protected class OperationIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Operation";
@@ -750,7 +804,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class OutputPinTr implements Translator {
+  protected static class OutputPinTr implements Translator {
     protected class OutputPinIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- OutputPin";
@@ -762,7 +816,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class PackageTr implements Translator {
+  protected static class PackageTr implements Translator {
     protected class PackageIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Package";
@@ -774,7 +828,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class ParameterTr implements Translator {
+  protected static class ParameterTr implements Translator {
     protected class ParameterIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Parameter";
@@ -786,7 +840,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class PortTr implements Translator {
+  protected static class PortTr implements Translator {
     protected class PortIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Port";
@@ -798,7 +852,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class ProfileApplicationTr implements Translator {
+  protected static class ProfileApplicationTr implements Translator {
     protected class ProfileApplicationIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- ProfileApplication";
@@ -810,7 +864,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class ProjectTr implements Translator {
+  protected static class ProjectTr implements Translator {
     protected class ProjectIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Project";
@@ -822,12 +876,12 @@ public class SysMLtoK {
     }
   }
 
-  public static class PropertyTr implements Translator {
+  protected static class PropertyTr implements Translator {
     public class PropertyIp implements Interpolator {
       private String name;
       private Interpolator defaultValueIp;
       private String typeName;
-      public PropertyIp(String myName, JSONObject defaultValue, String typeId) throws S2KParseException, JSONException {
+      public PropertyIp(String myName, JSONObject defaultValue, String typeId) throws S2KException {
         name = myName;
         // TODO: translate the typeId into a meaningful type name
         if (defaultValue == null) {
@@ -842,22 +896,22 @@ public class SysMLtoK {
           defaultValueIp = translateElement(defaultValue);
         }
       }
-      public String interpolate(TranslationMap tm) throws S2KParseException {
+      public String interpolate(TranslationMap tm) throws S2KException {
         return String.format(
             "%1$s : %2$s",
             name, typeName
           ) + (defaultValueIp == null ? "" : " = " + defaultValueIp.interpolate(tm));
       }
     }
-    public Interpolator translate(JSONObject jsonObj) throws S2KParseException, JSONException {
+    public Interpolator translate(JSONObject jsonObj) throws S2KException {
       return new PropertyIp(
-          jsonObj.getString("name"),
+          getReference(jsonObj),
           jsonObj.optJSONObject("defaultValue"),
           jsonObj.optString("typeId"));
     }
   }
 
-  public static class PseudostateTr implements Translator {
+  protected static class PseudostateTr implements Translator {
     protected class PseudostateIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Pseudostate";
@@ -869,19 +923,72 @@ public class SysMLtoK {
     }
   }
 
-  public static class RegionTr implements Translator {
+  protected static class RegionTr implements Translator {
     protected class RegionIp implements Interpolator {
-      public String interpolate(TranslationMap tm) {
-        return "-- Region";
+      private String   stateMachineId;
+      private String[] subvertexIds;
+      private String[] transitionIds;
+      
+      public RegionIp(String myStateMachineId, String[] mySubvertexIds, String[] myTransitionIds) {
+        stateMachineId = myStateMachineId;
+        subvertexIds   = mySubvertexIds;
+        transitionIds  = myTransitionIds;
+      }
+      public String interpolate(TranslationMap tm) throws S2KException {
+        ReferenceInterpolator smIp;
+        try {
+          smIp = (ReferenceInterpolator) tm.get(stateMachineId);
+        } catch (ClassCastException e) {
+          // This line should *never* execute outside of development.
+          throw new S2KParseException("StateMachine Interpolator was not a ReferenceInterpolator", e);
+        }
+        if (smIp == null) {
+          System.out.printf("DEBUG: stateMachineId: %s%n", stateMachineId); //DEBUG
+          throw new S2KException("StateMachine was referenced but not defined");
+        }
+        
+        Interpolator[] svIps = tm.getAll(subvertexIds), trIps = tm.getAll(transitionIds);
+        
+        String svStr = "", trStr = "";
+        for (Interpolator svIp : svIps) {
+          if (svIp == null) throw new S2KException("Subvertex was referenced but not defined.");
+          svStr += String.format("  %s%n", svIp.interpolate(tm));
+        }
+        for (Interpolator trIp : trIps) {
+          if (trIp == null) throw new S2KException("Transition was referenced but not defined.");
+          trStr += String.format("  %s%n", trIp.interpolate(tm));
+        }
+        
+        return String.format(
+            "class %1$s {%n"
+          + "  -- Events:%n"
+          + "%2$s%n"
+          + "  %n"
+          + "  -- States:%n"
+          + "%3$s%n"
+          + "  %n"
+          + "  -- Transitions:%n"
+          + "%4$s%n"
+          + "  %n"
+          + "}",
+            smIp.reference(tm),
+            smIp.interpolate(tm),
+            svStr,
+            trStr
+            );
       }
     }
-    public Interpolator translate(JSONObject jsonObj) {
-      // TODO: Implement RegionTr.translate
-      return new RegionIp();
+    public Interpolator translate(JSONObject jsonObj) throws S2KException {
+      String smId = jsonObj.optString("stateMachineId");
+      if (smId == null || smId.equals("")) return new ConstantIp("-- Unsupported Region type"); //TODO: support all types
+      return new RegionIp(
+          smId,
+          jsonArrToStringArr(jsonObj.getJSONArray("subvertexIds")),
+          jsonArrToStringArr(jsonObj.getJSONArray("transitionIds")));
     }
   }
 
-  public static class SendSignalActionTr implements Translator {
+  protected static class SendSignalActionTr implements Translator {
     protected class SendSignalActionIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- SendSignalAction";
@@ -893,7 +1000,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class SignalTr implements Translator {
+  protected static class SignalTr implements Translator {
     protected class SignalIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Signal";
@@ -905,19 +1012,27 @@ public class SysMLtoK {
     }
   }
 
-  public static class SignalEventTr implements Translator {
-    protected class SignalEventIp implements Interpolator {
+  protected static class SignalEventTr implements Translator {
+    protected class SignalEventIp implements ReferenceInterpolator {
+      private String referenceName;
+      public SignalEventIp(String name) {
+        referenceName = name;
+      }
       public String interpolate(TranslationMap tm) {
-        return "-- SignalEvent";
+        return String.format(
+            "class %1$s extends %2$s",
+            referenceName, S2K_EVENT);
+      }
+      public String reference(TranslationMap tm) {
+        return referenceName;
       }
     }
     public Interpolator translate(JSONObject jsonObj) {
-      // TODO: Implement SignalEventTr.translate
-      return new SignalEventIp();
+      return new SignalEventIp(getReference(jsonObj));
     }
   }
 
-  public static class SlotTr implements Translator {
+  protected static class SlotTr implements Translator {
     protected class SlotIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Slot";
@@ -929,7 +1044,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class StateTr implements Translator {
+  protected static class StateTr implements Translator {
     protected class StateIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- State";
@@ -941,31 +1056,62 @@ public class SysMLtoK {
     }
   }
 
-  public static class StateMachineTr implements Translator {
-    protected class StateMachineIp implements Interpolator {
-      public String interpolate(TranslationMap tm) {
-        return "-- StateMachine";
+  protected static class StateMachineTr implements Translator {
+    protected class StateMachineIp implements ReferenceInterpolator {
+      private String name;
+      private String[] eventIds;
+      public StateMachineIp(String myName, String[] myEventIds) {
+        name = myName;
+        eventIds = myEventIds;
+      }
+      public String interpolate(TranslationMap tm) throws S2KException {
+        String events = "";
+        ReferenceInterpolator eventIp;
+        try {
+          for (String eId : eventIds) {
+            eventIp = (ReferenceInterpolator) tm.get(eId);
+            if (eventIp == null) {
+              throw new S2KParseException("Event was referenced but not defined.");
+            }
+            events += String.format("  %1$s : %2$s%n", eventIp.reference(tm), S2K_EVENT);
+          }
+        } catch (ClassCastException e) {
+          // This line should *never* execute outside of development
+          throw new S2KException("Event interpolator was not a ReferenceInterpolator.", e);
+        }
+        return events;
+      }
+      public String reference(TranslationMap tm) {
+        return name;
       }
     }
-    public Interpolator translate(JSONObject jsonObj) {
+    public Interpolator translate(JSONObject jsonObj) throws S2KParseException {
       // TODO: Implement StateMachineTr.translate
-      return new StateMachineIp();
+      return new StateMachineIp(getReference(jsonObj), jsonArrToStringArr(jsonObj.getJSONArray("eventIds")));
     }
   }
 
-  public static class TimeEventTr implements Translator {
-    protected class TimeEventIp implements Interpolator {
+  protected static class TimeEventTr implements Translator {
+    protected class TimeEventIp implements ReferenceInterpolator {
+      private String referenceName;
+      public TimeEventIp(String name) {
+        referenceName = name;
+      }
       public String interpolate(TranslationMap tm) {
-        return "-- TimeEvent";
+        return String.format(
+            "class %1$s extends %2$s",
+            referenceName, S2K_EVENT);
+      }
+      public String reference(TranslationMap tm) {
+        return referenceName;
       }
     }
     public Interpolator translate(JSONObject jsonObj) {
-      // TODO: Implement TimeEventTr.translate
-      return new TimeEventIp();
+      return new TimeEventIp(getReference(jsonObj));
     }
   }
 
-  public static class TimeExpressionTr implements Translator {
+  protected static class TimeExpressionTr implements Translator {
     protected class TimeExpressionIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- TimeExpression";
@@ -977,7 +1123,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class TransitionTr implements Translator {
+  protected static class TransitionTr implements Translator {
     protected class TransitionIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Transition";
@@ -989,7 +1135,7 @@ public class SysMLtoK {
     }
   }
 
-  public static class TriggerTr implements Translator {
+  protected static class TriggerTr implements Translator {
     protected class TriggerIp implements Interpolator {
       public String interpolate(TranslationMap tm) {
         return "-- Trigger";

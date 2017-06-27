@@ -15,7 +15,6 @@ import gov.nasa.jpl.ae.event.Expression;
 import gov.nasa.jpl.kservices.KToAe;
 import gov.nasa.jpl.kservices.S2KParseException;
 import gov.nasa.jpl.kservices.SysMLtoK;
-import gov.nasa.jpl.kservices.SysMLtoK.Interpolator;
 import gov.nasa.jpl.kservices.SysMLtoK.TranslationMap;
 import gov.nasa.jpl.mbee.util.Pair;
 import k.frontend.Exp;
@@ -126,12 +125,9 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
   		  TranslationMap tm = SysMLtoK.translateElements( SysMLtoK.readJSONFile(
   		    "/Users/dlegg/git/kservices/testdata/project.json"
   		  ));
-  		  for (Map.Entry<String, Interpolator> entry : tm.entrySet()) {
-  		    System.out.println("DEBUG: --- MARK ---"); //DEBUG
-  		    System.out.printf("DEBUG: entry.getKey(): %s%n", entry.getKey()); //DEBUG
-  		    System.out.printf("DEBUG: entry.getValue(): %s%n", entry.getValue()); //DEBUG
-  		    System.out.printf("DEBUG: entry.getValue().interpolate(): %s%n", entry.getValue().interpolate(tm)); //DEBUG
-  		  }
+  		  
+  		  String ksource = SysMLtoK.generateKSource(tm);
+  		  System.out.printf("DEBUG: ksource: %s%n", ksource); //DEBUG
   		} catch (Exception e) {
   			e.printStackTrace();
   		}

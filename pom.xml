@@ -280,6 +280,12 @@
           <exclude>**/*.java</exclude>
         </excludes>
       </resource>
+      <resource>
+        <directory>resources</directory>
+        <includes>
+          <include>**/*.txt</include>
+        </includes>
+      </resource>
     </resources>
         <plugins>
             <plugin>
