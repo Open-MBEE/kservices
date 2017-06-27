@@ -15,6 +15,7 @@ public class SysMLtoK {
   // Constant names, as used in kheader
   protected static final String S2K_EVENT = "S2K_Event";
   protected static final String S2K_STATE = "S2K_State";
+  protected static final String S2K_TRANSITION = "transition";
 
   // Connect element types to the appropriate translator code:
   protected static final HashMap<String,Translator> translations = makeTranslations();
@@ -267,6 +268,22 @@ public class SysMLtoK {
       output[i] = json.getString(i);
     }
     return output;
+  }
+  
+  private static ReferenceInterpolator makeRefIp(Interpolator ip) throws S2KException {
+    try {
+      return (ReferenceInterpolator) ip;
+    } catch (ClassCastException e) {
+      throw new S2KException("Interpolator was not a reference interpolator.", e);
+    }
+  }
+  
+  private static String indent(String s) {
+    return indent(s, "  ");
+  }
+  
+  private static String indent(String s, String space) {
+    return space + s.replace("\n", "\n" + space);
   }
   
   // Define each translation individually:
@@ -580,14 +597,22 @@ public class SysMLtoK {
   }
 
   protected static class FinalStateTr implements Translator {
-    protected class FinalStateIp implements Interpolator {
+    protected class FinalStateIp implements ReferenceInterpolator {
+      private String name;
+      public FinalStateIp(String myName) {
+        name = myName;
+      }
       public String interpolate(TranslationMap tm) {
-        return "-- FinalState";
+        return String.format(
+            "%1$s : %2$s",
+            name, S2K_STATE);
+      }
+      public String reference(TranslationMap tm) {
+        return name;
       }
     }
     public Interpolator translate(JSONObject jsonObj) {
-      // TODO: Implement FinalStateTr.translate
-      return new FinalStateIp();
+      return new FinalStateIp(getReference(jsonObj));
     }
   }
 
@@ -912,14 +937,22 @@ public class SysMLtoK {
   }
 
   protected static class PseudostateTr implements Translator {
-    protected class PseudostateIp implements Interpolator {
+    protected class PseudostateIp implements ReferenceInterpolator {
+      private String name;
+      public PseudostateIp(String myName) {
+        name = myName;
+      }
       public String interpolate(TranslationMap tm) {
-        return "-- Pseudostate";
+        return String.format(
+            "%1$s : %2$s",
+            name, S2K_STATE);
+      }
+      public String reference(TranslationMap tm) {
+        return name;
       }
     }
     public Interpolator translate(JSONObject jsonObj) {
-      // TODO: Implement PseudostateTr.translate
-      return new PseudostateIp();
+      return new PseudostateIp(getReference(jsonObj));
     }
   }
 
@@ -935,13 +968,7 @@ public class SysMLtoK {
         transitionIds  = myTransitionIds;
       }
       public String interpolate(TranslationMap tm) throws S2KException {
-        ReferenceInterpolator smIp;
-        try {
-          smIp = (ReferenceInterpolator) tm.get(stateMachineId);
-        } catch (ClassCastException e) {
-          // This line should *never* execute outside of development.
-          throw new S2KParseException("StateMachine Interpolator was not a ReferenceInterpolator", e);
-        }
+        ReferenceInterpolator smIp = makeRefIp(tm.get(stateMachineId));
         if (smIp == null) {
           System.out.printf("DEBUG: stateMachineId: %s%n", stateMachineId); //DEBUG
           throw new S2KException("StateMachine was referenced but not defined");
@@ -952,11 +979,11 @@ public class SysMLtoK {
         String svStr = "", trStr = "";
         for (Interpolator svIp : svIps) {
           if (svIp == null) throw new S2KException("Subvertex was referenced but not defined.");
-          svStr += String.format("  %s%n", svIp.interpolate(tm));
+          svStr += String.format("%1$s%n", indent(svIp.interpolate(tm)));
         }
         for (Interpolator trIp : trIps) {
           if (trIp == null) throw new S2KException("Transition was referenced but not defined.");
-          trStr += String.format("  %s%n", trIp.interpolate(tm));
+          trStr += String.format("%s%n", indent(trIp.interpolate(tm)));
         }
         
         return String.format(
@@ -968,13 +995,17 @@ public class SysMLtoK {
           + "%3$s%n"
           + "  %n"
           + "  -- Transitions:%n"
+          + "  fun %7$s(s : %5$s, e : %6$s) : %5$s%n"
           + "%4$s%n"
           + "  %n"
           + "}",
             smIp.reference(tm),
             smIp.interpolate(tm),
             svStr,
-            trStr
+            trStr,
+            S2K_STATE,
+            S2K_EVENT,
+            S2K_TRANSITION
             );
       }
     }
@@ -1045,14 +1076,22 @@ public class SysMLtoK {
   }
 
   protected static class StateTr implements Translator {
-    protected class StateIp implements Interpolator {
+    protected class StateIp implements ReferenceInterpolator {
+      private String name;
+      public StateIp(String myName) {
+        name = myName;
+      }
       public String interpolate(TranslationMap tm) {
-        return "-- State";
+        return String.format(
+            "%1$s : %2$s",
+            name, S2K_STATE);
+      }
+      public String reference(TranslationMap tm) {
+        return name;
       }
     }
     public Interpolator translate(JSONObject jsonObj) {
-      // TODO: Implement StateTr.translate
-      return new StateIp();
+      return new StateIp(getReference(jsonObj));
     }
   }
 
@@ -1067,17 +1106,12 @@ public class SysMLtoK {
       public String interpolate(TranslationMap tm) throws S2KException {
         String events = "";
         ReferenceInterpolator eventIp;
-        try {
-          for (String eId : eventIds) {
-            eventIp = (ReferenceInterpolator) tm.get(eId);
-            if (eventIp == null) {
-              throw new S2KParseException("Event was referenced but not defined.");
-            }
-            events += String.format("  %1$s : %2$s%n", eventIp.reference(tm), S2K_EVENT);
+        for (String eId : eventIds) {
+          eventIp = makeRefIp( tm.get(eId) );
+          if (eventIp == null) {
+            throw new S2KParseException("Event was referenced but not defined.");
           }
-        } catch (ClassCastException e) {
-          // This line should *never* execute outside of development
-          throw new S2KException("Event interpolator was not a ReferenceInterpolator.", e);
+          events += String.format("  %1$s : %2$s%n", eventIp.reference(tm), S2K_EVENT);
         }
         return events;
       }
@@ -1125,13 +1159,27 @@ public class SysMLtoK {
 
   protected static class TransitionTr implements Translator {
     protected class TransitionIp implements Interpolator {
-      public String interpolate(TranslationMap tm) {
-        return "-- Transition";
+      private String sourceId, targetId;
+      public TransitionIp(String mySourceId, String myTargetId) {
+        sourceId = mySourceId;
+        targetId = myTargetId;
+      }
+      public String interpolate(TranslationMap tm) throws S2KException {
+        return String.format(
+            "req%n"
+          + "  forall S2K_event : %3$s :-%n"
+          + "    %4$s(%1$s, S2K_event) = %2$s",
+          makeRefIp(tm.get(sourceId)).reference(tm),
+          makeRefIp(tm.get(targetId)).reference(tm),
+          S2K_EVENT,
+          S2K_TRANSITION
+          );
       }
     }
     public Interpolator translate(JSONObject jsonObj) {
-      // TODO: Implement TransitionTr.translate
-      return new TransitionIp();
+      return new TransitionIp(
+          jsonObj.getString("sourceId"),
+          jsonObj.getString("targetId"));
     }
   }
 
