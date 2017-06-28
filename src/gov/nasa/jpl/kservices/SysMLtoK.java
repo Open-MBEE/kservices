@@ -18,8 +18,9 @@ public class SysMLtoK {
   protected static final String S2K_TRANSITION = "transition";
 
   // Connect element types to the appropriate translator code:
-  protected static final HashMap<String,Translator> translations = makeTranslations();
-  private static HashMap<String,Translator> makeTranslations() {
+  public static class TranslationSpecification extends HashMap<String,Translator> {};
+  protected static final TranslationSpecification translations = makeTranslations();
+  private static TranslationSpecification makeTranslations() {
     // As is done below, all element types should be in alphabetical order.
     HashMap<String,Translator> t = new HashMap<String,Translator>();
     t.put("AcceptEventAction"           , new AcceptEventActionTr());
@@ -187,7 +188,7 @@ public class SysMLtoK {
       throw new S2KParseException("Invalid JSON structure.", e);
     }
   }
-  
+
   /**
    * Translates all the elements of a project individually.
    * 
@@ -197,16 +198,38 @@ public class SysMLtoK {
    * @throws S2KException if other errors occur
    */
   public static TranslationMap translateElements(JSONObject jsonObj) throws S2KException {
+    return translateElements(jsonObj, false);
+  }
+
+  /**
+   * Translates all the elements of a project individually.
+   * 
+   * @param jsonObj The project JSON object, which must have an "elements" attribute.
+   * @return TranslationMap of sysmlid's to K translations
+   * @throws S2KParseException if JSON does not contain required attributes.
+   * @throws S2KException if other errors occur
+   */
+  public static TranslationMap translateElements(JSONObject jsonObj, boolean tolerant) throws S2KException {
     try {
       TranslationMap translationMap = new TranslationMap();
       JSONArray      jsonElements   = jsonObj.getJSONArray("elements");
       JSONObject     element;
       for (int i = 0; i < jsonElements.length(); ++i) {
         element = jsonElements.getJSONObject(i);
-        translationMap.put(getId(element), translateElement(element));
+        try {
+          translationMap.put(getId(element), translateElement(element));
+        } catch (JSONException e) {
+          if (tolerant) {
+            e.printStackTrace(System.err);
+          }
+          throw new S2KParseException("Unsupported SysML JSON structure.",e);
+        }
       }
       return translationMap;
     } catch (JSONException e) {
+      if (tolerant) {
+        e.printStackTrace(System.err);
+      }
       throw new S2KParseException("Unsupported SysML JSON structure.",e);
     }
   }
@@ -237,11 +260,22 @@ public class SysMLtoK {
    * @throws S2KException if kheader isn't found.
    */
   public static String generateKSource(TranslationMap elementMap) throws S2KException {
+    return generateKSource(elementMap, false);
+  }
+  
+  /**
+   * Generates a full K source program for a given model.
+   * @param elementMap The map of sysmlid's to interpolators built by translateElements
+   * @param tolerant Ignore parse errors, as much as possible.
+   * @return The corresponding K program.
+   * @throws S2KException if kheader isn't found.
+   */
+  public static String generateKSource(TranslationMap elementMap, boolean tolerant) throws S2KException {
     try (Scanner s = new Scanner( SysMLtoK.class.getResourceAsStream("/kheader.txt") )) {
       String output = s.useDelimiter("\\Z").next();
       
       for (Map.Entry<String, Interpolator> en : elementMap.entrySet()) {
-        System.out.printf("DEBUG: %s  --  %s%n", en.getValue().interpolate(elementMap), en.getKey()); //DEBUG
+//        System.out.printf("DEBUG: %s  --  %s%n", en.getValue().interpolate(elementMap), en.getKey()); //DEBUG
       }
       
       return output;
@@ -1190,6 +1224,9 @@ public class SysMLtoK {
       }
     }
     public Interpolator translate(JSONObject jsonObj) {
+      System.out.printf("DEBUG: id: %s%n", jsonObj.getString("id")); //DEBUG
+      System.out.printf("DEBUG: EventId: %s%n", jsonObj.get("eventId")); //DEBUG
+      
       // TODO: Implement TriggerTr.translate
       return new TriggerIp();
     }
