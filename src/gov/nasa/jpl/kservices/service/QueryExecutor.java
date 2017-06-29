@@ -65,7 +65,7 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
      * @return a Result object with evaluation result as as string and with any errors.
      */
     public Result<String> kQuery( String k ) {
-        KToAe k2ae = new KToAe( k  );
+        KToAe k2ae = new KToAe();
 
         Object expr = k2ae.astToAeExpr( k, null, true, true, true, true, null );
 
