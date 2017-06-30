@@ -351,7 +351,7 @@ public class KtoJava {
             }
             methodSet.add( methodDecl );
         }
-        
+
     }
 
     public Collection< MethodDeclaration > getMethods( EntityDecl entity ) {
@@ -543,32 +543,31 @@ public class KtoJava {
         ClassOrInterfaceDeclaration classDecl = null;
         ArrayList< EntityDecl > entityList =
                 new ArrayList< EntityDecl >( JavaConversions.asJavaCollection( Frontend.getEntitiesFromModel( this.model ) ) );
-        ClassOrInterfaceDeclaration globalClassDecl = processClassDeclaration( null , justClassDeclarations );
-        for ( EntityDecl entity: entityList ) {
-            getClassData().getNestedToEnclosingClassNames().put( entity.ident(), globalName );
+        ClassOrInterfaceDeclaration globalClassDecl =
+                processClassDeclaration( null, justClassDeclarations );
+        for ( EntityDecl entity : entityList ) {
+            getClassData().getNestedToEnclosingClassNames().put( entity.ident(),
+                                                                 globalName );
 
             classDecl =
                     processClassDeclaration( entity, justClassDeclarations );
-            if ( justClassDeclarations) {
+            if ( justClassDeclarations ) {
                 ASTHelper.addMember( globalClassDecl, classDecl );
             }
         }
-        
 
     }
-    
-
 
     public ClassOrInterfaceDeclaration
            processClassDeclaration( EntityDecl entity,
                                     boolean justClassDeclarations ) {
         String currentClass;
-        if (entity == null) {
+        if ( entity == null ) {
             currentClass = globalName;
         } else {
             currentClass = entity.ident();
         }
-     
+
         getClassData().setCurrentClass( currentClass );
 
         ClassOrInterfaceDeclaration newClassDecl = null;
@@ -589,7 +588,7 @@ public class KtoJava {
             newClassDecl = getClassData().getClassDeclaration( currentClass ); // need
                                                                                // to
                                                                                // fix
-            setMethodBodies( entity ); 
+            setMethodBodies( entity );
             createMembers( newClassDecl, entity );
         }
 
@@ -601,18 +600,15 @@ public class KtoJava {
         List< FunDecl > funDecls;
         Map< String, Set< MethodDeclaration > > classMethods;
         if ( entity == null ) {
-            classMethods =
-                    getClassData().getMethodTable().get( globalName );
+            classMethods = getClassData().getMethodTable().get( globalName );
             funDecls =
-                    new ArrayList< FunDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelFunctions(this.model) ) );
+                    new ArrayList< FunDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelFunctions( this.model ) ) );
         } else {
             String entityName = entity.ident();
-            classMethods =
-                    getClassData().getMethodTable().get( entityName );
+            classMethods = getClassData().getMethodTable().get( entityName );
             funDecls =
                     new ArrayList< FunDecl >( JavaConversions.asJavaCollection( entity.getFunDecls() ) );
         }
-
 
         for ( FunDecl funDecl : funDecls ) {
             Set< MethodDeclaration > methodSet =
@@ -668,7 +664,7 @@ public class KtoJava {
 
     protected void getSuperClasses( EntityDecl entity,
                                     ClassOrInterfaceDeclaration newClassDecl ) {
-        if (entity == null ) {
+        if ( entity == null ) {
             addExtends( newClassDecl, "ParameterListenerImpl" );
             return;
         }
@@ -729,8 +725,6 @@ public class KtoJava {
 
     protected void createMembers( TypeDeclaration newClassDecl,
                                   EntityDecl entity ) {
-        
-
 
         Collection< MethodDeclaration > methods =
                 getMethodsForClass( getClassData().getCurrentClass() );
@@ -795,10 +789,12 @@ public class KtoJava {
         ArrayList< FieldDeclaration > parameters =
                 new ArrayList< FieldDeclaration >();
         ArrayList< PropertyDecl > propertyList;
-        if (entity == null ) {
-            propertyList = new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model ) ) );
+        if ( entity == null ) {
+            propertyList =
+                    new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model ) ) );
         } else {
-            propertyList = new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDecls() ) );
+            propertyList =
+                    new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDecls() ) );
         }
         FieldDeclaration f;
         for ( PropertyDecl property : propertyList ) {
@@ -819,11 +815,13 @@ public class KtoJava {
                 new ArrayList< FieldDeclaration >();
         FieldDeclaration f;
         String expression;
-        ArrayList< ConstraintDecl > constraintList; 
-        if (entity == null ) {
-            constraintList = new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelConstraints( this.model ) ) );
+        ArrayList< ConstraintDecl > constraintList;
+        if ( entity == null ) {
+            constraintList =
+                    new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelConstraints( this.model ) ) );
         } else {
-            constraintList = new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( entity.getConstraintDecls() ) );
+            constraintList =
+                    new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( entity.getConstraintDecls() ) );
         }
         for ( ConstraintDecl constraint : constraintList ) {
 
@@ -835,14 +833,16 @@ public class KtoJava {
                 constraints.add( f );
             }
         }
-        
+
         ArrayList< PropertyDecl > propertyList;
-        if (entity == null ) {
-            propertyList = new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model ) ) );
+        if ( entity == null ) {
+            propertyList =
+                    new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model ) ) );
         } else {
-            propertyList = new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDecls() ) );
+            propertyList =
+                    new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDecls() ) );
         }
-                
+
         for ( PropertyDecl propertyDecl : propertyList ) {
             if ( !propertyDecl.expr().isEmpty() ) {
                 expression = propertyDecl.name() + " == "
@@ -1243,14 +1243,15 @@ public class KtoJava {
         ASTHelper.addParameter( mainMethodDecl, parameter );
         ASTHelper.addMember( newClassDecl, mainMethodDecl );
 
-//        List< PropertyDecl > topLevelProperties =
-//                new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model ) ) );
-//        PropertyDecl toExecute = topLevelProperties.get( 0 );
-//        String className = toExecute.ty().toString();
-//        String instanceName = toExecute.name();
-//        if ( instanceName == null || instanceName.isEmpty() ) {
-//            instanceName = className + ( counter++ );
-//        }
+        // List< PropertyDecl > topLevelProperties =
+        // new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection(
+        // Frontend.getTopLevelProperties( this.model ) ) );
+        // PropertyDecl toExecute = topLevelProperties.get( 0 );
+        // String className = toExecute.ty().toString();
+        // String instanceName = toExecute.name();
+        // if ( instanceName == null || instanceName.isEmpty() ) {
+        // instanceName = className + ( counter++ );
+        // }
 
         addExtends( newClassDecl, globalName );
 
@@ -1259,6 +1260,7 @@ public class KtoJava {
         stmtsMain.append( "Main scenario = new Main();" );
         stmtsMain.append( "scenario.satisfy( true, null );" );
         stmtsMain.append( "System.out.println((scenario.isSatisfied(true, null) ? \"Satisfied\" : \"Not Satisfied\") + \"\\n\" + scenario);" );
+        stmtsMain.append( "for (Parameter p : scenario.getParameters()) { System.out.println(p);}" );
         // stmtsMain.append( "System.out.println(scenario.toKString());" );
 
         List< Expression > args = new ArrayList< Expression >();
