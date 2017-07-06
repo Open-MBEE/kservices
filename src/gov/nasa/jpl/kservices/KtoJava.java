@@ -543,6 +543,7 @@ public class KtoJava {
         ClassOrInterfaceDeclaration classDecl = null;
         ArrayList< EntityDecl > entityList =
                 new ArrayList< EntityDecl >( JavaConversions.asJavaCollection( Frontend.getEntitiesFromModel( this.model ) ) );
+        getClassData().setCurrentCompilationUnit( initClassCompilationUnit( globalName ) );
         ClassOrInterfaceDeclaration globalClassDecl =
                 processClassDeclaration( null, justClassDeclarations );
         for ( EntityDecl entity : entityList ) {
@@ -573,7 +574,7 @@ public class KtoJava {
         ClassOrInterfaceDeclaration newClassDecl = null;
 
         if ( justClassDeclarations ) {
-            getClassData().setCurrentCompilationUnit( initClassCompilationUnit( currentClass ) );
+           // getClassData().setCurrentCompilationUnit( initClassCompilationUnit( currentClass ) );
             newClassDecl =
                     new ClassOrInterfaceDeclaration( ModifierSet.PUBLIC, false,
                                                      ClassUtils.simpleName( currentClass ) );
@@ -583,8 +584,8 @@ public class KtoJava {
             getSuperClasses( entity, newClassDecl );
             createDefaultConstructor( newClassDecl );
         } else {
-            getClassData().setCurrentCompilationUnit( getClassData().getClasses()
-                                                                    .get( currentClass ) );
+//            getClassData().setCurrentCompilationUnit( getClassData().getClasses()
+//                                                                    .get( currentClass ) );
             newClassDecl = getClassData().getClassDeclaration( currentClass ); // need
                                                                                // to
                                                                                // fix
