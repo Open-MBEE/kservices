@@ -220,6 +220,7 @@ public class KtoJava {
         } else {
             translateClasses();
         }
+        translateClasses();
 
     }
 
@@ -543,9 +544,18 @@ public class KtoJava {
         ClassOrInterfaceDeclaration classDecl = null;
         ArrayList< EntityDecl > entityList =
                 new ArrayList< EntityDecl >( JavaConversions.asJavaCollection( Frontend.getEntitiesFromModel( this.model ) ) );
-        getClassData().setCurrentCompilationUnit( initClassCompilationUnit( globalName ) );
-        ClassOrInterfaceDeclaration globalClassDecl =
-                processClassDeclaration( null, justClassDeclarations );
+        ClassOrInterfaceDeclaration globalClassDecl;
+        if ( justClassDeclarations ) {
+            getClassData().setCurrentCompilationUnit( initClassCompilationUnit( globalName ) );
+            globalClassDecl =
+                    processClassDeclaration( null, justClassDeclarations );
+            ASTHelper.addTypeDeclaration( getClassData().getCurrentCompilationUnit(),
+                                          globalClassDecl );
+        } else {
+            globalClassDecl =
+                    processClassDeclaration( null, justClassDeclarations );
+        }
+
         for ( EntityDecl entity : entityList ) {
             getClassData().getNestedToEnclosingClassNames().put( entity.ident(),
                                                                  globalName );
@@ -574,18 +584,16 @@ public class KtoJava {
         ClassOrInterfaceDeclaration newClassDecl = null;
 
         if ( justClassDeclarations ) {
-           // getClassData().setCurrentCompilationUnit( initClassCompilationUnit( currentClass ) );
             newClassDecl =
                     new ClassOrInterfaceDeclaration( ModifierSet.PUBLIC, false,
                                                      ClassUtils.simpleName( currentClass ) );
-            // get superclasses and imports
-            ASTHelper.addTypeDeclaration( getClassData().getCurrentCompilationUnit(),
-                                          newClassDecl );
+
             getSuperClasses( entity, newClassDecl );
             createDefaultConstructor( newClassDecl );
         } else {
-//            getClassData().setCurrentCompilationUnit( getClassData().getClasses()
-//                                                                    .get( currentClass ) );
+            // getClassData().setCurrentCompilationUnit(
+            // getClassData().getClasses()
+            // .get( currentClass ) );
             newClassDecl = getClassData().getClassDeclaration( currentClass ); // need
                                                                                // to
                                                                                // fix
