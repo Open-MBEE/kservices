@@ -245,7 +245,7 @@ public class KtoJava {
         ArrayList< EntityDecl > entityList =
                 new ArrayList< EntityDecl >( JavaConversions.asJavaCollection( Frontend.getEntitiesFromModel( this.model ) ) );
         for ( EntityDecl entity : entityList ) {
-            String entityName = entity.ident();
+            String entityName = getClassName( entity );
             params = new TreeMap< String, ClassData.Param >();
             ArrayList< PropertyDecl > propertyList =
                     new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getAllPropertyDecls() ) );
@@ -307,7 +307,7 @@ public class KtoJava {
         ArrayList< EntityDecl > entityList =
                 new ArrayList< EntityDecl >( JavaConversions.asJavaCollection( Frontend.getEntitiesFromModel( this.model ) ) );
         for ( EntityDecl entity : entityList ) {
-            String entityName = entity.ident();
+            String entityName = getClassName( entity );
 
             Map< String, Set< MethodDeclaration > > classMethods =
                     methodTable.get( entityName );
@@ -430,15 +430,13 @@ public class KtoJava {
         String value;
         if ( p.expr().isEmpty() ) {
             value = "null";
-            if ( !( type.equals( "BooleanParameter" )
-                    || type.equals( "DoubleParameter" )
-                    || type.equals( "IntegerParameter" )
-                    || type.equals( "LongParameter" )
-                    || type.equals( "StringParameter" ) ) ) {
+            if ( !( type.equals( "Boolean" ) || type.equals( "Double" )
+                    || type.equals( "Integer" ) || type.equals( "Long" )
+                    || type.equals( "String" ) ) ) {
                 value = "new " + type + "()";
             }
         } else {
-            value = null;
+            value = p.expr().get().toJavaString();
         }
         return new ClassData.Param( name, type, value );
 
@@ -538,8 +536,6 @@ public class KtoJava {
         return t.getClassData();
     }
 
-    // processClassDeclarations( scenarioNode, null, "classes", false, true );
-
     private void processClassDeclarations( boolean justClassDeclarations ) {
         ClassOrInterfaceDeclaration classDecl = null;
         ArrayList< EntityDecl > entityList =
@@ -569,15 +565,18 @@ public class KtoJava {
 
     }
 
+    public String getClassName( EntityDecl entity ) {
+        String className = globalName;
+        if ( entity != null ) {
+            className += "." + entity.ident();
+        }
+        return className;
+    }
+
     public ClassOrInterfaceDeclaration
            processClassDeclaration( EntityDecl entity,
                                     boolean justClassDeclarations ) {
-        String currentClass;
-        if ( entity == null ) {
-            currentClass = globalName;
-        } else {
-            currentClass = entity.ident();
-        }
+        String currentClass = getClassName( entity );
 
         getClassData().setCurrentClass( currentClass );
 
@@ -613,7 +612,7 @@ public class KtoJava {
             funDecls =
                     new ArrayList< FunDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelFunctions( this.model ) ) );
         } else {
-            String entityName = entity.ident();
+            String entityName = getClassName( entity );
             classMethods = getClassData().getMethodTable().get( entityName );
             funDecls =
                     new ArrayList< FunDecl >( JavaConversions.asJavaCollection( entity.getFunDecls() ) );
@@ -786,11 +785,105 @@ public class KtoJava {
 
     public ArrayList< FieldDeclaration >
            getDependencies( EntityDecl entity,
-                            MethodDeclaration initDependences ) {
+                            MethodDeclaration initDependencies ) {
         ArrayList< FieldDeclaration > dependencies =
                 new ArrayList< FieldDeclaration >();
+        ArrayList< PropertyDecl > propertyList;
+        ArrayList< ConstraintDecl > constraintList;
+        if ( entity == null ) {
+            propertyList =
+                    new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model ) ) );
+            constraintList =
+                    new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelConstraints( this.model ) ) );
+        } else {
+            propertyList =
+                    new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDecls() ) );
+            constraintList =
+                    new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( entity.getConstraintDecls() ) );
+        }
+        for ( PropertyDecl property : propertyList ) {
+            ClassData.Param depParam = makeParam( property );
+            if ( depParam.value != "null" ) {
+                FieldDeclaration f =
+                        createDependencyField( depParam, initDependencies );
+                if ( f != null ) {
+                    dependencies.add( f );
+
+                }
+            }
+        }
+
+        String expression;
+        for ( ConstraintDecl constraint : constraintList ) {
+
+            String name = constraint.name().isEmpty() ? null
+                                                      : constraint.name().get();
+            expression = constraint.exp().toJavaString();
+            if ( expression.contains( "==" ) ) {
+                BinExp binExp = (BinExp)constraint.exp();
+                String paramName = binExp.exp1().toJavaString();
+                ClassData.Param param =
+                        getClassData().getParam( getClassData().getCurrentClass(),
+                                                 paramName, true, false, false,
+                                                 false );
+                if ( param != null ) {
+                    String type = param.type;
+                    ClassData.Param depParam =
+                            new ClassData.Param( paramName, type,
+                                                 binExp.exp2().toJavaString() );
+                    if ( depParam.value != "null" ) {
+                        FieldDeclaration f =
+                                createDependencyField( depParam,
+                                                       initDependencies );
+                        if ( f != null ) {
+                            dependencies.add( f );
+
+                        }
+                    }
+                }
+
+            }
+
+        }
 
         return dependencies;
+    }
+
+    public FieldDeclaration
+           createDependencyField( ClassData.Param p,
+                                  MethodDeclaration initDependencies ) {
+
+        String suffix = "Dependency";
+        String depName = p.name.replace( '.', '_' ) + suffix;
+        Expression sinkExpr = expressionTranslator.parseExpression( p.name );
+        String sink = null;
+        if ( sinkExpr instanceof FieldAccessExpr ) {
+            sink = expressionTranslator.fieldExprToAe( (FieldAccessExpr)sinkExpr,
+                                                       true, true, false, false,
+                                                       false, true );
+        } else {
+            sink = p.name;
+        }
+        String source = expressionTranslator.javaToAeExpr( p.value, null, // p.type,
+                                                           true, false );
+
+        String scope = null; // , member = null;
+        int pos = sink.lastIndexOf( "." );
+        if ( pos >= 0 ) {
+            scope = sink.substring( 0, sink.lastIndexOf( '.' ) );
+
+        }
+
+        String addDepStmt = "addDependency( " + sink + ", " + source + " );";
+        if ( scope != null ) {
+            addDepStmt = "if ( ((Object)" + scope
+                         + ") instanceof ParameterListenerImpl) {\n((ParameterListenerImpl)((Object)"
+                         + scope + "))." + addDepStmt + "\n} else {\n"
+                         + addDepStmt + "\n}";
+        }
+
+        addStatements( initDependencies.getBody(), addDepStmt );
+        return createFieldOfGenericType( depName, "Dependency", p.type, null );
     }
 
     public ArrayList< FieldDeclaration >
@@ -837,32 +930,28 @@ public class KtoJava {
             String name = constraint.name().isEmpty() ? null
                                                       : constraint.name().get();
             expression = constraint.exp().toJavaString();
+            if ( expression.contains( "==" ) ) {
+                BinExp binExp = (BinExp)constraint.exp();
+                String paramName = binExp.exp1().toJavaString();
+                ClassData.Param param =
+                        getClassData().getParam( getClassData().getCurrentClass(),
+                                                 paramName, true, false, false,
+                                                 false );
+                if ( param != null ) {
+                    continue;
+                }
+            }
+
             f = createConstraintField( name, expression, initMembers );
             if ( f != null ) {
                 constraints.add( f );
             }
-        }
 
-        ArrayList< PropertyDecl > propertyList;
-        if ( entity == null ) {
-            propertyList =
-                    new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model ) ) );
-        } else {
-            propertyList =
-                    new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDecls() ) );
         }
+    
 
-        for ( PropertyDecl propertyDecl : propertyList ) {
-            if ( !propertyDecl.expr().isEmpty() ) {
-                expression = propertyDecl.name() + " == "
-                             + propertyDecl.expr().get().toString();
-                f = createConstraintField( null, expression, initMembers );
-                if ( f != null ) {
-                    constraints.add( f );
-                }
-            }
-        }
-        return constraints;
+    return constraints;
+
     }
 
     public FieldDeclaration createConstraintField( String name,

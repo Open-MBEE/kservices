@@ -11,6 +11,12 @@ class Angle {
 
 class TAngle extends Angle {
   req value < 180
+  
+  
+  fun eq(other : TAngle) : Bool {
+    other.value = value
+  }
+  
 }
 
 class Triangle extends Shape {
