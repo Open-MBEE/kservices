@@ -1,4 +1,4 @@
-package gov.nasa.jpl.kservices;
+package gov.nasa.jpl.kservices.sysml2k;
 
 /**
  * Thrown by SysMLtoK when something goes wrong.

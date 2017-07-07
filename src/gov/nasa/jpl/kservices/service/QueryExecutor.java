@@ -13,9 +13,9 @@ import java.util.Set;
 
 import gov.nasa.jpl.ae.event.Expression;
 import gov.nasa.jpl.kservices.KToAe;
-import gov.nasa.jpl.kservices.S2KParseException;
-import gov.nasa.jpl.kservices.SysMLtoK;
-import gov.nasa.jpl.kservices.SysMLtoK.TranslationMap;
+import gov.nasa.jpl.kservices.sysml2k.S2KParseException;
+import gov.nasa.jpl.kservices.sysml2k.S2KLearner;
+import gov.nasa.jpl.kservices.sysml2k.S2KLearner.TranslationMap;
 import gov.nasa.jpl.mbee.util.Pair;
 import k.frontend.Exp;
 import k.frontend.Annotation;
@@ -122,12 +122,7 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
 
     public static void main( String[] args ) {
   		try {
-  		  TranslationMap tm = SysMLtoK.translateElements( SysMLtoK.readJSONFile(
-  		    "/Users/dlegg/git/kservices/testdata/project.json"
-  		  ));
-  		  
-  		  String ksource = SysMLtoK.generateKSource(tm);
-  		  System.out.printf("DEBUG: ksource: %s%n", ksource); //DEBUG
+  		  // TODO add code for testing
   		} catch (Exception e) {
   			e.printStackTrace();
   		}
