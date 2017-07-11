@@ -553,7 +553,7 @@ public class KtoJava {
         }
 
         for ( EntityDecl entity : entityList ) {
-            getClassData().getNestedToEnclosingClassNames().put( entity.ident(),
+            getClassData().getNestedToEnclosingClassNames().put( getClassName( entity ),
                                                                  globalName );
 
             classDecl =
