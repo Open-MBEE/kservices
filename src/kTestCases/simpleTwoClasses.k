@@ -4,11 +4,13 @@ class A {
 	}
 	value:Int
 	b:B
-	req x = sq(b.y)
+	req value = sq(b.y)
 }
 
 class B {
-	y:Int = 10
+	y:Int
+	req y > 8
+	req y < 10
 }
 
 a:A

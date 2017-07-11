@@ -673,7 +673,7 @@ public class KtoJava {
     protected void getSuperClasses( EntityDecl entity,
                                     ClassOrInterfaceDeclaration newClassDecl ) {
         if ( entity == null ) {
-            addExtends( newClassDecl, "ParameterListenerImpl" );
+            addExtends( newClassDecl, "DurativeEvent" );
             return;
         }
         List< ClassOrInterfaceType > extendsList = getInheritsFrom( entity );
@@ -681,7 +681,7 @@ public class KtoJava {
             newClassDecl.setExtends( extendsList );
         }
         if ( Utils.isNullOrEmpty( newClassDecl.getExtends() ) ) {
-            addExtends( newClassDecl, "ParameterListenerImpl" );
+            addExtends( newClassDecl, "DurativeEvent" );
         }
     }
 
@@ -1210,7 +1210,7 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.ae.event.Dependency" );
         addImport( "gov.nasa.jpl.ae.event.ElaborationRule" );
         addImport( "gov.nasa.jpl.ae.event.EventInvocation" );
-        addImport( "gov.nasa.jpl.ae.event.ParameterListenerImpl" );
+        addImport( "gov.nasa.jpl.ae.event.DurativeEvent" );
         addImport( "gov.nasa.jpl.ae.event.Event" );
         addImport( "gov.nasa.jpl.mbee.util.Utils" );
         addImport( "gov.nasa.jpl.mbee.util.Debug" );
@@ -1357,9 +1357,8 @@ public class KtoJava {
 
         stmtsMain.append( "Main scenario = new Main();" );
         stmtsMain.append( "scenario.satisfy( true, null );" );
-        stmtsMain.append( "System.out.println((scenario.isSatisfied(true, null) ? \"Satisfied\" : \"Not Satisfied\") + \"\\n\" + scenario);" );
-        stmtsMain.append( "for (Parameter p : scenario.getParameters()) { System.out.println(p);}" );
-        // stmtsMain.append( "System.out.println(scenario.toKString());" );
+        stmtsMain.append( "System.out.println((scenario.isSatisfied(true, null) ? \"Satisfied\" : \"Not Satisfied\") + \"\\n\" + scenario.executionString());" );
+
 
         List< Expression > args = new ArrayList< Expression >();
 

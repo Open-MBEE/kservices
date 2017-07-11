@@ -25,8 +25,6 @@ class Triangle extends Shape {
   b : TAngle
   c : TAngle
 
-  base : Int
-  height : Int
   
   req sides = 3
 
