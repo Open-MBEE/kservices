@@ -15,7 +15,6 @@ import gov.nasa.jpl.ae.event.Expression;
 import gov.nasa.jpl.kservices.KToAe;
 import gov.nasa.jpl.kservices.sysml2k.S2KParseException;
 import gov.nasa.jpl.kservices.sysml2k.S2KLearner;
-import gov.nasa.jpl.kservices.sysml2k.S2KLearner.TranslationMap;
 import gov.nasa.jpl.mbee.util.Pair;
 import k.frontend.Exp;
 import k.frontend.Annotation;

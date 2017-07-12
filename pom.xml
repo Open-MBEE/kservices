@@ -291,6 +291,13 @@
           <include>**/*.*</include>
         </includes>
       </resource>
+      <!-- DEBUG -->
+      <resource>
+        <directory>testdata</directory>
+        <includes>
+          <include>**/*.*</include>
+        </includes>
+      </resource>
     </resources>
         <plugins>
             <plugin>

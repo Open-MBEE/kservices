@@ -1,42 +1,77 @@
 package gov.nasa.jpl.kservices.sysml2k;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static java.util.Comparator.naturalOrder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 class Path {
-  private PathElement element;
-  private List<Path> branches;
-  private enum ELEMENT_MATCH_TYPE { NONE, STRUCTURE, WILD, EXACT }
-  private static final Map<ELEMENT_MATCH_TYPE, Integer> matchScore = makeMatchScore();
-  private static Map<ELEMENT_MATCH_TYPE, Integer> makeMatchScore() {
-    Map<ELEMENT_MATCH_TYPE, Integer> output = new HashMap<ELEMENT_MATCH_TYPE, Integer>();
-    output.put(ELEMENT_MATCH_TYPE.EXACT,      0);
-    output.put(ELEMENT_MATCH_TYPE.WILD,       0);
-    output.put(ELEMENT_MATCH_TYPE.STRUCTURE, -1);
-    output.put(ELEMENT_MATCH_TYPE.NONE,      -2);
+  private static enum ELEMENT_MATCH_TYPE { NONE, STRUCTURE, WILD, EXACT }
+  private static final Collection<BiPredicate<Path,Path>> mergePredicates = makeMergePredicates();
+  private static Collection<BiPredicate<Path,Path>> makeMergePredicates() {
+    Collection<BiPredicate<Path,Path>> output = new LinkedList<BiPredicate<Path,Path>>();
+    
+    output.add((p1, p2) -> p1.isLeaf() && p2.isLeaf());
+    output.add((p1, p2) -> matchAtLeast(p1, p2, ELEMENT_MATCH_TYPE.WILD));
+    // A structural match at this level plus a real match for every branch of one path to a branch in the other
+    output.add((path1, path2) -> {
+      BiPredicate<Path, Path> branchMatch = (p1, p2) ->
+        p1.branches.stream()
+            .allMatch( b1 ->
+              p2.branches.stream()
+                  .anyMatch( b2 -> matchAtLeast(b1, b2, ELEMENT_MATCH_TYPE.EXACT) ));
+        
+      return matchAtLeast(path1.element, path2.element, ELEMENT_MATCH_TYPE.STRUCTURE) &&
+             path1.branches.size() == path2.branches.size() &&
+             branchMatch.test(path1, path2);
+    });
+    
     return output;
   }
-  private static final Integer NONE_MATCH_SCORE = matchScore.get(ELEMENT_MATCH_TYPE.NONE); // for convenience and efficiency
+  private static final BiPredicate<Path,Path> shouldMerge = mergePredicates.stream().reduce( BiPredicate::or ).orElse( (p1,p2) -> false );
+  private static final Collection<Predicate<PathElement>> wildPredicates = makeWildPredicates();
+  private static Collection<Predicate<PathElement>> makeWildPredicates() {
+    Collection<Predicate<PathElement>> output = new LinkedList<Predicate<PathElement>>();
+    
+    output.add(pe -> 
+        (pe instanceof AlternationPathElement) &&
+        (((AlternationPathElement) pe).innerElements.size() >= 3));
+    
+    return output;
+  }
+  private static final Predicate<PathElement> shouldMakeWild = wildPredicates.stream().reduce( Predicate::or ).orElse( p -> false ); 
+  
+  private PathElement element;
+  private List<Path> branches;
+  
+  /// Public methods
   
   public Path() {
-    this.element = new TagPathElement();
+    this.element  = new TagPathElement();
+    this.branches = new LinkedList<Path>();
   }
   public Path(String tag) {
-    this.element = new TagPathElement(tag);
+    this.element  = new TagPathElement(tag);
+    this.branches = new LinkedList<Path>();
   }
   public Path(Integer index) {
-    this.element = new IndexPathElement(index.toString());
+    this.element  = new IndexPathElement(index.toString());
+    this.branches = new LinkedList<Path>();
   }
 
   public boolean isLeaf() {
     return branches.size() == 0;
+  }
+  
+  public boolean isLinear() {
+    return branches.size() <= 1;
   }
   
   public Path copy() {
@@ -54,29 +89,6 @@ class Path {
   
   public void addBranches(Collection<Path> branches) {
     this.branches.addAll(branches);
-  }
-  
-  /**
-   * Computes a measure of similarity between two paths.
-   * @param other The path to compare to.
-   * @return A score, with lower numbers representing more disparate Paths.
-   */
-  public Integer compare(Path other) {
-    Integer nodeScore = matchScore.get( this.element.match(other.element) );
-    
-    if (this.isLeaf() || other.isLeaf()) {
-      return nodeScore + (NONE_MATCH_SCORE * Math.min(this.minDepth(), other.minDepth()));
-      
-    } else {
-      // Best score possible between a branch here and a branch in other
-      Integer branchScore = doubleBranchCompare(this.branches, other.branches);
-      
-      return Math.max(nodeScore + branchScore,                 // score if we match this node
-          NONE_MATCH_SCORE + Math.max(                         // or take a NONE on this node and...
-              branchScore,                                     // skip both sides (use an Alternation)
-              Math.max(branchCompare(other.branches, this),    // skip other node (use Optional on other)
-                       branchCompare(this.branches, other)))); // skip this node (use Optional on this)
-    }
   }
   
   /**
@@ -128,28 +140,35 @@ class Path {
    * Simplifies this path according to an internal measure of complexity
    */
   public void simplify() {
-    Path[] branchesTemp   = (Path[]) branches.toArray();
-    Integer[] branchComps = (Integer[]) branches.stream().map( Path::complexity ).toArray();
+    branches.forEach( Path::simplify );
     
+    if (branches.size() == 1 && this.element.equals(new TagPathElement())) {
+      // this is a do-nothing node, so de-facto remove it
+      // does this by copying child's info, letting GC delete the child itself.
+      Path child = branches.get(0);
+      this.element  = child.element;
+      this.branches = child.branches;
+      return; // the child was already simplified, above, so we can save some work
+    }
     
-    Path b1, b2, merged;
-    Integer c1, c2, mergedComp; // corresponding complexities
+    if (shouldMakeWild.test(element)) {
+      element = element.makeWild(); 
+    }
+    
+    Path[] branchesTemp = branches.toArray(new Path[branches.size()]);
+    
+    Path b1, b2;
     for (int i = 0; i < branchesTemp.length; ++i) {
       b1 = branchesTemp[i];
-      c1 = branchComps[i];
       for (int j = i+1; j < branchesTemp.length; ++j) {
         b2 = branchesTemp[j];
-        c2 = branchComps[j];
         
-        merged = b1.merge(b2);
-        mergedComp = merged.complexity();
-        
-        if (mergedComp < c1 + c2) {
+        if (shouldMerge.test(b1, b2)) {
+          branches.remove(j); // remove later element first
           branches.remove(i);
-          branches.remove(j);
-          branches.add(merged);
+          branches.add(b1.merge(b2));
           this.simplify();
-          return; // after that index-fiddling, can't safely use temp arrays
+          return; // after that index-fiddling, can't safely use temp array
         }
       }
     }
@@ -180,30 +199,28 @@ class Path {
     return emt.compareTo(ELEMENT_MATCH_TYPE.WILD) >= 0;
   }
   
-  private Integer minDepth() {
-    return branches.stream()
-        .map( (b) -> { return b.minDepth() + 1; } )
-        .min( Comparator.naturalOrder() )
-        .orElse(0);
+  private static boolean matchAtLeast(PathElement pe1, PathElement pe2, ELEMENT_MATCH_TYPE minimum) {
+    return pe1.match(pe2).compareTo(minimum) >= 0;
+  }
+  private static boolean matchAtLeast(Path pe1, Path pe2, ELEMENT_MATCH_TYPE minimum) {
+    return pe1.match(pe2).compareTo(minimum) >= 0;
+  }
+
+  private ELEMENT_MATCH_TYPE match(Path other) {
+    if (this.isLeaf()) {
+      return (other.isLeaf() ? this.element.match(other.element) : ELEMENT_MATCH_TYPE.NONE);
+    } else {
+      return Stream.<ELEMENT_MATCH_TYPE>concat(
+                Stream.of( this.element.match(other.element) ),
+                Stream.of( this.branches.stream()
+                    .flatMap( b -> other.branches.stream().map( b::match ) ) // many-many branch match
+                    .max(ELEMENT_MATCH_TYPE::compareTo) // take best branch's match
+                    .orElse(ELEMENT_MATCH_TYPE.NONE)))
+          .min(ELEMENT_MATCH_TYPE::compareTo) // take worst of this element and branch match
+          .orElse(ELEMENT_MATCH_TYPE.NONE);
+    }
   }
   
-  private Integer complexity() {
-    return element.complexity() + branches.stream().mapToInt( Path::complexity ).sum();
-  }
-  
-  private static Integer branchCompare(List<Path> branches, Path path) {
-    return branches.stream()
-        .map(path::compare)
-        .max(naturalOrder())
-        .orElse(Integer.MIN_VALUE);
-  }
-  
-  private static Integer doubleBranchCompare(List<Path> branches1, List<Path> branches2) {
-    return branches1.stream()
-        .map( sub -> branchCompare(branches2, sub) )
-        .max(naturalOrder())
-        .orElse(Integer.MIN_VALUE);
-  }
   
   /// Private inner classes
   
@@ -211,25 +228,19 @@ class Path {
     public abstract ELEMENT_MATCH_TYPE match(PathElement other);
     public abstract PathElement copy();
     public abstract ELEMENT_MATCH_TYPE specLevel();
+    public abstract PathElement makeWild();
     public abstract String toString();
     
-    public Integer complexity() {
-      switch (this.specLevel()) {
-        case EXACT:
-          return 3;
-        case WILD:
-          return 4;
-        case STRUCTURE:
-          return 5;
-        default:
-          return 10;
-      }
+    @Override
+    public boolean equals(Object other) {
+      return (other instanceof PathElement) &&
+          (this.match((PathElement) other) == ELEMENT_MATCH_TYPE.EXACT);
     }
   }
   
   private static class TagPathElement extends PathElement {
     private static final String WILD = "*";
-    private static final String HERE = ".";
+    private static final String HERE = ""; // Gains the necessary dot at toString step. Else, becomes "..".
     private String tag;
     
     public TagPathElement() {
@@ -244,10 +255,10 @@ class Path {
       if (other instanceof TagPathElement) {
         String otherTag = ((TagPathElement)other).tag;
         
-        if (this.tag == otherTag) {
+        if (this.tag.equals(otherTag)) {
           return ELEMENT_MATCH_TYPE.EXACT;
 
-        } else if (this.tag == WILD || otherTag == WILD) {
+        } else if (this.tag.equals(WILD) || otherTag.equals(WILD)) {
           return ELEMENT_MATCH_TYPE.WILD;
           
         } else {
@@ -267,6 +278,17 @@ class Path {
       return tag == WILD ? ELEMENT_MATCH_TYPE.STRUCTURE : ELEMENT_MATCH_TYPE.EXACT;
     }
     
+    public PathElement makeWild() {
+      return new TagPathElement(WILD);
+    }
+    
+    @Override
+    public int hashCode() {
+      return new HashCodeBuilder(19, 29)
+          .append(tag)
+          .toHashCode();
+    }
+    
     public String toString() {
       return "." + tag;
     }
@@ -283,9 +305,9 @@ class Path {
     public ELEMENT_MATCH_TYPE match(PathElement other) {
       if (other instanceof IndexPathElement) {
         String otherIndex = ((IndexPathElement)other).index;
-        if (this.index == otherIndex) {
+        if (this.index.equals(otherIndex)) {
           return ELEMENT_MATCH_TYPE.EXACT;
-        } else if (this.index == WILD || otherIndex == WILD) {
+        } else if (this.index.equals(WILD) || otherIndex.equals(WILD)) {
           return ELEMENT_MATCH_TYPE.WILD;
         } else {
           return ELEMENT_MATCH_TYPE.STRUCTURE;
@@ -301,6 +323,17 @@ class Path {
     
     public ELEMENT_MATCH_TYPE specLevel() {
       return index == WILD ? ELEMENT_MATCH_TYPE.STRUCTURE : ELEMENT_MATCH_TYPE.EXACT;
+    }
+
+    public PathElement makeWild() {
+      return new IndexPathElement(WILD);
+    }
+    
+    @Override
+    public int hashCode() {
+      return new HashCodeBuilder(19, 29)
+          .append(index)
+          .toHashCode();
     }
     
     public String toString() {
@@ -331,27 +364,62 @@ class Path {
     public ELEMENT_MATCH_TYPE specLevel() {
       return ELEMENT_MATCH_TYPE.WILD;
     }
+
+    public PathElement makeWild() {
+      return innerElement.makeWild();
+    }
+    
+    @Override
+    public boolean equals(Object other) {
+      return (other instanceof OptionalPathElement) &&
+             ( ((OptionalPathElement) other).innerElement.equals(this.innerElement) );
+    }
+    
+    public int hashCode() {
+      return new HashCodeBuilder(19, 29)
+          .append(innerElement)
+          .toHashCode();
+    }
     
     public String toString() {
       return String.format("[%s,.]", innerElement.toString());
     }
-  
-    public Integer complexity() {
-      return super.complexity() * innerElement.complexity();
-    }
   }
 
   private static class AlternationPathElement extends PathElement {
-    private List<PathElement> innerElements;
+    private Set<PathElement> innerElements;
     
-    public AlternationPathElement(PathElement... innerPaths) {
-      this.innerElements = Arrays.asList(innerPaths);
+    public AlternationPathElement(PathElement... innerElements) {
+      this.innerElements = new LinkedHashSet<PathElement>();
+      for (PathElement innerElement : innerElements) {
+        if (innerElement instanceof AlternationPathElement) {
+          // absorb an alternation, to prevent multi-level alternations
+          this.innerElements.addAll(((AlternationPathElement) innerElement).innerElements);
+        } else {
+          this.innerElements.add(innerElement);
+        }
+      }
     }
     
     public ELEMENT_MATCH_TYPE match(PathElement other) {
+      if (other instanceof AlternationPathElement) {
+        AlternationPathElement altOther = (AlternationPathElement) other;
+        // if every element in other exactly matches an element in this, we have an exact match for the overall alternation
+        if (altOther.innerElements.size() == this.innerElements.size() &&
+            altOther.innerElements.stream()
+                .map( pe -> this.innerElements.stream()
+                    .map( pe::match )
+                    .max(ELEMENT_MATCH_TYPE::compareTo)
+                    .orElse(ELEMENT_MATCH_TYPE.NONE) )
+                .min(ELEMENT_MATCH_TYPE::compareTo)
+                .orElse(ELEMENT_MATCH_TYPE.NONE) == ELEMENT_MATCH_TYPE.EXACT) {
+          return ELEMENT_MATCH_TYPE.EXACT;
+        }
+      }
       return innerElements.stream()
-          .map( p -> p.match(other) )
-          .max( (m1, m2) -> m1.compareTo(m2) )
+          .flatMap( p -> Stream.of(p.match(other), other.match(p)) )
+          .map( emt -> (emt == ELEMENT_MATCH_TYPE.EXACT ? ELEMENT_MATCH_TYPE.WILD : emt) ) // replace exact with wild
+          .max( ELEMENT_MATCH_TYPE::compareTo )
           .orElse(ELEMENT_MATCH_TYPE.NONE);
     }
     
@@ -365,20 +433,33 @@ class Path {
         case 0:
           return ELEMENT_MATCH_TYPE.EXACT;
         case 1:
-          return innerElements.get(0).specLevel();
+          return innerElements.iterator().next().specLevel();
         default:
           return ELEMENT_MATCH_TYPE.WILD;
       }
+    }
+
+    public PathElement makeWild() {
+      return innerElements.iterator().next().makeWild();
+    }
+    
+    @Override
+    public boolean equals(Object other) {
+      return (other instanceof AlternationPathElement) &&
+          ( ((AlternationPathElement) other).innerElements.equals(this.innerElements) );
+    }
+    
+    @Override
+    public int hashCode() {
+      return new HashCodeBuilder(19, 29)
+          .append(innerElements)
+          .toHashCode();
     }
     
     public String toString() {
       return "[" + innerElements.stream()
           .map( p -> p.toString().replaceAll("^\\[|\\]$", "") )
           .collect( Collectors.joining(",") ) + "]";
-    }
-    
-    public Integer complexity() {
-      return super.complexity() * (innerElements.stream().mapToInt( PathElement::complexity ).sum());
     }
   }
 }

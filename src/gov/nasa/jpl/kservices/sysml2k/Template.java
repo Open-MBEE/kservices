@@ -9,8 +9,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 class Template {
-  private static final String notEscaped = "(?<!(?:\\\\)*\\)"; // not preceded by an odd number of slashes
-  private static final Function<String, String> matchFieldRegex = s -> String.format(notEscaped + "\\%%s$[\\w\\-#+ 0,\\(]+", s);
+  private static final String notEscaped = "(?<!\\\\)(?:\\\\{2})*"; // not preceded by an odd number of slashes. Stolen from maksymiuk (https://stackoverflow.com/questions/6525556/regular-expression-to-match-escaped-characters-quotes)
+  private static final Function<String, String> matchFieldRegex = s -> notEscaped + "%" + s + "\\$[\\w\\-#+0,(]+(?: [\\w\\-#+0,(]+)?"; //Non-escaped %, name expression, $, assumed valid Java format codes
   private static final Function<String, String> fieldToRegex    = s -> String.format("(?<%s>.*?)", s);
   private static final Pattern generalFieldPattern = Pattern.compile( matchFieldRegex.apply("(\\w+)") );
   
@@ -54,16 +54,30 @@ class Template {
     return name;
   }
   
+  public String toString() {
+    return name + "\n" + stringForm;
+  }
+  
   /// Private Helpers
   
   private Pattern asRegex() {
-    String tempStrForm = stringForm;
+    String tempStrForm = Pattern.quote(stringForm);
     for (String fieldName : fieldNames) {
       // replace the java-style naming pattern with a regex to capture and name the match in a given template
-      tempStrForm.replaceAll(matchFieldRegex.apply(fieldName), fieldToRegex.apply(fieldName));
+      tempStrForm = tempStrForm.replaceAll(
+          matchFieldRegex.apply(fieldName),
+          patternUnquote( fieldToRegex.apply(fieldName) ));
     }
-    regex = Pattern.compile(tempStrForm, Pattern.DOTALL);
-    return regex;
+    return Pattern.compile(tempStrForm, Pattern.DOTALL);
+  }
+  
+  /**
+   * The inverse of Pattern.quote, to be used only in quote'd strings.
+   * @param regex The regex string to be unquote'd
+   * @return s preceded by \E and terminated by \Q
+   */
+  private String patternUnquote(String regex) {
+    return "\\\\E" + regex + "\\\\Q";
   }
   
   /// Public Sub-classes

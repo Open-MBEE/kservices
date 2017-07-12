@@ -1,11 +1,10 @@
 package gov.nasa.jpl.kservices.sysml2k;
 
-import gov.nasa.jpl.kservices.sysml2k.S2KUtil;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -14,14 +13,40 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class S2KLearner {
-  /// Public Methods
+  private static Collection<Template> standardTemplates = null;
   
-  public static TranslationDescription learnDataSource(Collection<String> templateStrings, Collection<Example> examples) throws S2KException {
-    TranslationDescription output = new TranslationDescription();
+  /// Public Methods
+  public static void main(String[] args) {
+    String input  = S2KUtil.readResource("/shapes-project.json"),
+           output = S2KUtil.readResource("/shapes-project.k");
     
+    List<Example> examples = new LinkedList<Example>();
+    examples.add( new Example(input, output) );
+    
+    try {
+      TranslationDescription result = learnTranslation(examples);
+      System.out.println(result.toString());
+    } catch (S2KException e) {
+      e.printStackTrace();
+    }
+  }
+  
+  public static TranslationDescription learnTranslation(Collection<Example> examples) throws S2KException {
+    if (standardTemplates == null) {
+      standardTemplates = S2KUtil.readTemplateFile("/templates.k");
+    }
+    return innerLearnTranslation(standardTemplates, examples);
+  }
+  
+  public static TranslationDescription learnTranslation(Collection<String> templateStrings, Collection<Example> examples) throws S2KException {
     List<Template> templates = templateStrings.stream()
-        .map( templateStr -> new Template(templateStr) )
+        .map( Template::new )
         .collect( Collectors.toList() );
+    return innerLearnTranslation(templates, examples);
+  }
+  
+  private static TranslationDescription innerLearnTranslation(Collection<Template> templates, Collection<Example> examples) throws S2KException {
+    TranslationDescription output = new TranslationDescription();
     
     for (Template template : templates) {
       /* Explanation of the stream work below:
@@ -129,6 +154,9 @@ public class S2KLearner {
    */
   private static Map<String, Collection<String>> collateFieldValues(List<Template.Match> matches) {
     Map<String, Collection<String>> output = new HashMap<String, Collection<String>>();
+    if (matches.isEmpty()) {
+      return output;
+    }
     for (String field : matches.get(0).keySet()) {
       output.put(field, new HashSet<String>());
     }

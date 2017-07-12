@@ -3,6 +3,7 @@ package gov.nasa.jpl.kservices.sysml2k;
 /**
  * Thrown by SysMLtoK when something goes wrong.
  */
+@SuppressWarnings("serial")
 public class S2KException extends Exception {
   public S2KException() {
   }
