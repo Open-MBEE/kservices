@@ -220,7 +220,7 @@ public class KtoJava {
         } else {
             translateClasses();
         }
-        translateClasses();
+        
 
     }
 
