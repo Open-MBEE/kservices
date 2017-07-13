@@ -11,4 +11,4 @@ class %name$s extends %superclass$s {
 
 
 Variable
-var %name$s : %type$s
+var %variableName$s : %variableType$s

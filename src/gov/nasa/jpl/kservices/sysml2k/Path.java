@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.json.JSONObject;
 
 class Path {
   private static final Integer ALTERNATION_WILD_SIZE = 4; // the minimum number of elements to have before an alternation pattern turns into a wildcard
@@ -76,21 +77,6 @@ class Path {
         return Optional.empty();
       }
     });
-    
-//    output.add( (p1, p2) -> {
-//      if (p1.element instanceof FilterPathElement &&
-//          p2.element instanceof FilterPathElement) {
-//        FilterPathElement fpe1 = (FilterPathElement) p1.element;
-//        FilterPathElement fpe2 = (FilterPathElement) p2.element;
-//        if (matchAtLeast(fpe1.getModifies(), fpe2.getModifies(), ELEMENT_MATCH_TYPE.STRUCTURE) &&
-//            // TEMPORARY: should eventually be a WILD match on the filters themselves, but I'm not sure how to do that yet.
-//            matchAtLeast(fpe1, fpe2, ELEMENT_MATCH_TYPE.EXACT, FilterPathElement::filterMatch)) {
-//          Path mergedModifies = new Path(fpe1.getModifies()).merge( new Path(fpe2.getModifies()) );
-//          Path merged = 
-//          
-//        }
-//      }
-//    });
     
     output.add( (p1, p2) -> Optional.of(generalMergeFunction.apply(p1, p2)) );
     
@@ -219,6 +205,13 @@ class Path {
     return output;
   }
   
+  public JSONObject toJSON() {
+    return new JSONObject()
+        .put("_type", "Path")
+        .put("element", element.toJSON())
+        .put("branches", branches.stream().map( Path::toJSON ).collect( Collectors.toList() ));
+  }
+  
   /// Private helpers
 
   private Path(PathElement element) {
@@ -259,6 +252,7 @@ class Path {
     public abstract ELEMENT_MATCH_TYPE specLevel();
     public abstract PathElement makeWild();
     public abstract String toString();
+    public abstract JSONObject toJSON();
     
     @Override
     public boolean equals(Object other) {
@@ -321,11 +315,17 @@ class Path {
     public String toString() {
       return (tag.equals(ROOT) ? tag : "." + tag);
     }
+    
+    public JSONObject toJSON() {
+      return new JSONObject()
+          .put("_type", "TagPathElement")
+          .put("tag", tag);
+    }
   }
   
   private static class IndexPathElement extends PathElement {
     private static final String WILD = "*";
-    private String index;
+    private String index; // string, because I'm debating whether to use this for tag as well
     
     public IndexPathElement(String index) {
       this.index = index;
@@ -367,6 +367,12 @@ class Path {
     
     public String toString() {
       return "[" + index + "]";
+    }
+  
+    public JSONObject toJSON() {
+      return new JSONObject()
+          .put("_type", "IndexPathElement")
+          .put("index", index);
     }
   }
   
@@ -445,6 +451,12 @@ class Path {
           .map( p -> p.toString() )
           .collect( Collectors.joining(",") ) + "]";
     }
+  
+    public JSONObject toJSON() {
+      return new JSONObject()
+          .put("_type", "AlternationPathElement")
+          .put("innerElements", innerElements.stream().map( PathElement::toJSON ).collect( Collectors.toList() ));
+    }
   }
 
   private static abstract class FilterPathElement extends PathElement {
@@ -494,12 +506,20 @@ class Path {
     }
     
     public PathElement makeWild() {
-      // should this just be `return modifies;` ?
+      // should this just be some kind of "delete me" value?
+      // If a "wild" element really matches anything, then the filter is a null-op.
       return new AttributeFilterPathElement(attribute, WILD);
     }
     
     public String toString() {
       return String.format("?(@%s=%s)", attribute.toString(), value);
+    }
+  
+    public JSONObject toJSON() {
+      return new JSONObject()
+          .put("_type", "AttributeFilterPathElement")
+          .put("attribute", attribute.toJSON())
+          .put("value", value);
     }
   }
 }

@@ -36,6 +36,7 @@ public class S2KLearner {
     try {
       TranslationDescription result = learnTranslation(examples);
       System.out.println(result.toString());
+      System.out.println(result.toJSON().toString(2));
     } catch (S2KException e) {
       e.printStackTrace();
     }

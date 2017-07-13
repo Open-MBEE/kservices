@@ -8,6 +8,8 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.json.JSONObject;
+
 class Template {
   private static final String notEscaped = "(?<!\\\\)(?:\\\\{2})*"; // not preceded by an odd number of slashes. Stolen from maksymiuk (https://stackoverflow.com/questions/6525556/regular-expression-to-match-escaped-characters-quotes)
   private static final Function<String, String> matchFieldRegex = s -> notEscaped + "%" + s + "\\$[\\w\\-#+0,(]+(?: [\\w\\-#+0,(]+)?"; //Non-escaped %, name expression, $, assumed valid Java format codes
@@ -58,6 +60,15 @@ class Template {
     return name + "\n" + stringForm;
   }
   
+  public JSONObject toJSON() {
+    return new JSONObject()
+        .put("_type", "Template")
+        .put("name", name)
+        .put("stringForm", stringForm)
+        .put("fieldNames", fieldNames)
+        .put("regex", regex.pattern());
+  }
+  
   /// Private Helpers
   
   private Pattern asRegex() {
@@ -88,6 +99,10 @@ class Template {
       for (String fieldName : fieldNames) {
         this.put(fieldName, res.group(fieldName));
       }
+    }
+    
+    public JSONObject toJSON() {
+      return new JSONObject(this).put("_type", "Match");
     }
   }
 }

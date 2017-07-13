@@ -3,6 +3,8 @@ package gov.nasa.jpl.kservices.sysml2k;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.json.JSONObject;
+
 @SuppressWarnings("serial")
 public class TemplateDataSource extends HashMap<String, Path> {
   /**
@@ -16,5 +18,13 @@ public class TemplateDataSource extends HashMap<String, Path> {
       output.put(field.getKey(), field.getValue().merge( other.get(field.getKey()) ));
     }
     return output;
+  }
+
+  public JSONObject toJSON() {
+    JSONObject data = new JSONObject().put("_type", "TemplateDataSource");
+    this.forEach( (key, path) -> {
+      data.put(key, path.toJSON());
+    });
+    return data;
   }
 }
