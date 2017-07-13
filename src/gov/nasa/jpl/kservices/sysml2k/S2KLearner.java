@@ -7,13 +7,23 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class S2KLearner {
-  private static Collection<Template> standardTemplates = null;
+  private static Collection<Template> standardTemplates = null; 
+  private static final Set<String> tagBlacklist = makeTagBlacklist();
+  private static Set<String> makeTagBlacklist() {
+    Set<String> output = new HashSet<String>();
+    
+    output.add("documentation");
+    
+    return output;
+  }
+  
   
   /// Public Methods
   public static void main(String[] args) {
@@ -88,6 +98,10 @@ public class S2KLearner {
     for (Object key : jsonObj.keySet()) {
       try {
         String keyStr = (String)key;
+        if (tagBlacklist.contains(keyStr)) {
+          // this isn't a tag we should actually be looking at.
+          continue;
+        }
         Object val = jsonObj.get(keyStr);
         matchElement(val, matchValues, new Path(keyStr)).ifPresent( node::addBranch );
       } catch (ClassCastException e) {
@@ -98,7 +112,14 @@ public class S2KLearner {
       // we didn't actually find any values on this branch, so prune it.
       return Optional.empty();
     } else {
-      return Optional.of(node);
+      String type = jsonObj.optString("type");
+      if (type == null || type.equals("")) {
+        // use a general path
+        return Optional.of(node);
+      } else {
+        // use a path that filters by type
+        return Optional.of( new Path("type", type, node) );
+      }
     }
   }
   private static Optional<Path> matchElement(JSONArray jsonObj, Collection<String> matchValues, Path node) {

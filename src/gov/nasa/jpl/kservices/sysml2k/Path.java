@@ -4,22 +4,27 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
-import java.util.function.Predicate;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 class Path {
+  private static final Integer ALTERNATION_WILD_SIZE = 4; // the minimum number of elements to have before an alternation pattern turns into a wildcard
+  
   private static enum ELEMENT_MATCH_TYPE { NONE, STRUCTURE, WILD, EXACT }
+  
   private static final Collection<BiPredicate<Path,Path>> mergePredicates = makeMergePredicates();
   private static Collection<BiPredicate<Path,Path>> makeMergePredicates() {
     Collection<BiPredicate<Path,Path>> output = new LinkedList<BiPredicate<Path,Path>>();
     
     output.add((p1, p2) -> p1.isLeaf() && p2.isLeaf());
-    output.add((p1, p2) -> matchAtLeast(p1, p2, ELEMENT_MATCH_TYPE.WILD));
+    output.add((p1, p2) -> matchAtLeast(p1.element, p2.element, ELEMENT_MATCH_TYPE.WILD));
     // A structural match at this level plus a real match for every branch of one path to a branch in the other
     output.add((path1, path2) -> {
       BiPredicate<Path, Path> branchMatch = (p1, p2) ->
@@ -36,17 +41,80 @@ class Path {
     return output;
   }
   private static final BiPredicate<Path,Path> shouldMerge = mergePredicates.stream().reduce( BiPredicate::or ).orElse( (p1,p2) -> false );
-  private static final Collection<Predicate<PathElement>> wildPredicates = makeWildPredicates();
-  private static Collection<Predicate<PathElement>> makeWildPredicates() {
-    Collection<Predicate<PathElement>> output = new LinkedList<Predicate<PathElement>>();
+
+  private static final BiFunction<Path,Path,Path> generalMergeFunction = (p1, p2) -> {
+    Path merged = new Path(new AlternationPathElement(p1.element, p2.element));
+    merged.branches.addAll(p1.branches);
+    merged.branches.addAll(p2.branches);
+    return merged;
+  };
+  private static final List<BiFunction<Path,Path,Optional<Path>>> mergeFunctions = makeMergeFunctions();
+  private static List<BiFunction<Path,Path,Optional<Path>>> makeMergeFunctions() {
+    List<BiFunction<Path,Path,Optional<Path>>> output = new LinkedList<BiFunction<Path,Path,Optional<Path>>>();
     
-    output.add(pe -> 
-        (pe instanceof AlternationPathElement) &&
-        (((AlternationPathElement) pe).innerElements.size() >= 3));
+    output.add( (p1, p2) -> {
+      if (matchAtLeast(p1.element, p2.element, ELEMENT_MATCH_TYPE.EXACT)) {
+        Path merged = new Path(p1.element);
+        merged.branches.addAll(p1.branches);
+        merged.branches.addAll(p2.branches);
+        return Optional.of(merged);
+      } else {
+        return Optional.empty();
+      }
+    });
+    
+    output.add( (p1, p2) -> {
+      if (matchAtLeast(p1.element, p2.element, ELEMENT_MATCH_TYPE.WILD)) {
+        Path merged = new Path(
+            Stream.of(p1.element, p2.element)
+                .min( (e1, e2) -> (e1.specLevel().compareTo(e2.specLevel())) ) // take the element with minimum specificity
+                .orElse( p1.element )); // shouldn't ever actually hit this condition
+        merged.branches.addAll(p1.branches);
+        merged.branches.addAll(p2.branches);
+        return Optional.of(merged);
+      } else {
+        return Optional.empty();
+      }
+    });
+    
+//    output.add( (p1, p2) -> {
+//      if (p1.element instanceof FilterPathElement &&
+//          p2.element instanceof FilterPathElement) {
+//        FilterPathElement fpe1 = (FilterPathElement) p1.element;
+//        FilterPathElement fpe2 = (FilterPathElement) p2.element;
+//        if (matchAtLeast(fpe1.getModifies(), fpe2.getModifies(), ELEMENT_MATCH_TYPE.STRUCTURE) &&
+//            // TEMPORARY: should eventually be a WILD match on the filters themselves, but I'm not sure how to do that yet.
+//            matchAtLeast(fpe1, fpe2, ELEMENT_MATCH_TYPE.EXACT, FilterPathElement::filterMatch)) {
+//          Path mergedModifies = new Path(fpe1.getModifies()).merge( new Path(fpe2.getModifies()) );
+//          Path merged = 
+//          
+//        }
+//      }
+//    });
+    
+    output.add( (p1, p2) -> Optional.of(generalMergeFunction.apply(p1, p2)) );
     
     return output;
   }
-  private static final Predicate<PathElement> shouldMakeWild = wildPredicates.stream().reduce( Predicate::or ).orElse( p -> false ); 
+  
+  private static final List<Function<Path,Path>> atomicSimplifications = makeAtomicSimplifications();
+  private static List<Function<Path,Path>> makeAtomicSimplifications() {
+    List<Function<Path,Path>> output = new LinkedList<Function<Path,Path>>();
+    
+    output.add( p -> {
+      if ((p.element instanceof AlternationPathElement) &&
+          (((AlternationPathElement) p.element).innerElements.size() >= ALTERNATION_WILD_SIZE)) {
+        Path simple = new Path(p.element.makeWild());
+        simple.branches = p.branches;
+        return simple;
+      } else {
+        return p;
+      }
+    });
+    
+    return output;
+  }
+  private static final Function<Path,Path> atomicSimplify = atomicSimplifications.stream().reduce( Function::compose ).orElseGet( Function::identity );
   
   private PathElement element;
   private List<Path> branches;
@@ -54,24 +122,23 @@ class Path {
   /// Public methods
   
   public Path() {
-    this.element  = new TagPathElement();
-    this.branches = new LinkedList<Path>();
+    this(new TagPathElement());
   }
   public Path(String tag) {
-    this.element  = new TagPathElement(tag);
-    this.branches = new LinkedList<Path>();
+    this(new TagPathElement(tag));
   }
   public Path(Integer index) {
-    this.element  = new IndexPathElement(index.toString());
-    this.branches = new LinkedList<Path>();
+    this(new IndexPathElement(index.toString()));
   }
-
-  public boolean isLeaf() {
-    return branches.size() == 0;
+  public Path(String attribute, String type, Path modifies) {
+    this(modifies.element);
+    Path branch = new Path(new AttributeFilterPathElement(new TagPathElement(attribute), type));
+    branch.branches = modifies.branches;
+    this.branches.add(branch);
   }
   
-  public boolean isLinear() {
-    return branches.size() <= 1;
+  public boolean isLeaf() {
+    return branches.size() == 0;
   }
   
   public Path copy() {
@@ -87,50 +154,18 @@ class Path {
     this.branches.add(branch);
   }
   
-  public void addBranches(Collection<Path> branches) {
-    this.branches.addAll(branches);
-  }
-  
   /**
    * Merges this and another Path, using heuristics to reduce complexity.
    * @param other The path to merge with.
    * @return The merged path.
    */
   public Path merge(Path other) {
-    ELEMENT_MATCH_TYPE nodeMatch = this.element.match( other.element );
-    // shallow copy this node:
-    Path output = new Path();
-    output.branches.addAll(this.branches);
-    output.branches.addAll(other.branches);
-    
-    if (nodeMatch == ELEMENT_MATCH_TYPE.EXACT) {
-      // Exact match, so copy and continue.
-      output.element = this.element;
-      
-    } else if (nodeMatch == ELEMENT_MATCH_TYPE.WILD) {
-      // Need to take the most general wildcard that matches.
-      
-      if (this.element.specLevel().compareTo(other.element.specLevel()) >= 0) {
-        // this is at least as exact as other; so other is more general, and should be used
-        output.element = other.element;
-        
-      } else {
-        // other is more exact, so this is more general, and should be used
-        output.element = this.element;
-      }
-      
-    } else if ( this.branches.stream().anyMatch( p -> isRealMatch( this.element.match(p.element) ) ) ) {
-      // we should skip an element here:
-      output.element = new OptionalPathElement(this.element);
-      
-    } else if ( other.branches.stream().anyMatch( p -> isRealMatch( other.element.match(p.element) ) ) ) {
-      // we should skip an element in other:
-      output.element = new OptionalPathElement(other.element);
-      
-    } else {
-      // we need both sides, so do an alternation here
-      output.element = new AlternationPathElement(this.element, other.element);
-    }
+    Path output = mergeFunctions.stream()
+        .map( f -> f.apply(this, other) )
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .findFirst()
+        .orElseGet(() -> generalMergeFunction.apply(this, other));
     
     output.simplify();
     return output;
@@ -142,18 +177,9 @@ class Path {
   public void simplify() {
     branches.forEach( Path::simplify );
     
-    if (branches.size() == 1 && this.element.equals(new TagPathElement())) {
-      // this is a do-nothing node, so de-facto remove it
-      // does this by copying child's info, letting GC delete the child itself.
-      Path child = branches.get(0);
-      this.element  = child.element;
-      this.branches = child.branches;
-      return; // the child was already simplified, above, so we can save some work
-    }
-    
-    if (shouldMakeWild.test(element)) {
-      element = element.makeWild(); 
-    }
+    Path atomicSimplified = atomicSimplify.apply(this);
+    this.element  = atomicSimplified.element;
+    this.branches = atomicSimplified.branches;
     
     Path[] branchesTemp = branches.toArray(new Path[branches.size()]);
     
@@ -194,18 +220,22 @@ class Path {
   }
   
   /// Private helpers
-  
-  private static boolean isRealMatch(ELEMENT_MATCH_TYPE emt) {
-    return emt.compareTo(ELEMENT_MATCH_TYPE.WILD) >= 0;
-  }
-  
-  private static boolean matchAtLeast(PathElement pe1, PathElement pe2, ELEMENT_MATCH_TYPE minimum) {
-    return pe1.match(pe2).compareTo(minimum) >= 0;
-  }
-  private static boolean matchAtLeast(Path pe1, Path pe2, ELEMENT_MATCH_TYPE minimum) {
-    return pe1.match(pe2).compareTo(minimum) >= 0;
+
+  private Path(PathElement element) {
+    this.element = element;
+    this.branches = new LinkedList<Path>();
   }
 
+  private static boolean matchAtLeast(Path pe1, Path pe2, ELEMENT_MATCH_TYPE minimum) {
+    return matchAtLeast(pe1, pe2, minimum, Path::match);
+  }
+  private static boolean matchAtLeast(PathElement pe1, PathElement pe2, ELEMENT_MATCH_TYPE minimum) {
+    return matchAtLeast(pe1, pe2, minimum, PathElement::match);
+  }
+  private static <T> boolean matchAtLeast(T pe1, T pe2, ELEMENT_MATCH_TYPE minimum, BiFunction<T, T, ELEMENT_MATCH_TYPE> matcher) {
+    return matcher.apply(pe1, pe2).compareTo(minimum) >= 0;
+  }
+  
   private ELEMENT_MATCH_TYPE match(Path other) {
     if (this.isLeaf()) {
       return (other.isLeaf() ? this.element.match(other.element) : ELEMENT_MATCH_TYPE.NONE);
@@ -220,7 +250,6 @@ class Path {
           .orElse(ELEMENT_MATCH_TYPE.NONE);
     }
   }
-  
   
   /// Private inner classes
   
@@ -240,11 +269,11 @@ class Path {
   
   private static class TagPathElement extends PathElement {
     private static final String WILD = "*";
-    private static final String HERE = ""; // Gains the necessary dot at toString step. Else, becomes "..".
+    private static final String ROOT = "$"; // Gains the necessary dot at toString step. Else, becomes "..".
     private String tag;
     
     public TagPathElement() {
-      this.tag = HERE;
+      this.tag = ROOT;
     }
     
     public TagPathElement(String tag) {
@@ -290,7 +319,7 @@ class Path {
     }
     
     public String toString() {
-      return "." + tag;
+      return (tag.equals(ROOT) ? tag : "." + tag);
     }
   }
   
@@ -341,51 +370,6 @@ class Path {
     }
   }
   
-  private static class OptionalPathElement extends PathElement {
-    private PathElement innerElement;
-    
-    public OptionalPathElement(PathElement innerElement) {
-      this.innerElement = innerElement;
-    }
-    
-    public ELEMENT_MATCH_TYPE match(PathElement other) {
-      ELEMENT_MATCH_TYPE output = innerElement.match(other);
-      if (output.compareTo(ELEMENT_MATCH_TYPE.STRUCTURE) < 0) {
-        // promote STRUCTURE or lesser matches to WILD matches, which are stronger
-        output = ELEMENT_MATCH_TYPE.WILD;
-      }
-      return output;
-    }
-  
-    public PathElement copy() {
-      return new OptionalPathElement(innerElement);
-    }
-    
-    public ELEMENT_MATCH_TYPE specLevel() {
-      return ELEMENT_MATCH_TYPE.WILD;
-    }
-
-    public PathElement makeWild() {
-      return innerElement.makeWild();
-    }
-    
-    @Override
-    public boolean equals(Object other) {
-      return (other instanceof OptionalPathElement) &&
-             ( ((OptionalPathElement) other).innerElement.equals(this.innerElement) );
-    }
-    
-    public int hashCode() {
-      return new HashCodeBuilder(19, 29)
-          .append(innerElement)
-          .toHashCode();
-    }
-    
-    public String toString() {
-      return String.format("[%s,.]", innerElement.toString());
-    }
-  }
-
   private static class AlternationPathElement extends PathElement {
     private Set<PathElement> innerElements;
     
@@ -458,8 +442,64 @@ class Path {
     
     public String toString() {
       return "[" + innerElements.stream()
-          .map( p -> p.toString().replaceAll("^\\[|\\]$", "") )
+          .map( p -> p.toString() )
           .collect( Collectors.joining(",") ) + "]";
+    }
+  }
+
+  private static abstract class FilterPathElement extends PathElement {
+  }
+  
+  private static class AttributeFilterPathElement extends FilterPathElement {
+    private static final String WILD = "*";
+    
+    private PathElement attribute;
+    private String value;
+    
+    public AttributeFilterPathElement(PathElement attribute, String type) {
+      this.attribute = attribute;
+      this.value     = type;
+    }
+    
+    public ELEMENT_MATCH_TYPE match(PathElement other) {
+      if (other instanceof AttributeFilterPathElement) {
+        AttributeFilterPathElement attrOther = (AttributeFilterPathElement) other;
+        
+        if (this.value.equals(attrOther.value) &&
+            matchAtLeast(this.attribute, attrOther.attribute, ELEMENT_MATCH_TYPE.EXACT)) {
+          return ELEMENT_MATCH_TYPE.EXACT;
+          
+        } else if ((this.value.equals(WILD) || attrOther.value.equals(WILD)) &&
+                   matchAtLeast(this.attribute, attrOther.attribute, ELEMENT_MATCH_TYPE.WILD)) {
+          return ELEMENT_MATCH_TYPE.WILD;
+          
+        } else {
+          return ELEMENT_MATCH_TYPE.STRUCTURE;
+        }
+      }
+      
+      return ELEMENT_MATCH_TYPE.NONE;
+    }
+    
+    public PathElement copy() {
+      return new AttributeFilterPathElement(attribute.copy(), value);
+    }
+    
+    public ELEMENT_MATCH_TYPE specLevel() {
+      return Stream.of(
+              (value.equals(WILD) ? ELEMENT_MATCH_TYPE.WILD : ELEMENT_MATCH_TYPE.EXACT),
+              attribute.specLevel() )
+          .min(ELEMENT_MATCH_TYPE::compareTo)
+          .orElse(ELEMENT_MATCH_TYPE.NONE);
+    }
+    
+    public PathElement makeWild() {
+      // should this just be `return modifies;` ?
+      return new AttributeFilterPathElement(attribute, WILD);
+    }
+    
+    public String toString() {
+      return String.format("?(@%s=%s)", attribute.toString(), value);
     }
   }
 }
