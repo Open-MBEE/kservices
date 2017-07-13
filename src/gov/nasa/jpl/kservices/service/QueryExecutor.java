@@ -259,6 +259,7 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
                     } catch ( InterruptedException e ) {
                         e.printStackTrace();
                     }
+                    continue;
                 }
                 //readInputFile();
                 System.out.println(line);
