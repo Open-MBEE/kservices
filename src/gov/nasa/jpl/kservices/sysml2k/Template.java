@@ -1,7 +1,7 @@
 package gov.nasa.jpl.kservices.sysml2k;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.LinkedList;
 import java.util.function.Function;
@@ -94,7 +94,7 @@ class Template {
   /// Public Sub-classes
   
   @SuppressWarnings("serial")
-  public class Match extends HashMap<String, String> {
+  public class Match extends LinkedHashMap<String, String> {
     public Match(Matcher res) {
       for (String fieldName : fieldNames) {
         this.put(fieldName, res.group(fieldName));

@@ -1,12 +1,12 @@
 package gov.nasa.jpl.kservices.sysml2k;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.json.JSONObject;
 
 @SuppressWarnings("serial")
-public class TemplateDataSource extends HashMap<String, Path> {
+public class TemplateDataSource extends LinkedHashMap<String, Path> {
   /**
    * Merges the Paths in this DataSource with those of another.
    * @param other The DataSource to merge with.

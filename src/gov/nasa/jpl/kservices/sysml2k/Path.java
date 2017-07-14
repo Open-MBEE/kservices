@@ -1,5 +1,6 @@
 package gov.nasa.jpl.kservices.sysml2k;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -12,7 +13,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.antlr.v4.runtime.atn.SemanticContext.Predicate;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 class Path {
@@ -114,7 +118,7 @@ class Path {
     this(new TagPathElement(tag));
   }
   public Path(Integer index) {
-    this(new IndexPathElement(index.toString()));
+    this(new IndexPathElement(index));
   }
   public Path(String attribute, String type, Path modifies) {
     this(modifies.element);
@@ -186,6 +190,17 @@ class Path {
     }
   }
   
+  public List<Object> access(Object jsonObj) {
+    List<Object> values = this.element.access(jsonObj);
+    if (this.isLeaf()) {
+      return values;
+    } else {
+      return branches.stream()
+          .flatMap( b -> values.stream().map( b::access ) )
+          .collect( Collectors.toList() );
+    }
+  }
+  
   public String toString() {
     String output = element.toString();
     switch (branches.size()) {
@@ -251,6 +266,7 @@ class Path {
     public abstract PathElement copy();
     public abstract ELEMENT_MATCH_TYPE specLevel();
     public abstract PathElement makeWild();
+    public abstract List<Object> access(Object jsonObj);
     public abstract String toString();
     public abstract JSONObject toJSON();
     
@@ -305,6 +321,14 @@ class Path {
       return new TagPathElement(WILD);
     }
     
+    public List<Object> access(Object jsonObj) {
+      try {
+        return Arrays.asList(((JSONObject) jsonObj).get(tag));
+      } catch (ClassCastException | JSONException e) {
+        return Arrays.asList();
+      }
+    }
+    
     @Override
     public int hashCode() {
       return new HashCodeBuilder(19, 29)
@@ -324,16 +348,16 @@ class Path {
   }
   
   private static class IndexPathElement extends PathElement {
-    private static final String WILD = "*";
-    private String index; // string, because I'm debating whether to use this for tag as well
+    private static final Integer WILD = -1; // Actually, any illegal index would work. Don't rely on particular value.
+    private Integer index;
     
-    public IndexPathElement(String index) {
+    public IndexPathElement(Integer index) {
       this.index = index;
     }
     
     public ELEMENT_MATCH_TYPE match(PathElement other) {
       if (other instanceof IndexPathElement) {
-        String otherIndex = ((IndexPathElement)other).index;
+        Integer otherIndex = ((IndexPathElement)other).index;
         if (this.index.equals(otherIndex)) {
           return ELEMENT_MATCH_TYPE.EXACT;
         } else if (this.index.equals(WILD) || otherIndex.equals(WILD)) {
@@ -356,6 +380,14 @@ class Path {
 
     public PathElement makeWild() {
       return new IndexPathElement(WILD);
+    }
+    
+    public List<Object> access(Object jsonObj) {
+      try {
+        return Arrays.asList(((JSONArray) jsonObj).get(index));
+      } catch (ClassCastException | JSONException e) {
+        return Arrays.asList();
+      }
     }
     
     @Override
@@ -431,6 +463,12 @@ class Path {
 
     public PathElement makeWild() {
       return innerElements.iterator().next().makeWild();
+    }
+    
+    public List<Object> access(Object jsonObj) {
+      return innerElements.stream()
+          .flatMap( e -> e.access(jsonObj).stream() )
+          .collect( Collectors.toList() );
     }
     
     @Override
@@ -509,6 +547,14 @@ class Path {
       // should this just be some kind of "delete me" value?
       // If a "wild" element really matches anything, then the filter is a null-op.
       return new AttributeFilterPathElement(attribute, WILD);
+    }
+    
+    public List<Object> access(Object jsonObj) {
+      try {
+        return ( attribute.access(jsonObj).contains(value) ? Arrays.asList(jsonObj) : Arrays.asList() );
+      } catch (ClassCastException | JSONException e) {
+        return Arrays.asList();
+      }
     }
     
     public String toString() {
