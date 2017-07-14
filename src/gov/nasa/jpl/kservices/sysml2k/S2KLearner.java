@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -14,6 +15,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class S2KLearner {
+  private static Scanner systemInScanner = new Scanner(System.in);
   private static Collection<Template> standardTemplates = null; 
   private static final Set<String> tagBlacklist = makeTagBlacklist();
   private static Set<String> makeTagBlacklist() {
@@ -34,48 +36,47 @@ public class S2KLearner {
     examples.add( new Example(input, output) );
     
     try {
-      TranslationDescription result = learnTranslation(examples);
+      TranslationDescription result = learnTranslation(examples, true);
       System.out.println(result.toString());
-      System.out.println(result.toJSON().toString(2));
-    } catch (S2KException e) {
+      System.out.println();
+      
+      Translator translator = new Translator(result);
+      
+      // test the tranlsator on the input used for learning, as a baseline
+      String test_output = translator.translate( new JSONObject(input) );
+      System.out.println(test_output);
+      
+    } catch (Exception e) {
       e.printStackTrace();
     }
   }
   
+  
   public static TranslationDescription learnTranslation(Collection<Example> examples) throws S2KException {
+    return learnTranslation(examples, false);
+  }
+  public static TranslationDescription learnTranslation(Collection<Example> examples, boolean interactive) throws S2KException {
     if (standardTemplates == null) {
       standardTemplates = S2KUtil.readTemplateFile("/templates.k");
     }
-    return innerLearnTranslation(standardTemplates, examples);
+    return innerLearnTranslation(standardTemplates, examples, interactive);
   }
-  
   public static TranslationDescription learnTranslation(Collection<String> templateStrings, Collection<Example> examples) throws S2KException {
-    List<Template> templates = templateStrings.stream()
-        .map( Template::new )
-        .collect( Collectors.toList() );
-    return innerLearnTranslation(templates, examples);
+    return learnTranslation(templateStrings, examples, false);
   }
-  
-  private static TranslationDescription innerLearnTranslation(Collection<Template> templates, Collection<Example> examples) throws S2KException {
-    TranslationDescription output = new TranslationDescription();
-    
-    for (Template template : templates) {
-      /* Explanation of the stream work below:
-       * create a list of data sources, each one a guess based on one example
-       * turn input into a JSONObject by their parser
-       * use the template matcher to parse the output for examples of this template
-       * use matchElements to collate the Matches into a single DataSource
-       * merge those DataSources to build the best approximation that we can
-       */
-      TemplateDataSource dataSource = examples.stream()
-          .map( example -> matchElements( new JSONObject(example.input), template.match(example.output) ) )
-          .reduce( TemplateDataSource::merge )
-          .orElseThrow(() -> new S2KException("Could not learn from given inputs."));
-      
-      output.put(template.getName(), new TranslationDescription.TranslationPair(dataSource, template));
-    }
-    
-    return output;
+  public static TranslationDescription learnTranslation(Collection<String> templateStrings, Collection<Example> examples, boolean interactive) throws S2KException {
+    List<Template> templates = templateStrings.stream()
+        .map( t -> {
+          try {
+            return new Template(t);
+          } catch (S2KParseException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return null;
+          }
+        } )
+        .collect( Collectors.toList() );
+    return innerLearnTranslation(templates, examples, interactive);
   }
   
   public static class Example {
@@ -92,6 +93,55 @@ public class S2KLearner {
   
   private static boolean isNull(Object x) {
     return (x == null) || (x == JSONObject.NULL);
+  }
+
+  private static TranslationDescription innerLearnTranslation(Collection<Template> templates, Collection<Example> examples, boolean interactive) throws S2KException {
+    TranslationDescription output = new TranslationDescription();
+    
+    for (Template template : templates) {
+      /* Explanation of the stream work below:
+       * create a list of data sources, each one a guess based on one example
+       * turn input into a JSONObject by their parser
+       * use the template matcher to parse the output for examples of this template
+       * use matchElements to collate the Matches into a single DataSource
+       * merge those DataSources to build the best approximation that we can
+       */
+      TemplateDataSource dataSource = examples.stream()
+          .map( example -> matchElements( new JSONObject(example.input), template.match(example.output, templates) ) )
+          .reduce( TemplateDataSource::merge )
+          .orElseThrow(() -> new S2KException("Could not learn from given inputs."));
+      
+      if (interactive) {
+        dataSource = getFeedback(template, dataSource);
+      }
+      
+      output.put(template.getName(), new TranslationDescription.TranslationPair(dataSource, template));
+    }
+    
+    return output;
+  }
+  
+  private static TemplateDataSource getFeedback(Template template, TemplateDataSource dataSource) {
+    TemplateDataSource output = new TemplateDataSource();
+    
+    System.out.printf("\nWorking on template: %s\n\n", template);
+    
+    dataSource.forEach( (name, path) -> {
+      Path newPath = null;
+      while (newPath == null) {
+        try {
+          System.out.printf("\nPath found for field `%s`: %s\n", name, path);
+          System.out.println("Please enter replacement path, or leave empty to accept as is.");
+          String pathStr = systemInScanner.nextLine().trim();
+          newPath = (pathStr.equals("") ? path : Path.fromPathStr(pathStr));
+        } catch (S2KParseException e) {
+          System.out.println("Invalid path. Please enter a new path, or leave empty to accept as is.");
+        }
+      }
+      output.put(name, newPath);
+    });
+    
+    return output;
   }
   
   // All of these try to find the path for a single field
@@ -160,12 +210,12 @@ public class S2KLearner {
    */
   private static TemplateDataSource matchElements(JSONObject jsonObj, List<Template.Match> matches) {
     TemplateDataSource output = new TemplateDataSource();
-    for (Map.Entry<String, Collection<String>> fieldEntry : collateFieldValues(matches).entrySet()) {
-      matchElement(jsonObj, fieldEntry.getValue(), new Path()).ifPresent( path -> {
+    collateFieldValues(matches).forEach( (fieldName, matchValues) -> {
+      matchElement(jsonObj, matchValues, new Path()).ifPresent( path -> {
         path.simplify();
-        output.put(fieldEntry.getKey(), path);
+        output.put(fieldName, path);
       });
-    }
+    });
     return output;
   }
   

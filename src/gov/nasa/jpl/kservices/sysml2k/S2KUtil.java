@@ -51,7 +51,7 @@ public class S2KUtil {
       return output;
     }
   }
-  public static List<Template> readTemplateFile(InputStream templateFile) {
+  public static List<Template> readTemplateFile(InputStream templateFile) throws S2KParseException {
     String[] templateStrings = streamToString(templateFile).split("\n([ \t]*\n){2,}");
     List<Template> templates = new ArrayList<Template>(templateStrings.length);
     
@@ -68,7 +68,7 @@ public class S2KUtil {
     return streamToString( S2KUtil.class.getResourceAsStream(resourceName) );
   }
   
-  protected static List<Template> readTemplateFile(String resourceName) {
+  protected static List<Template> readTemplateFile(String resourceName) throws S2KParseException {
     return readTemplateFile( S2KUtil.class.getResourceAsStream(resourceName) );
   }
   

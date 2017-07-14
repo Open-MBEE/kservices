@@ -43,7 +43,7 @@ class Triangle extends Shape {
   req Angles: a.value + b.value + c.value = 180
 }
 
-class  Equilateral extends Triangle {
+class Equilateral extends Triangle {
   req a.eq(b) && b.eq(c) 
 }
 

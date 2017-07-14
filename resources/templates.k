@@ -1,14 +1,14 @@
 Class
-class %name$s {
-  %content$s
+class %!name$s {
+%@content$s
 }
 
 
 Generalized Class
-class %name$s extends %superclass$s {
-  %content$s
+class %!name$s extends %superClass$s {
+%@content$s
 }
 
 
 Variable
-var %variableName$s : %variableType$s
+var %!variableName$s : %variableType$s
