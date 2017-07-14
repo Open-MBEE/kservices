@@ -97,16 +97,24 @@
 					<artifactId>sysml</artifactId>
 					<version>${mbee.version}</version>
 				</dependency>
-				<dependency>
+<!--  				<dependency>
 					<groupId>gov.nasa.jpl.mbee.bae</groupId>
 					<artifactId>bae</artifactId>
 					<version>${mbee.version}</version>
-				</dependency>
-				<dependency>
+				</dependency> -->
+                <dependency>
+                    <groupId>klang</groupId>
+                    <artifactId>klang</artifactId>
+                    <version>1.0</version>
+                    <scope>system</scope>
+                    <type>jar</type>
+                    <systemPath>${project.basedir}/../KLang/target/klang-2.3.4-SNAPSHOT.jar</systemPath>
+                </dependency>
+<!-- 				<dependency>
 					<groupId>gov.nasa.jpl.mbee.klang</groupId>
 					<artifactId>klang</artifactId>
 					<version>${mbee.version}</version>
-				</dependency>
+				</dependency> -->
 			</dependencies>
 			<properties>
 				<env.BUILD_NUMBER>1</env.BUILD_NUMBER>
@@ -343,6 +351,8 @@
                 <versionRange>[3.1.6,)</versionRange>
                 <goals>
                  <goal>add-source</goal>
+                 <goal>compile</goal>
+                 <goal>testCompile</goal>
                 </goals>
                </pluginExecutionFilter>
                <action>
