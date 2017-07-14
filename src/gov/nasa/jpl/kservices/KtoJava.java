@@ -189,10 +189,10 @@ public class KtoJava {
     String k;
     String packageName;
     JavaToConstraintExpression expressionTranslator;
-    int counter;
+    int constraintCounter;
+    int expressionCounter;
     TypeChecker typeChecker;
     Model model;
-    Boolean isExpression;
     final String globalName;
 
     public KtoJava( String k, String pkgName, boolean translate ) {
@@ -215,21 +215,16 @@ public class KtoJava {
             this.packageName = pkgName;
         }
         init();
-        if ( this.isExpression ) {
-            translateExpression();
-        } else {
-            translateClasses();
-        }
-        
+        translateClasses();
 
     }
 
     public void init() {
-        this.counter = 0;
+        this.constraintCounter = 0;
+        this.expressionCounter = 0;
         expressionTranslator = new JavaToConstraintExpression( packageName );
         this.model = Frontend.getModelFromString( this.k );
         typeChecker = new TypeChecker( this.model );
-        this.isExpression = Frontend.isExpression( this.model );
         buildParamTable( getClassData().getParamTable() );
 
         buildMethodTable( getClassData().getMethodTable() );
@@ -553,8 +548,8 @@ public class KtoJava {
         }
 
         for ( EntityDecl entity : entityList ) {
-            getClassData().getNestedToEnclosingClassNames().put( getClassName( entity ),
-                                                                 globalName );
+            getClassData().getNestedToEnclosingClassNames()
+                          .put( getClassName( entity ), globalName );
 
             classDecl =
                     processClassDeclaration( entity, justClassDeclarations );
@@ -764,6 +759,8 @@ public class KtoJava {
         Collection< FieldDeclaration > dependencies =
                 getDependencies( entity, initDependencies );
 
+        parameters.addAll(getExpressions( entity, initMembers ));
+
         members.addAll( parameters );
         members.addAll( constraints );
         members.addAll( dependencies );
@@ -911,6 +908,30 @@ public class KtoJava {
         return parameters;
     }
 
+    public ArrayList< FieldDeclaration >
+           getExpressions( EntityDecl entity, MethodDeclaration initMembers ) {
+        ArrayList< FieldDeclaration > parameters =
+                new ArrayList< FieldDeclaration >();
+        if ( entity == null ) {
+            ArrayList< ExpressionDecl > expressionList =
+                    new ArrayList< ExpressionDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelExpressions( this.model ) ) );
+            FieldDeclaration f;
+            for ( ExpressionDecl expressionDecl : expressionList ) {
+                 Exp exp = expressionDecl.exp();
+                 String name = new String( "expression" + expressionCounter++ );
+                 String type = JavaToConstraintExpression.typeToClass( TypeChecker.exp2Type().get( exp ).toString() );
+                 ClassData.Param p = new ClassData.Param( name,type, exp.toJavaString() );
+                 f = createParameterField( p, initMembers );
+                 if ( f != null ) {
+                     parameters.add( f );
+                 }
+
+            }
+        }
+
+        return parameters;
+    }
+
     public Collection< FieldDeclaration >
            getConstraints( EntityDecl entity, MethodDeclaration initMembers ) {
         ArrayList< FieldDeclaration > constraints =
@@ -948,9 +969,8 @@ public class KtoJava {
             }
 
         }
-    
 
-    return constraints;
+        return constraints;
 
     }
 
@@ -958,7 +978,7 @@ public class KtoJava {
                                                    String expression ) {
 
         if ( name == null ) {
-            name = new String( "constraint" + counter++ );
+            name = new String( "constraint" + constraintCounter++ );
         }
 
         String constructorArgs =
@@ -982,7 +1002,7 @@ public class KtoJava {
             return createConstraintField( name, expression );
         }
         if ( name == null || name.trim().length() == 0 ) {
-            name = new String( "constraint" + counter++ );
+            name = new String( "constraint" + constraintCounter++ );
         }
 
         String constructorArgs =
@@ -1273,7 +1293,7 @@ public class KtoJava {
             createInitCollectionsMethod( String methodName,
                                          Collection< FieldDeclaration > parameters,
 
-                                         Collection< FieldDeclaration > constraints ) {
+                                         Collection< FieldDeclaration > constraints) {
         MethodDeclaration initCollections =
                 new MethodDeclaration( ModifierSet.PROTECTED, new VoidType(),
                                        methodName );
@@ -1358,7 +1378,6 @@ public class KtoJava {
         stmtsMain.append( "Main scenario = new Main();" );
         stmtsMain.append( "scenario.satisfy( true, null );" );
         stmtsMain.append( "System.out.println((scenario.isSatisfied(true, null) ? \"Satisfied\" : \"Not Satisfied\") + \"\\n\" + scenario.executionString());" );
-
 
         List< Expression > args = new ArrayList< Expression >();
 
