@@ -11,4 +11,14 @@ class %!name$s extends %superClass$s {
 
 
 Variable
-var %!variableName$s : %variableType$s
+var %!name$s : %type$s
+
+
+Nullary Function
+fun %!name$s : %returnType$s {
+%body$s
+}
+
+
+Requirement
+req ( %!expr$s )

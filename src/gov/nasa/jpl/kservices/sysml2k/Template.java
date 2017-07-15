@@ -23,6 +23,8 @@ class Template {
   private List<Field> fields;
   private Field triggerField;
   private Pattern regex; // to memoize the regex for matching instantiated templates
+  //TODO: make this whitespace-agnostic
+  
   
   /// Public Methods
 

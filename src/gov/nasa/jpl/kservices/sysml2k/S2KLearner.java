@@ -37,8 +37,6 @@ public class S2KLearner {
     
     try {
       TranslationDescription result = learnTranslation(examples, true);
-      System.out.println(result.toString());
-      System.out.println();
       
       Translator translator = new Translator(result);
       
