@@ -243,7 +243,7 @@ public class KtoJava {
             ArrayList< PropertyDecl > propertyList =
                     new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getAllPropertyDecls() ) );
             for ( PropertyDecl p : propertyList ) {
-                param = makeParam( p );
+                param = makeParam( p, entity );
                 String type = p.ty().toString();
                 if ( this.allClassNames.contains( type ) ) {
                     this.instantiatedClassNames.add( type );
@@ -281,7 +281,7 @@ public class KtoJava {
         List< FunDecl > topLevelFunctions =
                 new ArrayList< FunDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelFunctions( this.model ) ) );
         for ( PropertyDecl p : topLevelProperties ) {
-            param = makeParam( p );
+            param = makeParam( p, null );
             String type = p.ty().toString();
             if ( this.allClassNames.contains( type ) ) {
                 this.instantiatedClassNames.add( type );
@@ -424,17 +424,23 @@ public class KtoJava {
 
     }
 
-    public ClassData.Param makeParam( PropertyDecl p ) {
+    public ClassData.Param makeParam( PropertyDecl p, EntityDecl e ) {
         String name = p.name();
-        String type =
+        String typeOld =
                 JavaToConstraintExpression.typeToClass( p.ty().toString() );
+        String type = typeOld;
+        if (e != null) {
+            type = globalName + "." + type;
+        }
         String value;
         if ( p.expr().isEmpty() ) {
             value = "null";
-            if ( !( type.equals( "Boolean" ) || type.equals( "Double" )
-                    || type.equals( "Integer" ) || type.equals( "Long" )
-                    || type.equals( "String" ) ) ) {
+            if ( !( typeOld.equals( "Boolean" ) || typeOld.equals( "Double" )
+                    || typeOld.equals( "Integer" ) || typeOld.equals( "Long" )
+                    || typeOld.equals( "String" ) ) ) {
                 value = "new " + type + "()";
+            } else {
+                type = typeOld;
             }
         } else {
             value = p.expr().get().toJavaString();
@@ -815,7 +821,7 @@ public class KtoJava {
                     new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( entity.getConstraintDecls() ) );
         }
         for ( PropertyDecl property : propertyList ) {
-            ClassData.Param depParam = makeParam( property );
+            ClassData.Param depParam = makeParam( property, entity );
             if ( depParam.value != "null" ) {
                 f = createDependencyField( depParam, initDependencies );
                 if ( f != null ) {
@@ -925,7 +931,7 @@ public class KtoJava {
         }
         
         for ( PropertyDecl property : propertyList ) {
-            ClassData.Param p = makeParam( property );
+            ClassData.Param p = makeParam( property, entity );
             f = createParameterField( p, initMembers );
             if ( f != null ) {
                 parameters.add( f );
