@@ -380,8 +380,8 @@ public class KtoJava {
 
     public MethodDeclaration makeMethodDecl( FunDecl funDecl ) {
         MethodDeclaration methodDecl = new MethodDeclaration();
-        String typeString = funDecl.ty().get().toString();
-        methodDecl.setType( makeType( typeString ) );
+        String typeString = JavaToConstraintExpression.typeToClass( funDecl.ty().get().toString() );
+        methodDecl.setType( new ClassOrInterfaceType("Expression<" + typeString + ">") );
         methodDecl.setModifiers( 1 );
         methodDecl.setName( funDecl.ident() );
         List< Param > funParams =
@@ -432,6 +432,11 @@ public class KtoJava {
         if (e != null) {
             type = globalName + "." + type;
         }
+        if ( ( typeOld.equals( "Boolean" ) || typeOld.equals( "Double" )
+                || typeOld.equals( "Integer" ) || typeOld.equals( "Long" )
+                || typeOld.equals( "String" ) ) ) {
+            type = typeOld;
+        }
         String value;
         if ( p.expr().isEmpty() ) {
             value = "null";
@@ -439,9 +444,7 @@ public class KtoJava {
                     || typeOld.equals( "Integer" ) || typeOld.equals( "Long" )
                     || typeOld.equals( "String" ) ) ) {
                 value = "new " + type + "()";
-            } else {
-                type = typeOld;
-            }
+            } 
         } else {
             value = p.expr().get().toJavaString();
         }
@@ -639,9 +642,9 @@ public class KtoJava {
                                 expressionTranslator.astToAeExpr( expr,
                                                                   typeString,
                                                                   true, true,
-                                                                  true, true );
+                                                                  true, false );
                         addStatements( body, "return " + aeString
-                                             + ".getValue( true );" );
+                                             + ";" );
 
                         methodDecl.setBody( body );
                     }
@@ -801,8 +804,6 @@ public class KtoJava {
         if ( entity == null ) {
             propertyList =
                     new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model ) ) );
-            constraintList =
-                    new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelConstraints( this.model ) ) );
             for ( String className : allClassNames ) {
                 if ( !instantiatedClassNames.contains( className ) ) {
                     ClassData.Param p =
@@ -817,8 +818,7 @@ public class KtoJava {
         } else {
             propertyList =
                     new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDecls() ) );
-            constraintList =
-                    new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( entity.getConstraintDecls() ) );
+
         }
         for ( PropertyDecl property : propertyList ) {
             ClassData.Param depParam = makeParam( property, entity );
@@ -829,40 +829,6 @@ public class KtoJava {
 
                 }
             }
-        }
-
-        
-        
-
-        String expression;
-        for ( ConstraintDecl constraint : constraintList ) {
-
-            String name = constraint.name().isEmpty() ? null
-                                                      : constraint.name().get();
-            expression = constraint.exp().toJavaString();
-            if ( expression.contains( "==" ) ) {
-                BinExp binExp = (BinExp)constraint.exp();
-                String paramName = binExp.exp1().toJavaString();
-                ClassData.Param param =
-                        getClassData().getParam( getClassData().getCurrentClass(),
-                                                 paramName, true, false, false,
-                                                 false );
-                if ( param != null ) {
-                    String type = param.type;
-                    ClassData.Param depParam =
-                            new ClassData.Param( paramName, type,
-                                                 binExp.exp2().toJavaString() );
-                    if ( depParam.value != "null" ) {
-                        f = createDependencyField( depParam, initDependencies );
-                        if ( f != null ) {
-                            dependencies.add( f );
-
-                        }
-                    }
-                }
-
-            }
-
         }
 
         return dependencies;
@@ -991,17 +957,17 @@ public class KtoJava {
             String name = constraint.name().isEmpty() ? null
                                                       : constraint.name().get();
             expression = constraint.exp().toJavaString();
-            if ( expression.contains( "==" ) ) {
-                BinExp binExp = (BinExp)constraint.exp();
-                String paramName = binExp.exp1().toJavaString();
-                ClassData.Param param =
-                        getClassData().getParam( getClassData().getCurrentClass(),
-                                                 paramName, true, false, false,
-                                                 false );
-                if ( param != null ) {
-                    continue;
-                }
-            }
+//            if ( expression.contains( "==" ) ) {
+//                BinExp binExp = (BinExp)constraint.exp();
+//                String paramName = binExp.exp1().toJavaString();
+//                ClassData.Param param =
+//                        getClassData().getParam( getClassData().getCurrentClass(),
+//                                                 paramName, true, false, false,
+//                                                 false );
+//                if ( param != null ) {
+//                    continue;
+//                }
+//            }
 
             f = createConstraintField( name, expression, initMembers );
             if ( f != null ) {
