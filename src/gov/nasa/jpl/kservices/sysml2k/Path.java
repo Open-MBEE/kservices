@@ -1,11 +1,12 @@
 package gov.nasa.jpl.kservices.sysml2k;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.AbstractMap;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -25,6 +26,7 @@ class Path {
   private static final Integer ALTERNATION_WILD_SIZE = 3; // the minimum number of elements to have before an alternation pattern turns into a wildcard
   private static final String WILD_TAG = "*";
   private static final String ROOT_TAG = "$";
+  private static final String REFERENCE_TAG = "^";
   private static final String WILD_INDEX = "*";
   
   private static enum ELEMENT_MATCH_TYPE { NONE, STRUCTURE, WILD, EXACT }
@@ -117,6 +119,10 @@ class Path {
   private PathElement element;
   private List<Path> branches;
   
+  static{
+    new Path();
+  }
+  
   /// Public methods
   
   public Path() {
@@ -130,21 +136,23 @@ class Path {
   }
   public Path(String attribute, String type, Path modifies) {
     this(modifies.element);
-    Path branch = new Path(new AttributeFilterPathElement(new TagPathElement(attribute), type));
+    Path branch = new Path(new AttributeFilterPathElement(new Path(new TagPathElement(attribute)), type));
     branch.branches = modifies.branches;
     this.branches.add(branch);
   }
   
   public static Path fromPathStr(String pathStr) throws S2KParseException {
     Parser parser = pathParsers.stream()
-        .filter( p -> p.matches(pathStr) )
+        .filter( p -> { 
+          return p.matches(pathStr); } )
         .findFirst()
         .orElseThrow(() -> new S2KParseException("Could not parse path string."));
     
     Path output = new Path(parser.build(pathStr));
     String remainingPathStr = parser.remaining(pathStr);
-    // TODO: figure out a better way to distinguish alternative branches from indexing... {}, maybe?
-    if (remainingPathStr.startsWith("[") && !remainingPathStr.matches("^\\[[\\w" + Pattern.quote(WILD_INDEX) + "]+\\].*")) {
+    // TODO: figure out a better way to distinguish alternative branches from indexing and alternation... {}, maybe?
+    // Or, maybe I can do away with branches altogether, just using alternations with Paths, not PathElements, inside.
+    if (remainingPathStr.matches("^\\[[^\\]]*\\]$") && !remainingPathStr.matches("^\\[[\\w" + Pattern.quote(WILD_INDEX) + "]+\\].*")) {
       // we have branching alternatives
       remainingPathStr = remainingPathStr.substring(1); // trim leading bracket, so it doesn't get into next level
       
@@ -180,6 +188,19 @@ class Path {
   
   public void addBranch(Path branch) {
     this.branches.add(branch);
+  }
+  
+  public Path withoutLeaves() {
+    if (this.isLeaf()) {
+      return new Path(); // special case: if method is invoked directly on a leaf, return a root
+    } else {
+      Path output = new Path(this.element);
+      output.branches = this.branches.stream()
+          .filter( branch -> !branch.isLeaf() ) // trim leaves to prevent having root nodes at the tips
+          .map( Path::withoutLeaves )
+          .collect( Collectors.toList() );
+      return output;
+    }
   }
   
   /**
@@ -228,8 +249,25 @@ class Path {
     }
   }
   
-  public List<Object> access(Object jsonObj) {
-    return access(jsonObj, jsonObj);
+  public Map<Path,Object> access(Object jsonObj) {
+    return innerAccess(jsonObj, jsonObj, jsonObj);
+  }
+  public Map<Path,Object> access(Object jsonObj, Object referenceJsonObj) {
+    return innerAccess(jsonObj, jsonObj, referenceJsonObj);
+  }
+  
+  public Integer distance(Path other) {
+    BiFunction<Path, Path, Integer> branchDistance = (p1, p2) -> p1.branches.stream()
+        .mapToInt( branch -> p2.branches.stream()
+            .mapToInt( branch::distance )
+            .min()
+            .orElse(0) )
+        .sum();
+    // Rough "edit distance" between Paths
+    // The smaller branch distance will be because that side has fewer branches,
+    // so we take the larger branch distance to take into account the essentially non-matching branches.
+    return (matchAtLeast(this.element, other.element, ELEMENT_MATCH_TYPE.WILD) ? 0 : 1)
+        + Math.max(branchDistance.apply(this, other), branchDistance.apply(other, this));
   }
   
   public String toString() {
@@ -258,6 +296,22 @@ class Path {
         .put("branches", branches.stream().map( Path::toJSON ).collect( Collectors.toList() ));
   }
   
+  public static Path fromJSON(JSONObject jsonObj) throws S2KParseException {
+    try {
+      if (!jsonObj.getString("_type").equals("Path")) {
+        throw new S2KParseException("JSON object does not represent a Path");
+      }
+      Path output = new Path(PathElement.fromJSON(jsonObj.getJSONObject("element")));
+      JSONArray jsonBranches = jsonObj.getJSONArray("branches");
+      for (int i = 0; i < jsonBranches.length(); ++i) {
+        output.addBranch( Path.fromJSON(jsonBranches.getJSONObject(i)) );
+      }
+      return output;
+    } catch (JSONException e) {
+      throw new S2KParseException("JSON object could not be parsed as a Path.", e);
+    }
+  }
+  
   /// Private helpers
 
   private Path(PathElement element) {
@@ -265,14 +319,22 @@ class Path {
     this.branches = new LinkedList<Path>();
   }
 
-  private List<Object> access(Object jsonObj, Object root) {
-    List<Object> values = this.element.access(jsonObj, root);
+  private Map<Path,Object> innerAccess(Object jsonObj, Object root, Object referenceJsonObj) {
+    Map<PathElement,Object> values = this.element.access(jsonObj, root, referenceJsonObj);
     if (this.isLeaf()) {
-      return values;
+      return values.entrySet().stream()
+          .map( entry -> new AbstractMap.SimpleEntry<>(new Path(entry.getKey()), entry.getValue()) )
+          .collect( Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue) );
     } else {
       return branches.stream()
-          .flatMap( branch -> values.stream().flatMap( value -> branch.access(value, root).stream() ) )
-          .collect( Collectors.toList() );
+          .flatMap( branch -> values.entrySet().stream()
+              .flatMap( value -> branch.innerAccess(value.getValue(), root, referenceJsonObj).entrySet().stream()
+                  .map( pathValue -> {
+                    Path wrapped = new Path(value.getKey());
+                    wrapped.branches.add(pathValue.getKey());
+                    return new AbstractMap.SimpleEntry<Path, Object>( wrapped, pathValue.getValue() );
+                  }) ))
+          .collect( Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue) );
     }
   }
   
@@ -334,14 +396,36 @@ class Path {
   }
   
   private static abstract class PathElement {
+    protected static Map<String, Function<JSONObject, Optional<PathElement>>> fromJsonMethods = new LinkedHashMap<String, Function<JSONObject, Optional<PathElement>>>();
+
+    static{
+      // TODO: there has to be a better way to do this...
+      // I need to initialize all the classes, but actually building one is really a kludge.
+      new TagPathElement();
+      new IndexPathElement(0);
+      new AlternationPathElement();
+      new NegationFilterPathElement(new Path());
+      new AttributeFilterPathElement(new Path(), "type");
+      new DoubleAttributeFilterPathElement(new Path(), new Path());
+    }
+    
     /// Public methods
     
     public abstract PathElement copy();
     public abstract ELEMENT_MATCH_TYPE specLevel();
     public abstract PathElement makeWild();
-    public abstract List<Object> access(Object jsonObj, Object root);
+    public abstract Map<PathElement, Object> access(Object jsonObj, Object root, Object reference);
     public abstract String toString();
     public abstract JSONObject toJSON();
+    
+    public static PathElement fromJSON(JSONObject jsonObj) throws S2KParseException {
+      try {
+        return fromJsonMethods.get(jsonObj.getString("_type")).apply(jsonObj)
+            .orElseThrow( () -> new S2KParseException("JSON object could not be parsed as a PathElement.") );
+      } catch (JSONException e) {
+        throw new S2KParseException("JSON object could not be parsed as a PathElement.", e);
+      }
+    }
 
     public ELEMENT_MATCH_TYPE match(PathElement other) {
       // handle symmetry at the top level, so implementers need only look from their side
@@ -359,18 +443,30 @@ class Path {
     /// Protected helpers
     
     protected abstract ELEMENT_MATCH_TYPE lmatch(PathElement other);
+    
+    protected static Map<PathElement, Object> newAccessMap() {
+      return new LinkedHashMap<PathElement, Object>();
+    }
+    protected static Map<PathElement, Object> makeAccessMap(PathElement key, Object value) {
+      Map<PathElement, Object> output = newAccessMap();
+      output.put(key, value);
+      return output;
+    }
   }
   
   private static class TagPathElement extends PathElement {
     private static final String WILD = WILD_TAG;
     private static final String ROOT = ROOT_TAG;
+    private static final String REF  = REFERENCE_TAG;
     private String tag;
     
     static{
       pathParsers.add( new Parser(
-          "^(\\.\\w+|" + Pattern.quote(WILD) + "|" + Pattern.quote(ROOT) + ")",
+          "^(\\.\\w+|" + Pattern.quote(WILD) + "|" + Pattern.quote(ROOT) + "|" + Pattern.quote(REF) + ")",
           matcher -> Optional.of( new TagPathElement(
               matcher.group(1).startsWith(".") ? matcher.group(1).substring(1) : matcher.group(1)) )));
+      
+      fromJsonMethods.put("TagPathElement", jsonObj -> Optional.of( new TagPathElement(jsonObj.getString("tag")) ));
     }
     
     /// Public methods
@@ -395,22 +491,27 @@ class Path {
       return new TagPathElement(WILD);
     }
     
-    public List<Object> access(Object jsonObj, Object root) {
+    public Map<PathElement, Object> access(Object jsonObj, Object root, Object reference) {
       try {
         JSONObject trueJsonObj = (JSONObject) jsonObj;
         if (tag.equals(ROOT)) {
-          return Arrays.asList(root);
+          return makeAccessMap(this, root);
+          
+        } else if (tag.equals(REF)) {
+          return makeAccessMap(this, reference);
+          
         } else if (tag.equals(WILD)) {
-          List<Object> output = new ArrayList<Object>( trueJsonObj.keySet().size() );
+          Map<PathElement, Object> output = newAccessMap();
           for (Object key : trueJsonObj.keySet()) {
-            output.add( trueJsonObj.get((String) key) );
+            output.put( new TagPathElement((String) key), trueJsonObj.get((String) key) );
           }
           return output;
+          
         } else {
-          return Arrays.asList(trueJsonObj.get(tag));
+          return makeAccessMap(this, trueJsonObj.get(tag));
         }
       } catch (ClassCastException | JSONException e) {
-        return Arrays.asList();
+        return newAccessMap();
       }
     }
     
@@ -422,7 +523,7 @@ class Path {
     }
     
     public String toString() {
-      return (tag.equals(ROOT) ? tag : "." + tag);
+      return (tag.equals(ROOT) || tag.equals(REF) ? tag : "." + tag);
     }
     
     public JSONObject toJSON() {
@@ -430,7 +531,7 @@ class Path {
           .put("_type", "TagPathElement")
           .put("tag", tag);
     }
-  
+    
     /// Protected helpers
     
     protected ELEMENT_MATCH_TYPE lmatch(PathElement other) {
@@ -463,6 +564,8 @@ class Path {
           "^\\[(\\w+|" + Pattern.quote(WILD_STR) + ")\\]",
           matcher -> Optional.of(
               new IndexPathElement( matcher.group(1).equals(WILD_STR) ? WILD : Integer.valueOf(matcher.group(1)) ) )));
+      
+      fromJsonMethods.put("IndexPathElement", jsonObj -> Optional.of( new IndexPathElement(jsonObj.getInt("index")) ));
     }
     
     /// Public methods
@@ -483,20 +586,20 @@ class Path {
       return new IndexPathElement(WILD);
     }
     
-    public List<Object> access(Object jsonObj, Object root) {
+    public Map<PathElement, Object> access(Object jsonObj, Object root, Object reference) {
       try {
         JSONArray jsonArray = (JSONArray) jsonObj;
         if (index.equals(WILD)) {
-          List<Object> output = new ArrayList<Object>( jsonArray.length() );
+          Map<PathElement, Object> output = newAccessMap();
           for (int i = 0; i < jsonArray.length(); ++i) {
-            output.add( jsonArray.get(i) );
+            output.put( new IndexPathElement(i), jsonArray.get(i) );
           }
           return output;
         } else {
-          return Arrays.asList(jsonArray.get(index));
+          return makeAccessMap(this, jsonArray.get(index));
         }
       } catch (ClassCastException | JSONException e) {
-        return Arrays.asList();
+        return newAccessMap();
       }
     }
     
@@ -542,7 +645,7 @@ class Path {
       pathParsers.add( new Parser(
           "^\\[((.+?,)*?.+?)\\]",
           matcher -> {
-            Matcher optionMatcher = Pattern.compile(".+?,").matcher(matcher.group(1));
+            Matcher optionMatcher = Pattern.compile("(.+?)(,|$)").matcher(matcher.group(1));
             List<Path> optionPaths = new LinkedList<Path>();
             while (optionMatcher.find()) {
               try {
@@ -556,6 +659,19 @@ class Path {
             return Optional.of(
                 new AlternationPathElement( optionPaths.stream().map( p -> p.element ).toArray( PathElement[]::new )) );
           }));
+      
+      fromJsonMethods.put("AlternationPathElement", jsonObj -> {
+        try {
+          JSONArray jsonElements = jsonObj.getJSONArray("innerElements");
+          PathElement[] innerElements = new PathElement[jsonElements.length()];
+          for (int i = 0; i < jsonElements.length(); ++i) {
+            innerElements[i] = PathElement.fromJSON( jsonElements.getJSONObject(i) );
+          }
+          return Optional.of( new AlternationPathElement(innerElements) );
+        } catch (S2KParseException e) {
+          return Optional.empty();
+        }
+      });
     }
     
     /// Public methods
@@ -592,10 +708,10 @@ class Path {
       return innerElements.iterator().next().makeWild();
     }
     
-    public List<Object> access(Object jsonObj, Object root) {
+    public Map<PathElement, Object> access(Object jsonObj, Object root, Object reference) {
       return innerElements.stream()
-          .flatMap( e -> e.access(jsonObj, root).stream() )
-          .collect( Collectors.toList() );
+          .map( e -> e.access(jsonObj, root, reference) )
+          .reduce( newAccessMap(), (acc, map) -> { acc.putAll(map); return acc; } );
     }
     
     @Override
@@ -651,30 +767,118 @@ class Path {
   private static abstract class FilterPathElement extends PathElement {
   }
   
-  private static class AttributeFilterPathElement extends FilterPathElement {
-    private static final String WILD = "*";
+  private static class NegationFilterPathElement extends FilterPathElement {
+    private Path negatedPath;
     
-    private PathElement attribute;
-    private String value;
-
     static{
       pathParsers.add( new Parser(
-          "^\\?\\(@(.*?)=(.*?)\\)",
+          "^\\?\\(!(.*?)\\)",
           matcher -> {
-            try {
+            try{
               return Optional.of(
-                  new AttributeFilterPathElement(Path.fromPathStr(matcher.group(1)).element, matcher.group(2)) );
+                  new NegationFilterPathElement( Path.fromPathStr(matcher.group(1)) ));
             } catch (S2KParseException e) {
               return Optional.empty();
             }
           }));
+      
+      fromJsonMethods.put("NegationFilterPathElement", jsonObj -> {
+        try {
+          return Optional.of(
+              new NegationFilterPathElement(
+                  Path.fromJSON( jsonObj.getJSONObject("negatedPath") )));
+        } catch (S2KParseException e) {
+          return Optional.empty();
+        }
+      });
     }
     
     /// Public methods
     
-    public AttributeFilterPathElement(PathElement attribute, String type) {
+    public NegationFilterPathElement(Path negatedPath) {
+      this.negatedPath = negatedPath;
+    }
+    
+    public PathElement copy() {
+      return new NegationFilterPathElement( negatedPath.copy() );
+    }
+    
+    public ELEMENT_MATCH_TYPE specLevel() {
+      return ELEMENT_MATCH_TYPE.WILD;
+    }
+    
+    public PathElement makeWild() {
+      return this; // what does this mean, really?
+    }
+    
+    public Map<PathElement, Object> access(Object jsonObj, Object root, Object reference) {
+      Map<Path, Object> lookup = negatedPath.innerAccess(jsonObj, root, reference);
+      if (lookup.isEmpty()) {
+        return makeAccessMap(this, jsonObj);
+      } else {
+        return newAccessMap();
+      }
+    }
+    
+    public String toString() {
+      return String.format("?(!%s)", negatedPath.toString());
+    }
+    
+    public JSONObject toJSON() {
+      return new JSONObject()
+          .put("_type", "NegationFilterPathElement")
+          .put("negatedPath", negatedPath.toJSON());
+    }
+    
+    /// Protected helpers
+    
+    protected ELEMENT_MATCH_TYPE lmatch(PathElement other) {
+      if (other instanceof NegationFilterPathElement) {
+        return Stream.of(
+                ((NegationFilterPathElement) other).negatedPath.match(this.negatedPath),
+                ELEMENT_MATCH_TYPE.STRUCTURE)
+            .max( ELEMENT_MATCH_TYPE::compareTo ) // return no less than a STRUCTURE match
+            .orElse(ELEMENT_MATCH_TYPE.STRUCTURE);
+      }
+      return ELEMENT_MATCH_TYPE.NONE;
+    }
+  }
+  
+  private static class AttributeFilterPathElement extends FilterPathElement {
+    private static final String WILD = "*";
+    
+    private Path attribute;
+    private String value;
+
+    static{
+      pathParsers.add( new Parser(
+          "^\\?\\((.*?)=\"(.*?)\"\\)",
+          matcher -> {
+            try {
+              return Optional.of(
+                  new AttributeFilterPathElement(Path.fromPathStr(matcher.group(1)), matcher.group(2)) );
+            } catch (S2KParseException e) {
+              return Optional.empty();
+            }
+          }));
+      
+      fromJsonMethods.put("AttributeFilterPathElement", jsonObj -> {
+        try {
+          return Optional.of(
+              new AttributeFilterPathElement(
+                  Path.fromJSON(jsonObj.getJSONObject("attribute")),
+                  jsonObj.getString("value") ));
+        } catch (S2KParseException e) {
+          return Optional.empty();
+        }
+      });
+    }
+    
+    /// Public methods
+    
+    public AttributeFilterPathElement(Path attribute, String value) {
       this.attribute = attribute;
-      this.value     = type;
+      this.value     = value;
     }
     
     public PathElement copy() {
@@ -682,11 +886,12 @@ class Path {
     }
     
     public ELEMENT_MATCH_TYPE specLevel() {
-      return Stream.of(
-              (value.equals(WILD) ? ELEMENT_MATCH_TYPE.WILD : ELEMENT_MATCH_TYPE.EXACT),
-              attribute.specLevel() )
-          .min(ELEMENT_MATCH_TYPE::compareTo)
-          .orElse(ELEMENT_MATCH_TYPE.NONE);
+//      return Stream.of(
+//              (value.equals(WILD) ? ELEMENT_MATCH_TYPE.WILD : ELEMENT_MATCH_TYPE.EXACT),
+//              attribute.specLevel() )
+//          .min(ELEMENT_MATCH_TYPE::compareTo)
+//          .orElse(ELEMENT_MATCH_TYPE.NONE);
+      return ( value.equals(WILD) ? ELEMENT_MATCH_TYPE.WILD : ELEMENT_MATCH_TYPE.EXACT );
     }
     
     public PathElement makeWild() {
@@ -695,14 +900,25 @@ class Path {
       return new AttributeFilterPathElement(attribute, WILD);
     }
     
-    public List<Object> access(Object jsonObj, Object root) {
-      List<Object> attrValues = attribute.access(jsonObj, root);
+    public Map<PathElement, Object> access(Object jsonObj, Object root, Object reference) {
+      Map<Path, Object> attrValues = attribute.innerAccess(jsonObj, root, reference);
       // define matching on a wild attribute to be just having that attribute
-      return ( attrValues.contains(value) || (value.equals(WILD) && !attrValues.isEmpty()) ? Arrays.asList(jsonObj) : Arrays.asList() );
+      if ( value.equals(WILD) && !attrValues.isEmpty() ) {
+        return makeAccessMap(
+            new AttributeFilterPathElement(attribute,
+                attrValues.values().iterator().next().toString()), // choose an arbitrary value to "match" the wildcard
+            jsonObj);
+        
+      } else if ( attrValues.values().contains(value) ) {
+        return makeAccessMap( this, jsonObj ); // this is already a specific attribute value
+        
+      } else {
+        return newAccessMap(); // no match at all
+      }
     }
     
     public String toString() {
-      return String.format("?(@%s=%s)", attribute.toString(), value);
+      return String.format("?(%s=\"%s\")", attribute.toString(), value);
     }
   
     public JSONObject toJSON() {
@@ -725,6 +941,98 @@ class Path {
         } else if ((this.value.equals(WILD) || attrOther.value.equals(WILD)) &&
                    matchAtLeast(this.attribute, attrOther.attribute, ELEMENT_MATCH_TYPE.WILD)) {
           return ELEMENT_MATCH_TYPE.WILD;
+          
+        } else {
+          return ELEMENT_MATCH_TYPE.STRUCTURE;
+        }
+      }
+      
+      return ELEMENT_MATCH_TYPE.NONE;
+    }
+  }
+  
+  private static class DoubleAttributeFilterPathElement extends FilterPathElement {
+    private Path mainAttribute, comparisonAttribute;
+
+    static{
+      pathParsers.add( new Parser(
+          "^\\?\\((.*?)=(?<!\")(.*?)\\)",
+          matcher -> {
+            try {
+              return Optional.of(
+                  new DoubleAttributeFilterPathElement(
+                      Path.fromPathStr(matcher.group(1)),
+                      Path.fromPathStr(matcher.group(2)) ));
+            } catch (S2KParseException e) {
+              return Optional.empty();
+            }
+          }));
+      
+      fromJsonMethods.put("DoubleAttributeFilterPathElement", jsonObj -> {
+        try {
+          return Optional.of(
+              new DoubleAttributeFilterPathElement(
+                  Path.fromJSON(jsonObj.getJSONObject("mainAttribute")),
+                  Path.fromJSON(jsonObj.getJSONObject("comparisonAttribute")) ));
+        } catch (S2KParseException e) {
+          return Optional.empty();
+        }
+      });
+    }
+    
+    /// Public methods
+    
+    public DoubleAttributeFilterPathElement(Path mainAttribute, Path comparisonAttribute) {
+      this.mainAttribute       = mainAttribute;
+      this.comparisonAttribute = comparisonAttribute;
+    }
+    
+    public PathElement copy() {
+      return new DoubleAttributeFilterPathElement(mainAttribute.copy(), comparisonAttribute.copy());
+    }
+    
+    public ELEMENT_MATCH_TYPE specLevel() {
+      return ELEMENT_MATCH_TYPE.EXACT; // effectively disables wildcard merging
+    }
+    
+    public PathElement makeWild() {
+      return this; // dummy method, since merging is basically disabled for this.
+    }
+    
+    public Map<PathElement, Object> access(Object jsonObj, Object root, Object reference) {
+      Map<Path, Object> mainAttrLookup = mainAttribute.innerAccess(jsonObj, root, reference),
+                  comparisonAttrLookup = comparisonAttribute.innerAccess(jsonObj, root, reference);
+      
+      Set<Object> commonValues = new LinkedHashSet<>(mainAttrLookup.values());
+      commonValues.retainAll(comparisonAttrLookup.values());
+      if ( !commonValues.isEmpty() ) {
+        return makeAccessMap( this, jsonObj );
+        
+      } else {
+        return newAccessMap(); // no match at all
+      }
+    }
+    
+    public String toString() {
+      return String.format("?(%s=%s)", mainAttribute.toString(), comparisonAttribute.toString());
+    }
+  
+    public JSONObject toJSON() {
+      return new JSONObject()
+          .put("_type", "DoubleAttributeFilterPathElement")
+          .put("mainAttribute", mainAttribute.toJSON())
+          .put("comparisonAttribute", comparisonAttribute.toJSON());
+    }
+  
+    /// Protected helpers
+
+    protected ELEMENT_MATCH_TYPE lmatch(PathElement other) {
+      if (other instanceof DoubleAttributeFilterPathElement) {
+        DoubleAttributeFilterPathElement attrOther = (DoubleAttributeFilterPathElement) other;
+        
+        if (matchAtLeast(this.mainAttribute, attrOther.mainAttribute, ELEMENT_MATCH_TYPE.EXACT) &&
+            matchAtLeast(this.comparisonAttribute, attrOther.comparisonAttribute, ELEMENT_MATCH_TYPE.EXACT)) {
+          return ELEMENT_MATCH_TYPE.EXACT;
           
         } else {
           return ELEMENT_MATCH_TYPE.STRUCTURE;

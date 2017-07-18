@@ -34,18 +34,27 @@ public class S2KLearner {
     
     List<Example> examples = new LinkedList<Example>();
     examples.add( new Example(input, output) );
-    
+
     try {
       TranslationDescription result = learnTranslation(examples, true);
-      
+      System.out.println(result.toJSON().toString(2));
       Translator translator = new Translator(result);
       
       // test the tranlsator on the input used for learning, as a baseline
       String test_output = translator.translate( new JSONObject(input) );
       System.out.println(test_output);
-      
-    } catch (Exception e) {
-      e.printStackTrace();
+    } catch (S2KException e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
+    }
+    
+    while (true) {
+      try {
+        System.out.println( Path.fromPathStr( systemInScanner.nextLine() ).toJSON().toString(2) );
+        
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
     }
   }
   

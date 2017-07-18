@@ -2,7 +2,9 @@ package gov.nasa.jpl.kservices.sysml2k;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 @SuppressWarnings("serial")
@@ -26,5 +28,27 @@ public class TemplateDataSource extends LinkedHashMap<String, Path> {
       data.put(key, path.toJSON());
     });
     return data;
+  }
+  
+  public static TemplateDataSource fromJSON(JSONObject jsonObj) throws S2KParseException {
+    if (!jsonObj.getString("_type").equals("TemplateDataSource")) {
+      throw new S2KParseException("jsonObj does not represent a TemplateDataSource.");
+    }
+    
+    TemplateDataSource output = new TemplateDataSource();
+    
+    @SuppressWarnings("unchecked")
+    Set<String> keySet = jsonObj.keySet();
+    keySet.stream()
+        .filter( key -> !key.equals("_type") )
+        .forEach( key -> {
+          try {
+            output.put(key, Path.fromJSON(jsonObj.getJSONObject(key)));
+          } catch (S2KParseException | JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+          }
+        });
+    return output;
   }
 }

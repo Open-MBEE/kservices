@@ -23,6 +23,19 @@ public class TranslationDescription extends LinkedHashMap<String, TranslationDes
     return output;
   }
   
+  public static TranslationDescription fromJSON(JSONObject jsonObj) throws S2KParseException {
+    if (!jsonObj.getString("_type").equals("TranslationDescription")) {
+      throw new S2KParseException("Could not parse JSON as a TranslationDescription.");
+    }
+    TranslationDescription output = new TranslationDescription();
+    for (Object key : jsonObj.keySet()) {
+      if (!key.equals("_type")) {
+        output.put((String) key, TranslationPair.fromJSON( jsonObj.getJSONObject((String) key) ));
+      }
+    }
+    return output;
+  }
+  
   public static class TranslationPair {
     public TemplateDataSource templateDataSource;
     public Template template;
@@ -41,6 +54,15 @@ public class TranslationDescription extends LinkedHashMap<String, TranslationDes
           .put("_type", "TranslationPair")
           .put("templateDataSource", templateDataSource.toJSON() )
           .put("template", template.toJSON() );
+    }
+    
+    public static TranslationPair fromJSON(JSONObject jsonObj) throws S2KParseException {
+      if (!jsonObj.getString("_type").equals("TranslationPair")) {
+        throw new S2KParseException("Could not parse JSON as a TranslationPair.");
+      }
+      return new TranslationPair(
+          TemplateDataSource.fromJSON(jsonObj.getJSONObject("templateDataSource")),
+          Template.fromJSON(jsonObj.getJSONObject("template")));
     }
   }
 }

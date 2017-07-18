@@ -1,0 +1,570 @@
+{
+  "Nullary Function": {
+    "template": {
+      "regex": "\\Qfun\\E\\s+\\Q\\E(?<name>\\w+)\\Q\\E\\s+\\Q:\\E\\s+\\Q\\E(?<returnType>\\w+)\\Q\\E\\s+\\Q{\n\\E(?<body>\\w+)\\Q\n}\\E",
+      "stringForm": "fun %!name$s : %returnType$s {\n%body$s\n}",
+      "triggerField": {
+        "isRecursive": false,
+        "_type": "Field",
+        "name": "name",
+        "isTrigger": true,
+        "isNecessary": true
+      },
+      "_type": "Template",
+      "name": "Nullary Function",
+      "fields": [
+        {
+          "isRecursive": false,
+          "_type": "Field",
+          "name": "name",
+          "isTrigger": true,
+          "isNecessary": true
+        },
+        {
+          "isRecursive": false,
+          "_type": "Field",
+          "name": "returnType",
+          "isTrigger": false,
+          "isNecessary": false
+        },
+        {
+          "isRecursive": false,
+          "_type": "Field",
+          "name": "body",
+          "isTrigger": false,
+          "isNecessary": false
+        }
+      ]
+    },
+    "_type": "TranslationPair",
+    "templateDataSource": {"_type": "TemplateDataSource"}
+  },
+  "Requirement": {
+    "template": {
+      "regex": "\\Qreq\\E\\s+\\Q(\\E\\s+\\Q\\E(?<expr>\\w+)\\Q\\E\\s+\\Q)\\E",
+      "stringForm": "req ( %!expr$s )",
+      "triggerField": {
+        "isRecursive": false,
+        "_type": "Field",
+        "name": "expr",
+        "isTrigger": true,
+        "isNecessary": true
+      },
+      "_type": "Template",
+      "name": "Requirement",
+      "fields": [{
+        "isRecursive": false,
+        "_type": "Field",
+        "name": "expr",
+        "isTrigger": true,
+        "isNecessary": true
+      }]
+    },
+    "_type": "TranslationPair",
+    "templateDataSource": {"_type": "TemplateDataSource"}
+  },
+  "Variable": {
+    "template": {
+      "regex": "\\Qvar\\E\\s+\\Q\\E(?<name>\\w+)\\Q\\E\\s+\\Q:\\E\\s+\\Q\\E(?<type>\\w+)\\Q\\E",
+      "stringForm": "var %!name$s : %type$s",
+      "triggerField": {
+        "isRecursive": false,
+        "_type": "Field",
+        "name": "name",
+        "isTrigger": true,
+        "isNecessary": true
+      },
+      "_type": "Template",
+      "name": "Variable",
+      "fields": [
+        {
+          "isRecursive": false,
+          "_type": "Field",
+          "name": "name",
+          "isTrigger": true,
+          "isNecessary": true
+        },
+        {
+          "isRecursive": false,
+          "_type": "Field",
+          "name": "type",
+          "isTrigger": false,
+          "isNecessary": true
+        }
+      ]
+    },
+    "_type": "TranslationPair",
+    "templateDataSource": {
+      "_type": "TemplateDataSource",
+      "name": {
+        "_type": "Path",
+        "branches": [{
+          "_type": "Path",
+          "branches": [{
+            "_type": "Path",
+            "branches": [{
+              "_type": "Path",
+              "branches": [{
+                "_type": "Path",
+                "branches": [],
+                "element": {
+                  "_type": "TagPathElement",
+                  "tag": "name"
+                }
+              }],
+              "element": {
+                "_type": "AlternationPathElement",
+                "innerElements": [
+                  {
+                    "_type": "AttributeFilterPathElement",
+                    "attribute": {
+                      "_type": "Path",
+                      "branches": [],
+                      "element": {
+                        "_type": "TagPathElement",
+                        "tag": "type"
+                      }
+                    },
+                    "value": "Port"
+                  },
+                  {
+                    "_type": "AttributeFilterPathElement",
+                    "attribute": {
+                      "_type": "Path",
+                      "branches": [],
+                      "element": {
+                        "_type": "TagPathElement",
+                        "tag": "type"
+                      }
+                    },
+                    "value": "Property"
+                  }
+                ]
+              }
+            }],
+            "element": {
+              "_type": "IndexPathElement",
+              "index": -1
+            }
+          }],
+          "element": {
+            "_type": "TagPathElement",
+            "tag": "elements"
+          }
+        }],
+        "element": {
+          "_type": "TagPathElement",
+          "tag": "$"
+        }
+      },
+      "type": {
+        "_type": "Path",
+        "branches": [{
+          "_type": "Path",
+          "branches": [{
+            "_type": "Path",
+            "branches": [{
+              "_type": "Path",
+              "branches": [{
+                "_type": "Path",
+                "branches": [{
+                  "_type": "Path",
+                  "branches": [],
+                  "element": {
+                    "_type": "TagPathElement",
+                    "tag": "name"
+                  }
+                }],
+                "element": {
+                  "_type": "DoubleAttributeFilterPathElement",
+                  "mainAttribute": {
+                    "_type": "Path",
+                    "branches": [],
+                    "element": {
+                      "_type": "TagPathElement",
+                      "tag": "ownerId"
+                    }
+                  },
+                  "comparisonAttribute": {
+                    "_type": "Path",
+                    "branches": [{
+                      "_type": "Path",
+                      "branches": [],
+                      "element": {
+                        "_type": "TagPathElement",
+                        "tag": "id"
+                      }
+                    }],
+                    "element": {
+                      "_type": "TagPathElement",
+                      "tag": "^"
+                    }
+                  }
+                }
+              }],
+              "element": {
+                "_type": "AttributeFilterPathElement",
+                "attribute": {
+                  "_type": "Path",
+                  "branches": [],
+                  "element": {
+                    "_type": "TagPathElement",
+                    "tag": "type"
+                  }
+                },
+                "value": "Class"
+              }
+            }],
+            "element": {
+              "_type": "IndexPathElement",
+              "index": -1
+            }
+          }],
+          "element": {
+            "_type": "TagPathElement",
+            "tag": "elements"
+          }
+        }],
+        "element": {
+          "_type": "TagPathElement",
+          "tag": "$"
+        }
+      }
+    }
+  },
+  "Generalized Class": {
+    "template": {
+      "regex": "\\Qclass\\E\\s+\\Q\\E(?<name>\\w+)\\Q\\E\\s+\\Qextends\\E\\s+\\Q\\E(?<superClass>\\w+)\\Q\\E\\s+\\Q{\n\\E(?<content>.*?)\\Q\n}\\E",
+      "stringForm": "class %!name$s extends %superClass$s {\n%@content$s\n}",
+      "triggerField": {
+        "isRecursive": false,
+        "_type": "Field",
+        "name": "name",
+        "isTrigger": true,
+        "isNecessary": true
+      },
+      "_type": "Template",
+      "name": "Generalized Class",
+      "fields": [
+        {
+          "isRecursive": false,
+          "_type": "Field",
+          "name": "name",
+          "isTrigger": true,
+          "isNecessary": true
+        },
+        {
+          "isRecursive": false,
+          "_type": "Field",
+          "name": "superClass",
+          "isTrigger": false,
+          "isNecessary": true
+        },
+        {
+          "isRecursive": true,
+          "_type": "Field",
+          "name": "content",
+          "isTrigger": false,
+          "isNecessary": false
+        }
+      ]
+    },
+    "_type": "TranslationPair",
+    "templateDataSource": {
+      "superClass": {
+        "_type": "Path",
+        "branches": [{
+          "_type": "Path",
+          "branches": [{
+            "_type": "Path",
+            "branches": [{
+              "_type": "Path",
+              "branches": [{
+                "_type": "Path",
+                "branches": [{
+                  "_type": "Path",
+                  "branches": [],
+                  "element": {
+                    "_type": "TagPathElement",
+                    "tag": "name"
+                  }
+                }],
+                "element": {
+                  "_type": "DoubleAttributeFilterPathElement",
+                  "mainAttribute": {
+                    "_type": "Path",
+                    "branches": [],
+                    "element": {
+                      "_type": "TagPathElement",
+                      "tag": "id"
+                    }
+                  },
+                  "comparisonAttribute": {
+                    "_type": "Path",
+                    "branches": [{
+                      "_type": "Path",
+                      "branches": [{
+                        "_type": "Path",
+                        "branches": [{
+                          "_type": "Path",
+                          "branches": [{
+                            "_type": "Path",
+                            "branches": [{
+                              "_type": "Path",
+                              "branches": [],
+                              "element": {
+                                "_type": "TagPathElement",
+                                "tag": "generalId"
+                              }
+                            }],
+                            "element": {
+                              "_type": "DoubleAttributeFilterPathElement",
+                              "mainAttribute": {
+                                "_type": "Path",
+                                "branches": [],
+                                "element": {
+                                  "_type": "TagPathElement",
+                                  "tag": "specificId"
+                                }
+                              },
+                              "comparisonAttribute": {
+                                "_type": "Path",
+                                "branches": [{
+                                  "_type": "Path",
+                                  "branches": [],
+                                  "element": {
+                                    "_type": "TagPathElement",
+                                    "tag": "id"
+                                  }
+                                }],
+                                "element": {
+                                  "_type": "TagPathElement",
+                                  "tag": "^"
+                                }
+                              }
+                            }
+                          }],
+                          "element": {
+                            "_type": "AttributeFilterPathElement",
+                            "attribute": {
+                              "_type": "Path",
+                              "branches": [],
+                              "element": {
+                                "_type": "TagPathElement",
+                                "tag": "type"
+                              }
+                            },
+                            "value": "Generalization"
+                          }
+                        }],
+                        "element": {
+                          "_type": "IndexPathElement",
+                          "index": -1
+                        }
+                      }],
+                      "element": {
+                        "_type": "TagPathElement",
+                        "tag": "elements"
+                      }
+                    }],
+                    "element": {
+                      "_type": "TagPathElement",
+                      "tag": "$"
+                    }
+                  }
+                }
+              }],
+              "element": {
+                "_type": "AttributeFilterPathElement",
+                "attribute": {
+                  "_type": "Path",
+                  "branches": [],
+                  "element": {
+                    "_type": "TagPathElement",
+                    "tag": "type"
+                  }
+                },
+                "value": "Class"
+              }
+            }],
+            "element": {
+              "_type": "IndexPathElement",
+              "index": -1
+            }
+          }],
+          "element": {
+            "_type": "TagPathElement",
+            "tag": "elements"
+          }
+        }],
+        "element": {
+          "_type": "TagPathElement",
+          "tag": "$"
+        }
+      },
+      "_type": "TemplateDataSource",
+      "name": {
+        "_type": "Path",
+        "branches": [{
+          "_type": "Path",
+          "branches": [{
+            "_type": "Path",
+            "branches": [{
+              "_type": "Path",
+              "branches": [{
+                "_type": "Path",
+                "branches": [],
+                "element": {
+                  "_type": "TagPathElement",
+                  "tag": "name"
+                }
+              }],
+              "element": {
+                "_type": "AlternationPathElement",
+                "innerElements": [
+                  {
+                    "_type": "AttributeFilterPathElement",
+                    "attribute": {
+                      "_type": "Path",
+                      "branches": [],
+                      "element": {
+                        "_type": "TagPathElement",
+                        "tag": "type"
+                      }
+                    },
+                    "value": "Diagram"
+                  },
+                  {
+                    "_type": "AttributeFilterPathElement",
+                    "attribute": {
+                      "_type": "Path",
+                      "branches": [],
+                      "element": {
+                        "_type": "TagPathElement",
+                        "tag": "type"
+                      }
+                    },
+                    "value": "Class"
+                  }
+                ]
+              }
+            }],
+            "element": {
+              "_type": "IndexPathElement",
+              "index": -1
+            }
+          }],
+          "element": {
+            "_type": "TagPathElement",
+            "tag": "elements"
+          }
+        }],
+        "element": {
+          "_type": "TagPathElement",
+          "tag": "$"
+        }
+      }
+    }
+  },
+  "_type": "TranslationDescription",
+  "Class": {
+    "template": {
+      "regex": "\\Qclass\\E\\s+\\Q\\E(?<name>\\w+)\\Q\\E\\s+\\Q{\n\\E(?<content>.*?)\\Q\n}\\E",
+      "stringForm": "class %!name$s {\n%@content$s\n}",
+      "triggerField": {
+        "isRecursive": false,
+        "_type": "Field",
+        "name": "name",
+        "isTrigger": true,
+        "isNecessary": true
+      },
+      "_type": "Template",
+      "name": "Class",
+      "fields": [
+        {
+          "isRecursive": false,
+          "_type": "Field",
+          "name": "name",
+          "isTrigger": true,
+          "isNecessary": true
+        },
+        {
+          "isRecursive": true,
+          "_type": "Field",
+          "name": "content",
+          "isTrigger": false,
+          "isNecessary": false
+        }
+      ]
+    },
+    "_type": "TranslationPair",
+    "templateDataSource": {
+      "_type": "TemplateDataSource",
+      "name": {
+        "_type": "Path",
+        "branches": [{
+          "_type": "Path",
+          "branches": [{
+            "_type": "Path",
+            "branches": [{
+              "_type": "Path",
+              "branches": [{
+                "_type": "Path",
+                "branches": [{
+                  "_type": "Path",
+                  "branches": [],
+                  "element": {
+                    "_type": "TagPathElement",
+                    "tag": "name"
+                  }
+                }],
+                "element": {
+                  "_type": "NegationFilterPathElement",
+                  "negatedPath": {
+                    "_type": "Path",
+                    "branches": [{
+                      "_type": "Path",
+                      "branches": [],
+                      "element": {
+                        "_type": "IndexPathElement",
+                        "index": -1
+                      }
+                    }],
+                    "element": {
+                      "_type": "TagPathElement",
+                      "tag": "generalizationIds"
+                    }
+                  }
+                }
+              }],
+              "element": {
+                "_type": "AttributeFilterPathElement",
+                "attribute": {
+                  "_type": "Path",
+                  "branches": [],
+                  "element": {
+                    "_type": "TagPathElement",
+                    "tag": "type"
+                  }
+                },
+                "value": "Class"
+              }
+            }],
+            "element": {
+              "_type": "IndexPathElement",
+              "index": -1
+            }
+          }],
+          "element": {
+            "_type": "TagPathElement",
+            "tag": "elements"
+          }
+        }],
+        "element": {
+          "_type": "TagPathElement",
+          "tag": "$"
+        }
+      }
+    }
+  }
+}
