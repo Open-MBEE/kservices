@@ -689,7 +689,7 @@ public class KtoJava {
             newClassDecl.setExtends( extendsList );
         }
         if ( Utils.isNullOrEmpty( newClassDecl.getExtends() ) ) {
-            addExtends( newClassDecl, "DurativeEvent" );
+            addExtends( newClassDecl, "ParameterListenerImpl" );
         }
     }
 
@@ -1237,6 +1237,7 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.ae.event.ElaborationRule" );
         addImport( "gov.nasa.jpl.ae.event.EventInvocation" );
         addImport( "gov.nasa.jpl.ae.event.DurativeEvent" );
+        addImport( "gov.nasa.jpl.ae.event.ParameterListenerImpl" );
         addImport( "gov.nasa.jpl.ae.event.Event" );
         addImport( "gov.nasa.jpl.mbee.util.Utils" );
         addImport( "gov.nasa.jpl.mbee.util.Debug" );
