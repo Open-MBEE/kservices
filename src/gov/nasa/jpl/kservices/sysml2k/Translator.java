@@ -36,11 +36,16 @@ public class Translator {
   }
   
   public String translate(JSONObject source) {
-    return translationDescription.entrySet().stream()
-        .flatMap( templateEntry ->
-            templateEntry.getValue().template.instantiate(templateEntry.getValue().templateDataSource, source).stream() )
-        .filter( s -> !s.isEmpty() )
-        .collect( Collectors.joining("\n\n") );
+    // need "global" registrars, w.r.t. the templates, so they can communicate after a fashion.
+    MatchRegistrar matchRegistrar = new MatchRegistrar();
+    InstantiationRegistrar instantiationRegistrar = new InstantiationRegistrar();
+    translationDescription.values().stream()
+        .forEach( translationPair -> 
+            translationPair.template.matchToSource(translationPair.templateDataSource, source).forEach( match ->
+                matchRegistrar.register(translationPair.template, match) )); // associate each map individually with its template
+    matchRegistrar.instantiationStream()
+        .forEachOrdered( templatePair -> templatePair.template.instantiate(templatePair.templateMatch, instantiationRegistrar) ); // instantiate every match, deepest reference first, loading the templateRegistrar
+    return instantiationRegistrar.get( instantiationRegistrar.getTopLevelReference() ).stream().collect( Collectors.joining("\n\n") ); // access and join the top-level declarations
   }
   
   public JSONObject toJSON() {

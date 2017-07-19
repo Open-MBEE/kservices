@@ -9,6 +9,13 @@ import org.json.JSONObject;
 
 @SuppressWarnings("serial")
 public class TemplateDataSource extends LinkedHashMap<String, Path> {
+  public TemplateDataSource() {
+    this(null);
+  }
+  public TemplateDataSource(Template parentTemplate) {
+    super();
+  }
+  
   /**
    * Merges the Paths in this DataSource with those of another.
    * @param other The DataSource to merge with.
@@ -23,7 +30,8 @@ public class TemplateDataSource extends LinkedHashMap<String, Path> {
   }
 
   public JSONObject toJSON() {
-    JSONObject data = new JSONObject().put("_type", "TemplateDataSource");
+    JSONObject data = new JSONObject()
+        .put("_type", "TemplateDataSource");
     this.forEach( (key, path) -> {
       data.put(key, path.toJSON());
     });
@@ -34,18 +42,18 @@ public class TemplateDataSource extends LinkedHashMap<String, Path> {
     if (!jsonObj.getString("_type").equals("TemplateDataSource")) {
       throw new S2KParseException("jsonObj does not represent a TemplateDataSource.");
     }
-    
+
     TemplateDataSource output = new TemplateDataSource();
     
     @SuppressWarnings("unchecked")
     Set<String> keySet = jsonObj.keySet();
     keySet.stream()
-        .filter( key -> !key.equals("_type") )
+        .filter( key -> !key.equals("_type") && !key.equals("parentTemplate") )
         .forEach( key -> {
           try {
             output.put(key, Path.fromJSON(jsonObj.getJSONObject(key)));
           } catch (S2KParseException | JSONException e) {
-            // TODO Auto-generated catch block
+            // silently ignore exceptions, but log the exception
             e.printStackTrace();
           }
         });

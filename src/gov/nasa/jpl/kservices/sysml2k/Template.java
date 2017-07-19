@@ -4,9 +4,9 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.LinkedList;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -18,12 +18,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 class Template {
+  private static final String CHILD_TEMPLATE_MODIFIER = "_WITHIN_"; //TODO: abstract these constants to a config file, except maybe for NOT_ESCAPED and below
   private static final String TRIGGER_FLAG = "!";
   private static final String RECUR_FLAG   = "@";
   private static final String NECESS_FLAG  = "&";
+  private static final String LONG_FLAG    = "+";
   private static final String NOT_ESCAPED = "(?<!\\\\)(?:\\\\{2})*"; // not preceded by an odd number of slashes. Stolen from maksymiuk (https://stackoverflow.com/questions/6525556/regular-expression-to-match-escaped-characters-quotes)
-  private static final Function<String, String> matchFieldRegex = s -> NOT_ESCAPED + "%" + s + "\\$(?<mods>[\\w\\-#+0,(]+)"; //Non-escaped %, name expression, $, assumed valid Java format codes
-  private static final Pattern GENERAL_FIELD_PATTERN = Pattern.compile( matchFieldRegex.apply(String.format("(?<trigger>%s)?(?<necess>%s)?(?<recur>%s)?(?<name>\\w+)", TRIGGER_FLAG, NECESS_FLAG, RECUR_FLAG)) );
+  private static final Function<String, String> matchFieldRegex = name -> NOT_ESCAPED + "%(?<flags>\\W*?)" + name + "\\$(?<mods>[\\w\\-#+0,(]+)"; //Non-escaped %, name expression, $, assumed valid Java format codes
+  private static final Pattern GENERAL_FIELD_PATTERN = Pattern.compile( matchFieldRegex.apply("(?<name>\\w+)") );
   
   private String name;
   private String stringForm;
@@ -36,10 +38,13 @@ class Template {
   /// Public Methods
 
   public Template(String stringForm) throws S2KParseException {
-    String[] nameBody = stringForm.split("\n", 2);
-    this.name         = nameBody[0];
-    this.stringForm   = nameBody[1];
-    this.triggerField = null;
+    try {
+      String[] nameBody = stringForm.split("\n", 2);
+      this.name         = nameBody[0];
+      this.stringForm   = nameBody[1];
+    } catch (ArrayIndexOutOfBoundsException e) {
+      throw new S2KParseException("Invalid Template string form.", e);
+    }
     
     Matcher fieldMatcher = GENERAL_FIELD_PATTERN.matcher(stringForm);
     fields = new ArrayList<Field>( fieldMatcher.groupCount() );
@@ -62,21 +67,9 @@ class Template {
     }
   }
 
-  /**
-   * Represents all parts of the target code that match the specified template.
-   * @param target The target code to look in
-   * @return A list of Matches, each representing one instance of the template in the target.
-   */
-  public List<Match> match(String target, Collection<Template> allTemplates) {
-    if (regex == null) {
-      regex = this.asRegex();
-    }
-    
-    List<Match> output = new LinkedList<Match>();
-    Matcher targetMatcher = regex.matcher(target);
-    while (targetMatcher.find()) {
-      output.add(new Match(targetMatcher, allTemplates));
-    }
+  public Template asChildOf(Template parent) {
+    Template output     = new Template(this);
+    output.name         = this.name + CHILD_TEMPLATE_MODIFIER + parent.name;
     return output;
   }
   
@@ -88,32 +81,88 @@ class Template {
     return this.triggerField.name;
   }
   
-  public Collection<String> instantiate(TemplateDataSource dataSource, JSONObject source) {
+  public List<Field> getFields() {
+    return fields;
+  }
+
+  public Integer getReferenceDepth() {
+    return this.name.split(CHILD_TEMPLATE_MODIFIER).length - 1;
+  }
+  
+  /**
+   * Represents all parts of the target code that match the specified template.
+   * @param target The target code to look in
+   * @return A map from template names to collection of related Matches, each representing one instance of the template in the target.
+   */
+  public MatchRegistrar matchToTarget(String target, Collection<Template> allTemplates) {
+    if (regex == null) {
+      regex = this.asRegex();
+    }
+    
+    MatchRegistrar output = new MatchRegistrar();
+    
+    Matcher targetMatcher = regex.matcher(target);
+    while (targetMatcher.find()) {
+      output.merge( TemplateMatch.fromMatcher(targetMatcher, this, allTemplates) );
+    }
+    return output;
+  }
+  
+  /**
+   * Uses the dataSource given to find all instances of this template in the source.
+   * @param dataSource The TemplateDataSource describing how to retrieve information for this template.
+   * @param source The source model to draw information from.
+   * @return A Collection of TemplateMatches, each representing an instance of the template in the source.
+   */
+  public Collection<TemplateMatch> matchToSource(TemplateDataSource dataSource, JSONObject source) {
     if (!dataSource.containsKey( getTriggerName() )) {
       return Collections.emptyList();
     }
     Map<Path, Object> triggerMap = dataSource.get( getTriggerName() ).access(source);
     
-    return triggerMap.entrySet().stream().map( triggerEntry -> {
-      Match match = new Match();
-      match.put(getTriggerName(), triggerEntry.getValue().toString());
-      fields.stream()
-        .filter( field -> !field.name.equals(getTriggerName()) ) // for any field but the triggering field...
-        .filter( field -> dataSource.containsKey(field.name) )
-        .forEach( field -> {
-          Map<Path, Object> relativeLookup = dataSource.get(field.name).access(source,
-              triggerEntry.getKey().withoutLeaves().access(source).values().iterator().next()); // access that path, with this trigger's containing object as the reference object
-          relativeLookup.entrySet().stream()
-            .map( pathValue -> new AbstractMap.SimpleEntry<>(pathValue.getKey().distance(triggerEntry.getKey()), pathValue.getValue()) ) // compute the distances to the triggering path
-            .min( (distanceValue1, distanceValue2) -> distanceValue1.getKey().compareTo(distanceValue2.getKey()) ) // choose the "closest" path
-            .ifPresent( distanceValue -> {
-              match.put(field.name, distanceValue.getValue().toString()); // if we have a path, add it to the match
+    return triggerMap.entrySet().stream()
+        .map( triggerEntry -> {
+          TemplateMatch match = new TemplateMatch();
+          match.put(getTriggerName(), triggerEntry.getValue().toString());
+          dataSource.keySet().stream()
+            .filter( fieldName -> !fieldName.equals(getTriggerName()) ) // for any field but the triggering field...
+            .forEach( fieldName -> {
+              Map<Path, Object> relativeLookup = dataSource.get(fieldName).access(source,
+                  triggerEntry.getKey().withoutLeaves().access(source).values().iterator().next()); // access that path, with this trigger's containing object as the reference object
+              relativeLookup.entrySet().stream()
+                .map( pathValue -> new AbstractMap.SimpleEntry<>(pathValue.getKey().distance(triggerEntry.getKey()), pathValue.getValue()) ) // compute the distances to the triggering path
+                .min( (distanceValue1, distanceValue2) -> distanceValue1.getKey().compareTo(distanceValue2.getKey()) ) // choose the "closest" path
+                .ifPresent( distanceValue -> {
+                  match.put(fieldName, distanceValue.getValue().toString()); // if we have a path, add it to the match
+                });
             });
-        });
-      return match;
-    })
-    .map( this::instantiate ) // instantiate each match, returning a String
-    .collect( Collectors.toList() );
+          return match;
+        })
+        .collect( Collectors.toList() );
+  }
+  
+  /**
+   * Builds the target code, and registers it with templateRegistrar.
+   * @param templateMatch The TemplateMatch that describes information for this template.
+   * @param templateRegistrar The templateRegistrar for this translation.
+   */
+  public void instantiate(TemplateMatch templateMatch, InstantiationRegistrar templateRegistrar) {
+    String formatStr = GENERAL_FIELD_PATTERN.matcher(stringForm).replaceAll("%${mods}"); // replace all fields with Java String.format codes
+    String[] fieldValues = new String[fields.size()];
+    // Note: iteration order will be in the order of the template because of list structure.
+    int i = 0;
+    for (Field field : fields) {
+      if (field.isRecursive) {
+        fieldValues[i] = templateRegistrar.getOrDefault( templateMatch.get( getTriggerName() ), new LinkedList<String>() ).stream().collect( Collectors.joining("\n") );
+      } else if (templateMatch.containsKey(field.name) || !field.isNecessary) {
+        fieldValues[i] = templateMatch.getOrDefault(field.name, "");
+      } else {
+        return; // quit early if a necessary field isn't available
+      }
+      ++i;
+    }
+    Optional<String> reference = templateMatch.getParentReference();
+    templateRegistrar.register( reference.orElseGet( templateRegistrar::getTopLevelReference ), String.format(formatStr, (Object[])fieldValues));
   }
   
   public String toString() {
@@ -153,12 +202,19 @@ class Template {
   
   /// Private Helpers
   
+  private Template(Template other) {
+    this.stringForm   = other.stringForm;
+    this.fields       = other.fields;
+    this.triggerField = other.triggerField;
+    this.regex        = other.regex;
+  }
+  
   private Pattern asRegex() {
     String tempStrForm = Pattern.quote(stringForm).replaceAll("\\s+", patternUnquote("\\\\s+"));
     for (Field field : fields) {
       // replace the java-style naming pattern with a regex to capture and name the match in an instantiated template
       tempStrForm = tempStrForm.replaceAll(
-          matchFieldRegex.apply( field.toString() ),
+          matchFieldRegex.apply( field.name ),
           patternUnquote( field.toRegexStr() ));
     }
     System.out.printf("DEBUG[Template.java:asRegex]: tempStrForm: %s%n", tempStrForm); //DEBUG
@@ -174,79 +230,44 @@ class Template {
     return "\\\\E" + regex + "\\\\Q";
   }
 
-  private String instantiate(Match fieldMatches) {
-    String formatStr = GENERAL_FIELD_PATTERN.matcher(stringForm).replaceAll("%${mods}"); // replace all fields with Java String.format codes
-    String[] fieldValues = new String[fields.size()];
-    // Note: iteration order will be in the order of the template because of list structure.
-    int i = 0;
-    for (Field field : fields) {
-      if (fieldMatches.containsKey(field.name) || !field.isNecessary) {
-        fieldValues[i] = fieldMatches.getOrDefault(field.name, "");
-        ++i;
-      } else {
-        return "";
-      }
-    }
-    return String.format(formatStr, (Object[])fieldValues);
-  }
-  
   /// Public Sub-classes
-  
-  @SuppressWarnings("serial")
-  public class Match extends LinkedHashMap<String, String> {
-    public Match() {
-      super();
-    }
-    public Match(Matcher res, Collection<Template> allTemplates) {
-      super();
-      for (Field field : fields) {
-        if (field.isRecursive) {
-          for (Template template : allTemplates) {
-            List<Match> innerMatches = template.match(res.group(field.name), allTemplates);
-            // TODO: figure out what to do with recursive matches
-          }
-        } else {
-          this.put(field.name, res.group(field.name));
-        }
-      }
-    }
-    
-    public JSONObject toJSON() {
-      return new JSONObject(this).put("_type", "Match");
-    }
-  }
   
   public static class Field {
     public String name;
     public boolean isTrigger;
+    public boolean isLong;
     public boolean isRecursive;
     public boolean isNecessary;
     
     public Field(Matcher sourceMatcher) {
       this( sourceMatcher.group("name"),
-           (sourceMatcher.group("trigger") != null),   // true if `trigger` group was successful
-           (sourceMatcher.group("recur")   != null),   // true if `recur` group was successful
-           (sourceMatcher.group("necess")  != null) ); // true if `necessary` group was successful
+            sourceMatcher.group("flags").contains(TRIGGER_FLAG),
+            sourceMatcher.group("flags").contains(LONG_FLAG),
+            sourceMatcher.group("flags").contains(RECUR_FLAG),
+            sourceMatcher.group("flags").contains(NECESS_FLAG));
     }
     public Field(String name) {
-      this(name, false, false, false);
+      this(name, false, false, false, false);
     }
-    public Field(String name, boolean isTrigger, boolean isRecursive, boolean isNecessary) {
+    public Field(String name, boolean isTrigger, boolean isLong, boolean isRecursive, boolean isNecessary) {
       this.name = name;
       this.isTrigger   = isTrigger;
+      this.isLong      = isLong || isRecursive; // a recursive field must be a long one, because it contains an entire template.
       this.isRecursive = isRecursive;
       this.isNecessary = isNecessary || isTrigger; // a trigger is, by definition, necessary
     }
     
     public String toRegexStr() {
-      // Explanation: if recursive, use a non-greedy "match-anything" pattern
-      // otherwise, assume we're looking for a keyword, and use a greedy, non-empy "match-word" pattern
-      return String.format("(?<%s>%s)", name, (isRecursive ? ".*?" : "\\\\w+"));
+      // Explanation: if long type, use a non-greedy "match-anything" pattern
+      // otherwise, assume we're looking for an identifier, and use a greedy, non-empy "match-word" pattern
+      return String.format("(?<%s>%s)", name, (isLong ? ".*?" : "\\\\w+"));
     }
 
     public String toString() {
       return (isTrigger   ? TRIGGER_FLAG : "") +
+             (isLong      ? LONG_FLAG    : "") +
              (isRecursive ? RECUR_FLAG   : "") +
+             (isNecessary ? NECESS_FLAG  : "") +
              name;
     }
     
@@ -255,6 +276,7 @@ class Template {
           .put("_type", "Field")
           .put("name", name)
           .put("isTrigger", isTrigger)
+          .put("isLong", isLong)
           .put("isRecursive", isRecursive)
           .put("isNecessary", isNecessary);
     }
@@ -266,6 +288,7 @@ class Template {
       return new Field(
           jsonObj.getString("name"),
           jsonObj.getBoolean("isTrigger"),
+          jsonObj.getBoolean("isLong"),
           jsonObj.getBoolean("isRecursive"),
           jsonObj.getBoolean("isNecessary"));
     }

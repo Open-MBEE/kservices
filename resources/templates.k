@@ -5,7 +5,7 @@ class %!name$s {
 
 
 Generalized Class
-class %!name$s extends %superClass$s {
+class %!name$s extends %&superClass$s {
   %@content$s
 }
 
@@ -15,10 +15,10 @@ var %!name$s : %type$s
 
 
 Nullary Function
-fun %!name$s : %returnType$s {
-  %body$s
+fun %!name$s : %&returnType$s {
+  %+body$s
 }
 
 
 Requirement
-req %!expr$s
+req ( %!+expr$s )

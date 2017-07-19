@@ -422,7 +422,7 @@ class Path {
       try {
         return fromJsonMethods.get(jsonObj.getString("_type")).apply(jsonObj)
             .orElseThrow( () -> new S2KParseException("JSON object could not be parsed as a PathElement.") );
-      } catch (JSONException e) {
+      } catch (JSONException | NullPointerException e) {
         throw new S2KParseException("JSON object could not be parsed as a PathElement.", e);
       }
     }

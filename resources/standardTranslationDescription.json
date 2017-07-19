@@ -8,6 +8,7 @@
         "_type": "Field",
         "name": "name",
         "isTrigger": true,
+        "isLong": false,
         "isNecessary": true
       },
       "_type": "Template",
@@ -18,6 +19,7 @@
           "_type": "Field",
           "name": "name",
           "isTrigger": true,
+          "isLong": false,
           "isNecessary": true
         },
         {
@@ -25,6 +27,7 @@
           "_type": "Field",
           "name": "returnType",
           "isTrigger": false,
+          "isLong": false,
           "isNecessary": false
         },
         {
@@ -32,6 +35,7 @@
           "_type": "Field",
           "name": "body",
           "isTrigger": false,
+          "isLong": true,
           "isNecessary": false
         }
       ]
@@ -48,6 +52,7 @@
         "_type": "Field",
         "name": "expr",
         "isTrigger": true,
+        "isLong": true,
         "isNecessary": true
       },
       "_type": "Template",
@@ -57,13 +62,14 @@
         "_type": "Field",
         "name": "expr",
         "isTrigger": true,
+        "isLong": true,
         "isNecessary": true
       }]
     },
     "_type": "TranslationPair",
     "templateDataSource": {"_type": "TemplateDataSource"}
   },
-  "Variable": {
+  "Variable_WITHIN_Class": {
     "template": {
       "regex": "\\Qvar\\E\\s+\\Q\\E(?<name>\\w+)\\Q\\E\\s+\\Q:\\E\\s+\\Q\\E(?<type>\\w+)\\Q\\E",
       "stringForm": "var %!name$s : %type$s",
@@ -72,16 +78,18 @@
         "_type": "Field",
         "name": "name",
         "isTrigger": true,
+        "isLong": false,
         "isNecessary": true
       },
       "_type": "Template",
-      "name": "Variable",
+      "name": "Variable_WITHIN_Class",
       "fields": [
         {
           "isRecursive": false,
           "_type": "Field",
           "name": "name",
           "isTrigger": true,
+          "isLong": false,
           "isNecessary": true
         },
         {
@@ -89,6 +97,7 @@
           "_type": "Field",
           "name": "type",
           "isTrigger": false,
+          "isLong": false,
           "isNecessary": true
         }
       ]
@@ -161,58 +170,58 @@
         "_type": "Path",
         "branches": [{
           "_type": "Path",
+          "branches": [],
+          "element": {
+            "_type": "TagPathElement",
+            "tag": "typeId"
+          }
+        }],
+        "element": {
+          "_type": "TagPathElement",
+          "tag": "^"
+        }
+      },
+      "PARENT_REFERENCE": {
+        "_type": "Path",
+        "branches": [{
+          "_type": "Path",
           "branches": [{
             "_type": "Path",
             "branches": [{
               "_type": "Path",
               "branches": [{
                 "_type": "Path",
-                "branches": [{
+                "branches": [],
+                "element": {
+                  "_type": "TagPathElement",
+                  "tag": "name"
+                }
+              }],
+              "element": {
+                "_type": "DoubleAttributeFilterPathElement",
+                "mainAttribute": {
                   "_type": "Path",
                   "branches": [],
                   "element": {
                     "_type": "TagPathElement",
-                    "tag": "name"
+                    "tag": "id"
                   }
-                }],
-                "element": {
-                  "_type": "DoubleAttributeFilterPathElement",
-                  "mainAttribute": {
+                },
+                "comparisonAttribute": {
+                  "_type": "Path",
+                  "branches": [{
                     "_type": "Path",
                     "branches": [],
                     "element": {
                       "_type": "TagPathElement",
                       "tag": "ownerId"
                     }
-                  },
-                  "comparisonAttribute": {
-                    "_type": "Path",
-                    "branches": [{
-                      "_type": "Path",
-                      "branches": [],
-                      "element": {
-                        "_type": "TagPathElement",
-                        "tag": "id"
-                      }
-                    }],
-                    "element": {
-                      "_type": "TagPathElement",
-                      "tag": "^"
-                    }
-                  }
-                }
-              }],
-              "element": {
-                "_type": "AttributeFilterPathElement",
-                "attribute": {
-                  "_type": "Path",
-                  "branches": [],
+                  }],
                   "element": {
                     "_type": "TagPathElement",
-                    "tag": "type"
+                    "tag": "^"
                   }
-                },
-                "value": "Class"
+                }
               }
             }],
             "element": {
@@ -232,6 +241,134 @@
       }
     }
   },
+  "Variable": {
+    "template": {
+      "regex": "\\Qvar\\E\\s+\\Q\\E(?<name>\\w+)\\Q\\E\\s+\\Q:\\E\\s+\\Q\\E(?<type>\\w+)\\Q\\E",
+      "stringForm": "var %!name$s : %type$s",
+      "triggerField": {
+        "isRecursive": false,
+        "_type": "Field",
+        "name": "name",
+        "isTrigger": true,
+        "isLong": false,
+        "isNecessary": true
+      },
+      "_type": "Template",
+      "name": "Variable",
+      "fields": [
+        {
+          "isRecursive": false,
+          "_type": "Field",
+          "name": "name",
+          "isTrigger": true,
+          "isLong": false,
+          "isNecessary": true
+        },
+        {
+          "isRecursive": false,
+          "_type": "Field",
+          "name": "type",
+          "isTrigger": false,
+          "isLong": false,
+          "isNecessary": true
+        }
+      ]
+    },
+    "_type": "TranslationPair",
+    "templateDataSource": {
+      "_type": "TemplateDataSource",
+      "name": {
+        "_type": "Path",
+        "branches": [{
+          "_type": "Path",
+          "branches": [{
+            "_type": "Path",
+            "branches": [{
+              "_type": "Path",
+              "branches": [{
+                "_type": "Path",
+                "branches": [{
+                  "_type": "Path",
+                  "branches": [],
+                  "element": {
+                    "_type": "TagPathElement",
+                    "tag": "name"
+                  }
+                }],
+                "element": {
+                  "_type": "NegationFilterPathElement",
+                  "negatedPath": {
+                    "_type": "Path",
+                    "branches": [],
+                    "element": {
+                      "_type": "TagPathElement",
+                      "tag": "ownerId"
+                    }
+                  }
+                }
+              }],
+              "element": {
+                "_type": "AlternationPathElement",
+                "innerElements": [
+                  {
+                    "_type": "AttributeFilterPathElement",
+                    "attribute": {
+                      "_type": "Path",
+                      "branches": [],
+                      "element": {
+                        "_type": "TagPathElement",
+                        "tag": "type"
+                      }
+                    },
+                    "value": "Port"
+                  },
+                  {
+                    "_type": "AttributeFilterPathElement",
+                    "attribute": {
+                      "_type": "Path",
+                      "branches": [],
+                      "element": {
+                        "_type": "TagPathElement",
+                        "tag": "type"
+                      }
+                    },
+                    "value": "Property"
+                  }
+                ]
+              }
+            }],
+            "element": {
+              "_type": "IndexPathElement",
+              "index": -1
+            }
+          }],
+          "element": {
+            "_type": "TagPathElement",
+            "tag": "elements"
+          }
+        }],
+        "element": {
+          "_type": "TagPathElement",
+          "tag": "$"
+        }
+      },
+      "type": {
+        "_type": "Path",
+        "branches": [{
+          "_type": "Path",
+          "branches": [],
+          "element": {
+            "_type": "TagPathElement",
+            "tag": "typeId"
+          }
+        }],
+        "element": {
+          "_type": "TagPathElement",
+          "tag": "^"
+        }
+      }
+    }
+  },
   "Generalized Class": {
     "template": {
       "regex": "\\Qclass\\E\\s+\\Q\\E(?<name>\\w+)\\Q\\E\\s+\\Qextends\\E\\s+\\Q\\E(?<superClass>\\w+)\\Q\\E\\s+\\Q{\n\\E(?<content>.*?)\\Q\n}\\E",
@@ -241,6 +378,7 @@
         "_type": "Field",
         "name": "name",
         "isTrigger": true,
+        "isLong": false,
         "isNecessary": true
       },
       "_type": "Template",
@@ -251,6 +389,7 @@
           "_type": "Field",
           "name": "name",
           "isTrigger": true,
+          "isLong": false,
           "isNecessary": true
         },
         {
@@ -258,6 +397,7 @@
           "_type": "Field",
           "name": "superClass",
           "isTrigger": false,
+          "isLong": false,
           "isNecessary": true
         },
         {
@@ -265,6 +405,7 @@
           "_type": "Field",
           "name": "content",
           "isTrigger": false,
+          "isLong": true,
           "isNecessary": false
         }
       ]
@@ -476,6 +617,7 @@
         "_type": "Field",
         "name": "name",
         "isTrigger": true,
+        "isLong": false,
         "isNecessary": true
       },
       "_type": "Template",
@@ -486,6 +628,7 @@
           "_type": "Field",
           "name": "name",
           "isTrigger": true,
+          "isLong": false,
           "isNecessary": true
         },
         {
@@ -493,6 +636,7 @@
           "_type": "Field",
           "name": "content",
           "isTrigger": false,
+          "isLong": true,
           "isNecessary": false
         }
       ]

@@ -43,13 +43,14 @@ public class S2KLearner {
       // test the tranlsator on the input used for learning, as a baseline
       String test_output = translator.translate( new JSONObject(input) );
       System.out.println(test_output);
-    } catch (S2KException e1) {
-      // TODO Auto-generated catch block
+    } catch (Exception e1) {
       e1.printStackTrace();
+      System.out.println("Continuing...");
     }
     
     while (true) {
       try {
+        System.out.println("Enter path string to translate:");
         System.out.println( Path.fromPathStr( systemInScanner.nextLine() ).toJSON().toString(2) );
         
       } catch (Exception e) {
@@ -103,29 +104,32 @@ public class S2KLearner {
   }
 
   private static TranslationDescription innerLearnTranslation(Collection<Template> templates, Collection<Example> examples, boolean interactive) throws S2KException {
-    TranslationDescription output = new TranslationDescription();
+    // TODO: Implement this
+    throw new UnsupportedOperationException("Not implemented yet.");
     
-    for (Template template : templates) {
-      /* Explanation of the stream work below:
-       * create a list of data sources, each one a guess based on one example
-       * turn input into a JSONObject by their parser
-       * use the template matcher to parse the output for examples of this template
-       * use matchElements to collate the Matches into a single DataSource
-       * merge those DataSources to build the best approximation that we can
-       */
-      TemplateDataSource dataSource = examples.stream()
-          .map( example -> matchElements( new JSONObject(example.input), template.match(example.output, templates) ) )
-          .reduce( TemplateDataSource::merge )
-          .orElseThrow(() -> new S2KException("Could not learn from given inputs."));
-      
-      if (interactive) {
-        dataSource = getFeedback(template, dataSource);
-      }
-      
-      output.put(template.getName(), new TranslationDescription.TranslationPair(dataSource, template));
-    }
-    
-    return output;
+//    TranslationDescription output = new TranslationDescription();
+//    
+//    for (Template template : templates) {
+//      /* Explanation of the stream work below:
+//       * create a list of data sources, each one a guess based on one example
+//       * turn input into a JSONObject by their parser
+//       * use the template matcher to parse the output for examples of this template
+//       * use matchElements to collate the Matches into a single DataSource
+//       * merge those DataSources to build the best approximation that we can
+//       */
+//      TemplateDataSource dataSource = examples.stream()
+//          .map( example -> matchElements( new JSONObject(example.input), template.matchToTarget(example.output, templates) ) )
+//          .reduce( TemplateDataSource::merge )
+//          .orElseThrow(() -> new S2KException("Could not learn from given inputs."));
+//      
+//      if (interactive) {
+//        dataSource = getFeedback(template, dataSource);
+//      }
+//      
+//      output.put(template.getName(), new TranslationDescription.TranslationPair(dataSource, template));
+//    }
+//    
+//    return output;
   }
   
   private static TemplateDataSource getFeedback(Template template, TemplateDataSource dataSource) {
@@ -215,9 +219,11 @@ public class S2KLearner {
    * @param matches Result of a matchTemplate call
    * @return A list of matching elements' paths, sorted by best match.
    */
-  private static TemplateDataSource matchElements(JSONObject jsonObj, List<Template.Match> matches) {
+  private static TemplateDataSource matchElements(JSONObject jsonObj, List<TemplateMatch> matches) {
     TemplateDataSource output = new TemplateDataSource();
     collateFieldValues(matches).forEach( (fieldName, matchValues) -> {
+      System.out.printf("DEBUG[S2KLearner.java:matchElements]: fieldName: %s%n", fieldName); //DEBUG
+      System.out.printf("DEBUG[S2KLearner.java:matchElements]: matchValues: %s%n", matchValues); //DEBUG
       matchElement(jsonObj, matchValues, new Path()).ifPresent( path -> {
         path.simplify();
         output.put(fieldName, path);
@@ -231,17 +237,17 @@ public class S2KLearner {
    * @param matches All the matches found for a template.
    * @return A map from field names to a collection of values for that field.
    */
-  private static Map<String, Collection<String>> collateFieldValues(List<Template.Match> matches) {
+  private static Map<String, Collection<String>> collateFieldValues(List<TemplateMatch> matches) {
     Map<String, Collection<String>> output = new HashMap<String, Collection<String>>();
     if (matches.isEmpty()) {
       return output;
     }
-    for (String field : matches.get(0).keySet()) {
-      output.put(field, new HashSet<String>());
+    for (String fieldName : matches.get(0).keySet()) {
+      output.put(fieldName, new HashSet<String>());
     }
-    for (Template.Match match : matches) {
-      for (String field : match.keySet()) {
-        output.get(field).add( match.get(field) );
+    for (TemplateMatch match : matches) {
+      for (String fieldName : match.keySet()) {
+        output.get(fieldName).add( match.get(fieldName) );
       }
     }
     return output;
