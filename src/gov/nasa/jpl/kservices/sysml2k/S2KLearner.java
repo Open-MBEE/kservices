@@ -2,16 +2,15 @@ package gov.nasa.jpl.kservices.sysml2k;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 public class S2KLearner {
@@ -104,32 +103,26 @@ public class S2KLearner {
   }
 
   private static TranslationDescription innerLearnTranslation(Collection<Template> templates, Collection<Example> examples, boolean interactive) throws S2KException {
-    // TODO: Implement this
-    throw new UnsupportedOperationException("Not implemented yet.");
-    
-//    TranslationDescription output = new TranslationDescription();
-//    
-//    for (Template template : templates) {
-//      /* Explanation of the stream work below:
-//       * create a list of data sources, each one a guess based on one example
-//       * turn input into a JSONObject by their parser
-//       * use the template matcher to parse the output for examples of this template
-//       * use matchElements to collate the Matches into a single DataSource
-//       * merge those DataSources to build the best approximation that we can
-//       */
-//      TemplateDataSource dataSource = examples.stream()
-//          .map( example -> matchElements( new JSONObject(example.input), template.matchToTarget(example.output, templates) ) )
-//          .reduce( TemplateDataSource::merge )
-//          .orElseThrow(() -> new S2KException("Could not learn from given inputs."));
-//      
-//      if (interactive) {
-//        dataSource = getFeedback(template, dataSource);
-//      }
-//      
-//      output.put(template.getName(), new TranslationDescription.TranslationPair(dataSource, template));
-//    }
-//    
-//    return output;
+    try {
+      TranslationDescription output = new TranslationDescription();
+      
+      examples.forEach( example -> // each example is handled separately at first
+        templates.stream()
+            .map( template -> template.matchToTarget(example.output, templates) ) // individually match each template (and its recursive sub-templates) to the target code
+            .reduce( MatchRegistrar::merge ) // merge all instances of all templates into a single MatchRegistrar
+            .ifPresent( matchRegistrar -> 
+              matchRegistrar.forEach( (template, matches) -> // then look up each template individually, regardless of recursive level
+                output.putMerge( matchElements( new JSONObject(example.input), matches ), template ) ))); // and merge the results into output incrementally
+      
+      if (interactive) {
+        output.forEach( (templateName, translationPair) ->
+          translationPair.templateDataSource = getFeedback(translationPair.template, translationPair.templateDataSource) );
+      }
+      
+      return output;
+    } catch (JSONException e) {
+      throw new S2KParseException("Could not parse example inputs.", e);
+    }
   }
   
   private static TemplateDataSource getFeedback(Template template, TemplateDataSource dataSource) {
@@ -219,11 +212,9 @@ public class S2KLearner {
    * @param matches Result of a matchTemplate call
    * @return A list of matching elements' paths, sorted by best match.
    */
-  private static TemplateDataSource matchElements(JSONObject jsonObj, List<TemplateMatch> matches) {
+  private static TemplateDataSource matchElements(JSONObject jsonObj, Collection<TemplateMatch> matches) {
     TemplateDataSource output = new TemplateDataSource();
     collateFieldValues(matches).forEach( (fieldName, matchValues) -> {
-      System.out.printf("DEBUG[S2KLearner.java:matchElements]: fieldName: %s%n", fieldName); //DEBUG
-      System.out.printf("DEBUG[S2KLearner.java:matchElements]: matchValues: %s%n", matchValues); //DEBUG
       matchElement(jsonObj, matchValues, new Path()).ifPresent( path -> {
         path.simplify();
         output.put(fieldName, path);
@@ -235,21 +226,13 @@ public class S2KLearner {
   /**
    * Groups all the values for a field together.
    * @param matches All the matches found for a template.
-   * @return A map from field names to a collection of values for that field.
+   * @return A Registrar from field names to values for that field.
    */
-  private static Map<String, Collection<String>> collateFieldValues(List<TemplateMatch> matches) {
-    Map<String, Collection<String>> output = new HashMap<String, Collection<String>>();
-    if (matches.isEmpty()) {
-      return output;
-    }
-    for (String fieldName : matches.get(0).keySet()) {
-      output.put(fieldName, new HashSet<String>());
-    }
-    for (TemplateMatch match : matches) {
-      for (String fieldName : match.keySet()) {
-        output.get(fieldName).add( match.get(fieldName) );
-      }
-    }
+  private static Registrar<String,String> collateFieldValues(Collection<TemplateMatch> matches) {
+    Registrar<String,String> output = new Registrar<>();
+    
+    matches.forEach( match -> match.forEach( output::register ));
+    
     return output;
   }
 }

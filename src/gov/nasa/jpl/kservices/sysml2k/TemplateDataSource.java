@@ -9,13 +9,6 @@ import org.json.JSONObject;
 
 @SuppressWarnings("serial")
 public class TemplateDataSource extends LinkedHashMap<String, Path> {
-  public TemplateDataSource() {
-    this(null);
-  }
-  public TemplateDataSource(Template parentTemplate) {
-    super();
-  }
-  
   /**
    * Merges the Paths in this DataSource with those of another.
    * @param other The DataSource to merge with.

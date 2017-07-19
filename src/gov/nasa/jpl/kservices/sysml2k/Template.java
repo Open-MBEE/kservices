@@ -89,10 +89,11 @@ class Template {
     return this.name.split(CHILD_TEMPLATE_MODIFIER).length - 1;
   }
   
+  
   /**
    * Represents all parts of the target code that match the specified template.
    * @param target The target code to look in
-   * @return A map from template names to collection of related Matches, each representing one instance of the template in the target.
+   * @return A MatchRegistrar, with each TemplateMatch representing one instance of the template in the target.
    */
   public MatchRegistrar matchToTarget(String target, Collection<Template> allTemplates) {
     if (regex == null) {
@@ -103,7 +104,7 @@ class Template {
     
     Matcher targetMatcher = regex.matcher(target);
     while (targetMatcher.find()) {
-      output.merge( TemplateMatch.fromMatcher(targetMatcher, this, allTemplates) );
+      output = output.merge( TemplateMatch.fromMatcher(targetMatcher, this, allTemplates) );
     }
     return output;
   }
@@ -144,7 +145,7 @@ class Template {
   /**
    * Builds the target code, and registers it with templateRegistrar.
    * @param templateMatch The TemplateMatch that describes information for this template.
-   * @param templateRegistrar The templateRegistrar for this translation.
+   * @param templateRegistrar The TemplateRegistrar for this translation.
    */
   public void instantiate(TemplateMatch templateMatch, InstantiationRegistrar templateRegistrar) {
     String formatStr = GENERAL_FIELD_PATTERN.matcher(stringForm).replaceAll("%${mods}"); // replace all fields with Java String.format codes
@@ -217,7 +218,6 @@ class Template {
           matchFieldRegex.apply( field.name ),
           patternUnquote( field.toRegexStr() ));
     }
-    System.out.printf("DEBUG[Template.java:asRegex]: tempStrForm: %s%n", tempStrForm); //DEBUG
     return Pattern.compile(tempStrForm, Pattern.DOTALL);
   }
   

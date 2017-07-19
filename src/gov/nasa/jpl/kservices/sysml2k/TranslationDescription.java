@@ -8,6 +8,18 @@ import org.json.JSONObject;
 @SuppressWarnings("serial")
 public class TranslationDescription extends LinkedHashMap<String, TranslationDescription.TranslationPair> {
   
+  public void putMerge(TemplateDataSource templateDataSource, Template template) {
+    if (this.containsKey(template.getName())) {
+      TranslationPair modifying = this.get( template.getName() );
+      modifying.templateDataSource = modifying.templateDataSource.merge( templateDataSource );
+    } else {
+      this.put( template.getName(), new TranslationPair(templateDataSource, template) );
+    }
+  }
+  public void putMerge(TranslationPair translationPair) {
+    putMerge(translationPair.templateDataSource, translationPair.template);
+  }
+  
   public String toString() {
     return String.format("{\n%s\n}", 
         this.entrySet().stream()
