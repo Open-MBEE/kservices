@@ -1568,8 +1568,27 @@ public class KtoJava {
         // p.satisfy( true, null );
         // System.out.println( "i = " + i.getValue() );
         String kToExecute = "";
+        Boolean areFiles = args.length > 0;
         for ( String arg : args ) {
-            kToExecute += arg + " ";
+        		if ( !FileUtils.exists(arg) ) {
+        			areFiles = false;
+        			break;
+        		}
+        }
+        if ( areFiles ) {
+	        for ( String arg : args ) {
+	        		String k;
+				try {
+					k = FileUtils.fileToString(arg);
+		            kToExecute += k + "\n";
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				}
+	        }
+        } else {
+	        for ( String arg : args ) {
+	            kToExecute += arg + " ";
+	        }
         }
 
         KtoJava kToJava = new KtoJava( kToExecute, "generatedCode" );

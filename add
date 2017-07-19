@@ -1,4 +1,15 @@
 #!/bin/bash
 
 echo add "$@" >> input
+foo=`cat < input`
+result = `python -v foo="$foo" getResult.py` 
+error = `python -v foo="$foo" getErrro.py` 
+
+if [ -n "$result" ]; then
+  echo "result = $result"
+fi
+if [ -n "$error" ]; then
+  echo "error = $error"
+fi
+
 
