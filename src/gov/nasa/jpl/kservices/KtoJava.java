@@ -282,7 +282,7 @@ public class KtoJava {
                 new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model ) ) );
         List< FunDecl > topLevelFunctions =
                 new ArrayList< FunDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelFunctions( this.model ) ) );
-        for ( PropertyDecl p : topLevelProperties ) {
+           for ( PropertyDecl p : topLevelProperties ) {
             param = makeParam( p );
             params.put( p.name(), param );
         }

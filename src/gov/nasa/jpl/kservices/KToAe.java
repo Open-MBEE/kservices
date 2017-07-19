@@ -123,6 +123,10 @@ public class KToAe {
     public KToAe() {
     }
 
+    public KToAe(String k) {
+        this.k = k;
+    }
+
     
     
     public Object kASTToAe(Object kObj,
