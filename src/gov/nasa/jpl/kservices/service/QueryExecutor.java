@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
 
+import generatedCode.Main;
 //import generatedCode.Main;
 import gov.nasa.jpl.ae.event.Expression;
 import gov.nasa.jpl.kservices.KToAe;
@@ -254,13 +255,14 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
                 // Read response from pipe
                 String line = pipe.readLine();
                 if ( line == null ) {
-                    try {
-                        Thread.sleep( 1000 );
-                    } catch ( InterruptedException e ) {
-                        e.printStackTrace();
-                    }
+//                    try {
+//                        Thread.sleep( 1000 );
+//                    } catch ( InterruptedException e ) {
+//                        e.printStackTrace();
+//                    }
                     continue;
                 }
+                try {
                 //readInputFile();
                 System.out.println(line);
                 
@@ -273,14 +275,17 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
                     kToJava.writeFiles( kToJava, "/Users/ayelaman/git/kservices" );
                 }
                 if ( line.trim().startsWith( "solve" ) ) {
-/*                    Main scenario = new Main();
+                    Main scenario = new Main();
                     scenario.satisfy(true, null);
                     System.out.println( ( scenario.isSatisfied( true, null ) ? "Satisfied"
                                                                              : "Not Satisfied" )
-                                        + "\n" + scenario.executionString() );*/
+                                        + "\n" + scenario.executionToString() );
                 }
                 
                 // output result
+                } catch (Throwable e) {
+					e.printStackTrace();
+				}
             }
         } catch ( FileNotFoundException e ) {
             // TODO Auto-generated catch block

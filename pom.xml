@@ -63,7 +63,7 @@
 					<type>jar</type>
 					<systemPath>${project.basedir}/lib/sysml.jar</systemPath>
 				</dependency>
-				<dependency>
+<!-- 				<dependency>
 					<groupId>mbee_util</groupId>
 					<artifactId>mbee_util</artifactId>
 					<version>1.0</version>
@@ -71,7 +71,7 @@
 					<type>jar</type>
 					<systemPath>${project.basedir}/lib/mbee_util.jar</systemPath>
 				</dependency>
-				<dependency>
+ -->				<dependency>
 					<groupId>klang</groupId>
 					<artifactId>klang</artifactId>
 					<version>1.0</version>
@@ -87,12 +87,12 @@
 		<profile>
 			<id>mbee-dev</id>
 			<dependencies>
-				<dependency>
+<!-- 				<dependency>
 					<groupId>gov.nasa.jpl.mbee.util</groupId>
 					<artifactId>mbee_util</artifactId>
 					<version>${mbee.version}</version>
 				</dependency>
-				<dependency>
+ -->				<dependency>
 					<groupId>gov.nasa.jpl.mbee.sysml</groupId>
 					<artifactId>sysml</artifactId>
 					<version>${mbee.version}</version>
