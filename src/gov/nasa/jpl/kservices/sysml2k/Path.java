@@ -12,15 +12,22 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.antlr.v4.runtime.*;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import gov.nasa.jpl.kservices.sysml2k.JsonPath2Parser.AlternationelementContext;
+import gov.nasa.jpl.kservices.sysml2k.JsonPath2Parser.AttributefilterelementContext;
+import gov.nasa.jpl.kservices.sysml2k.JsonPath2Parser.DoubleattributefilterelementContext;
+import gov.nasa.jpl.kservices.sysml2k.JsonPath2Parser.IndexelementContext;
+import gov.nasa.jpl.kservices.sysml2k.JsonPath2Parser.NegationfilterelementContext;
+import gov.nasa.jpl.kservices.sysml2k.JsonPath2Parser.PathContext;
+import gov.nasa.jpl.kservices.sysml2k.JsonPath2Parser.TagelementContext;
 
 class Path {
   private static final Integer ALTERNATION_WILD_SIZE = 3; // the minimum number of elements to have before an alternation pattern turns into a wildcard
@@ -114,8 +121,6 @@ class Path {
   }
   private static final Function<Path,Path> atomicSimplify = atomicSimplifications.stream().reduce( Function::compose ).orElseGet( Function::identity );
   
-  private static List<Parser> pathParsers = new LinkedList<Parser>(); // built up by the path elements that relate to it
-  
   private PathElement element;
   private List<Path> branches;
   
@@ -142,35 +147,12 @@ class Path {
   }
   
   public static Path fromPathStr(String pathStr) throws S2KParseException {
-    Parser parser = pathParsers.stream()
-        .filter( p -> { 
-          return p.matches(pathStr); } )
-        .findFirst()
-        .orElseThrow(() -> new S2KParseException("Could not parse path string."));
-    
-    Path output = new Path(parser.build(pathStr));
-    String remainingPathStr = parser.remaining(pathStr);
-    // TODO: figure out a better way to distinguish alternative branches from indexing and alternation... {}, maybe?
-    // Or, maybe I can do away with branches altogether, just using alternations with Paths, not PathElements, inside.
-    if (remainingPathStr.matches("^\\[[^\\]]*\\]$") && !remainingPathStr.matches("^\\[[\\w" + Pattern.quote(WILD_INDEX) + "]+\\].*")) {
-      // we have branching alternatives
-      remainingPathStr = remainingPathStr.substring(1); // trim leading bracket, so it doesn't get into next level
-      
-      Matcher branchMatcher = Pattern.compile("(.+?)(,|\\])").matcher( remainingPathStr );
-      while (branchMatcher.find()) {
-        output.branches.add( Path.fromPathStr(branchMatcher.group(1)) );
-        
-        if (branchMatcher.group(2).equals("]")) {
-          // found our last branch. Prevents an over-zealous consumption of the path
-          break;
-        }
-      }
-    } else if (!remainingPathStr.isEmpty()) {
-      // we have a linear path at this stage
-      output.branches.add( Path.fromPathStr(remainingPathStr) );
-    } // else: we have a leaf, so cut off the recursion
-    
-    return output;
+    ANTLRInputStream inputStream = new ANTLRInputStream(pathStr);
+    JsonPath2Lexer lexer = new JsonPath2Lexer(inputStream);
+    CommonTokenStream commonTokenStream = new CommonTokenStream(lexer);
+    JsonPath2Parser parser = new JsonPath2Parser(commonTokenStream);
+    PathVisitor pathVisitor = new PathVisitor();
+    return pathVisitor.visit(parser.path());
   }
   
   public boolean isLeaf() {
@@ -289,26 +271,28 @@ class Path {
     return output;
   }
   
-  public JSONObject toJSON() {
-    return new JSONObject()
-        .put("_type", "Path")
-        .put("element", element.toJSON())
-        .put("branches", branches.stream().map( Path::toJSON ).collect( Collectors.toList() ));
+  public Object toJSON() {
+    return this.toJSON(false);
   }
   
-  public static Path fromJSON(JSONObject jsonObj) throws S2KParseException {
-    try {
-      if (!jsonObj.getString("_type").equals("Path")) {
-        throw new S2KParseException("JSON object does not represent a Path");
-      }
-      Path output = new Path(PathElement.fromJSON(jsonObj.getJSONObject("element")));
-      JSONArray jsonBranches = jsonObj.getJSONArray("branches");
-      for (int i = 0; i < jsonBranches.length(); ++i) {
-        output.addBranch( Path.fromJSON(jsonBranches.getJSONObject(i)) );
-      }
-      return output;
-    } catch (JSONException e) {
-      throw new S2KParseException("JSON object could not be parsed as a Path.", e);
+  public Object toJSON(boolean strict) {
+    if (strict) {
+      return new JSONObject()
+          .put("_type", "Path")
+          .put("element", element.toJSON())
+          .put("branches", branches.stream().map( Path::toJSON ).collect( Collectors.toList() ));
+    } else {
+      return this.toString();
+    }
+  }
+  
+  public static Path fromJSON(Object jsonObj) throws S2KParseException {
+    if (jsonObj instanceof String) {
+      return Path.fromPathStr((String) jsonObj);
+    } else if (jsonObj instanceof JSONObject) {
+      return Path.innerFromJSON((JSONObject) jsonObj);
+    } else {
+      throw new S2KParseException("Unknown type, could not parse Path.");
     }
   }
   
@@ -362,38 +346,25 @@ class Path {
           .orElse(ELEMENT_MATCH_TYPE.NONE);
     }
   }
+
+  private static Path innerFromJSON(JSONObject jsonObj) throws S2KParseException {
+    try {
+      if (!jsonObj.getString("_type").equals("Path")) {
+        throw new S2KParseException("JSON object does not represent a Path");
+      }
+      Path output = new Path(PathElement.fromJSON(jsonObj.getJSONObject("element")));
+      JSONArray jsonBranches = jsonObj.getJSONArray("branches");
+      for (int i = 0; i < jsonBranches.length(); ++i) {
+        output.addBranch( Path.fromJSON(jsonBranches.get(i)) );
+      }
+      return output;
+    } catch (JSONException e) {
+      throw new S2KParseException("JSON object could not be parsed as a Path.", e);
+    }
+  }
   
   /// Private inner classes
   
-  private static class Parser {
-    private Pattern regex;
-    private Function<Matcher, Optional<PathElement>> builder;
-    
-    public Parser(String regexStr, Function<Matcher, Optional<PathElement>> builder) {
-      this.regex = Pattern.compile(regexStr);
-      this.builder = builder;
-    }
-    
-    public boolean matches(String pathStr) {
-      return regex.asPredicate().test(pathStr);
-    }
-    
-    public PathElement build(String pathStr) throws S2KParseException {
-      Matcher builderInput = regex.matcher(pathStr);
-      if (!builderInput.find()) {
-        throw new S2KParseException("Parser did not match path string.");
-      }
-      return builder.apply(builderInput).orElseThrow(() -> new S2KParseException("Could not parse path string."));
-    }
-    
-    public String remaining(String pathStr) throws S2KParseException {
-      Matcher matcher = regex.matcher(pathStr);
-      if (!matcher.find()) {
-        throw new S2KParseException("Parser did not match path string.");
-      }
-      return pathStr.substring( matcher.end() );
-    }
-  }
   
   private static abstract class PathElement {
     protected static Map<String, Function<JSONObject, Optional<PathElement>>> fromJsonMethods = new LinkedHashMap<String, Function<JSONObject, Optional<PathElement>>>();
@@ -461,11 +432,6 @@ class Path {
     private String tag;
     
     static{
-      pathParsers.add( new Parser(
-          "^(\\.\\w+|" + Pattern.quote(WILD) + "|" + Pattern.quote(ROOT) + "|" + Pattern.quote(REF) + ")",
-          matcher -> Optional.of( new TagPathElement(
-              matcher.group(1).startsWith(".") ? matcher.group(1).substring(1) : matcher.group(1)) )));
-      
       fromJsonMethods.put("TagPathElement", jsonObj -> Optional.of( new TagPathElement(jsonObj.getString("tag")) ));
     }
     
@@ -560,11 +526,6 @@ class Path {
     private Integer index;
 
     static{
-      pathParsers.add( new Parser(
-          "^\\[(\\w+|" + Pattern.quote(WILD_STR) + ")\\]",
-          matcher -> Optional.of(
-              new IndexPathElement( matcher.group(1).equals(WILD_STR) ? WILD : Integer.valueOf(matcher.group(1)) ) )));
-      
       fromJsonMethods.put("IndexPathElement", jsonObj -> Optional.of( new IndexPathElement(jsonObj.getInt("index")) ));
     }
     
@@ -642,24 +603,6 @@ class Path {
     private Set<PathElement> innerElements;
 
     static{
-      pathParsers.add( new Parser(
-          "^\\[((.+?,)*?.+?)\\]",
-          matcher -> {
-            Matcher optionMatcher = Pattern.compile("(.+?)(,|$)").matcher(matcher.group(1));
-            List<Path> optionPaths = new LinkedList<Path>();
-            while (optionMatcher.find()) {
-              try {
-                optionPaths.add(Path.fromPathStr(optionMatcher.group(1)));
-              } catch (S2KParseException e) {
-                // any parse error kills
-                return Optional.empty();
-              }
-            }
-            
-            return Optional.of(
-                new AlternationPathElement( optionPaths.stream().map( p -> p.element ).toArray( PathElement[]::new )) );
-          }));
-      
       fromJsonMethods.put("AlternationPathElement", jsonObj -> {
         try {
           JSONArray jsonElements = jsonObj.getJSONArray("innerElements");
@@ -771,22 +714,11 @@ class Path {
     private Path negatedPath;
     
     static{
-      pathParsers.add( new Parser(
-          "^\\?\\(!(.*?)\\)",
-          matcher -> {
-            try{
-              return Optional.of(
-                  new NegationFilterPathElement( Path.fromPathStr(matcher.group(1)) ));
-            } catch (S2KParseException e) {
-              return Optional.empty();
-            }
-          }));
-      
       fromJsonMethods.put("NegationFilterPathElement", jsonObj -> {
         try {
           return Optional.of(
               new NegationFilterPathElement(
-                  Path.fromJSON( jsonObj.getJSONObject("negatedPath") )));
+                  Path.fromJSON( jsonObj.get("negatedPath") )));
         } catch (S2KParseException e) {
           return Optional.empty();
         }
@@ -851,22 +783,11 @@ class Path {
     private String value;
 
     static{
-      pathParsers.add( new Parser(
-          "^\\?\\((.*?)=\"(.*?)\"\\)",
-          matcher -> {
-            try {
-              return Optional.of(
-                  new AttributeFilterPathElement(Path.fromPathStr(matcher.group(1)), matcher.group(2)) );
-            } catch (S2KParseException e) {
-              return Optional.empty();
-            }
-          }));
-      
       fromJsonMethods.put("AttributeFilterPathElement", jsonObj -> {
         try {
           return Optional.of(
               new AttributeFilterPathElement(
-                  Path.fromJSON(jsonObj.getJSONObject("attribute")),
+                  Path.fromJSON(jsonObj.get("attribute")),
                   jsonObj.getString("value") ));
         } catch (S2KParseException e) {
           return Optional.empty();
@@ -955,25 +876,12 @@ class Path {
     private Path mainAttribute, comparisonAttribute;
 
     static{
-      pathParsers.add( new Parser(
-          "^\\?\\((.*?)=(?<!\")(.*?)\\)",
-          matcher -> {
-            try {
-              return Optional.of(
-                  new DoubleAttributeFilterPathElement(
-                      Path.fromPathStr(matcher.group(1)),
-                      Path.fromPathStr(matcher.group(2)) ));
-            } catch (S2KParseException e) {
-              return Optional.empty();
-            }
-          }));
-      
       fromJsonMethods.put("DoubleAttributeFilterPathElement", jsonObj -> {
         try {
           return Optional.of(
               new DoubleAttributeFilterPathElement(
-                  Path.fromJSON(jsonObj.getJSONObject("mainAttribute")),
-                  Path.fromJSON(jsonObj.getJSONObject("comparisonAttribute")) ));
+                  Path.fromJSON(jsonObj.get("mainAttribute")),
+                  Path.fromJSON(jsonObj.get("comparisonAttribute")) ));
         } catch (S2KParseException e) {
           return Optional.empty();
         }
@@ -1040,6 +948,72 @@ class Path {
       }
       
       return ELEMENT_MATCH_TYPE.NONE;
+    }
+  }
+
+  
+  private static class PathVisitor extends JsonPath2BaseVisitor<Path> {
+    @Override
+    public Path visitPath(PathContext ctx) {
+      ElementVisitor elementVisitor = new ElementVisitor();
+      PathElement element = ctx.element().accept(elementVisitor);
+      Path output = new Path(element);
+      if (ctx.branches() != null) {
+        ctx.branches().path().stream()
+            .map( path -> path.accept(this) )
+            .forEach( output::addBranch );
+      }
+      
+      return output;
+    }
+  }
+  private static class ElementVisitor extends JsonPath2BaseVisitor<PathElement> {
+    @Override
+    public PathElement visitTagelement(TagelementContext ctx) {
+      if (ctx.tag() != null) {
+        return new TagPathElement(ctx.tag().getText());
+      } else {
+        return new TagPathElement(ctx.getText());
+      }
+    }
+    
+    @Override
+    public PathElement visitIndexelement(IndexelementContext ctx) {
+      String indexStr = ctx.index().getText();
+      if (indexStr.equals(WILD_INDEX)) {
+        return new IndexPathElement(0).makeWild();
+      } else {
+        return new IndexPathElement( Integer.valueOf(indexStr) );
+      }
+    }
+    
+    @Override
+    public PathElement visitAlternationelement(AlternationelementContext ctx) {
+      return new AlternationPathElement(
+          ctx.element().stream()
+              .map( element -> element.accept(this) ) // build each PathElement
+              .toArray( length -> new PathElement[length] )); // package them to give to varargs constructor
+    }
+    
+    @Override
+    public PathElement visitNegationfilterelement(NegationfilterelementContext ctx) {
+      return new NegationFilterPathElement( 
+          ctx.path().accept( new PathVisitor() ));
+    }
+    
+    @Override
+    public PathElement visitAttributefilterelement(AttributefilterelementContext ctx) {
+      return new AttributeFilterPathElement(
+          ctx.path().accept( new PathVisitor() ),
+          ctx.attributevalue().getText().replaceAll("^\"|\"$", "")); // trim quotes
+    }
+    
+    @Override
+    public PathElement visitDoubleattributefilterelement(DoubleattributefilterelementContext ctx) {
+      PathVisitor pathVisitor = new PathVisitor();
+      return new DoubleAttributeFilterPathElement(
+          ctx.path(0).accept(pathVisitor),
+          ctx.path(1).accept(pathVisitor));
     }
   }
 }

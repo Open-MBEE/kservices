@@ -1,6 +1,7 @@
 package gov.nasa.jpl.kservices.sysml2k;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -86,16 +87,6 @@ public class S2KLearner {
     return innerLearnTranslation(templates, examples, interactive);
   }
   
-  public static class Example {
-    public String input;
-    public String output;
-    
-    public Example(String input, String output) {
-      this.input  = input;
-      this.output = output;
-    }
-  }
-  
   /// Private Utilities
   
   private static boolean isNull(Object x) {
@@ -106,13 +97,24 @@ public class S2KLearner {
     try {
       TranslationDescription output = new TranslationDescription();
       
-      examples.forEach( example -> // each example is handled separately at first
+      examples.forEach( example -> {// each example is handled separately at first
+        JSONObject source = new JSONObject(example.input);
         templates.stream()
             .map( template -> template.matchToTarget(example.output, templates) ) // individually match each template (and its recursive sub-templates) to the target code
             .reduce( MatchRegistrar::merge ) // merge all instances of all templates into a single MatchRegistrar
             .ifPresent( matchRegistrar -> 
-              matchRegistrar.forEach( (template, matches) -> // then look up each template individually, regardless of recursive level
-                output.putMerge( matchElements( new JSONObject(example.input), matches ), template ) ))); // and merge the results into output incrementally
+              matchRegistrar.entrySet().stream()
+                  .sorted( (templateEntry1, templateEntry2) -> // get the shallow templates first, i.e., parents before their children 
+                      templateEntry1.getKey().getContainmentDepth().compareTo( templateEntry2.getKey().getContainmentDepth() ))
+                  .forEachOrdered( templateEntry -> {// then look up each template individually, regardless of recursive level
+                    TranslationDescription.TranslationPair referencePair = null;
+                    if (templateEntry.getKey().getContainmentDepth() > 0) { // but if it is recursive, additionally constrain the template
+                      referencePair = output.get(templateEntry.getKey().getParentTemplateName());
+                    }
+                    TemplateDataSource dataSource = matchElements( source, templateEntry.getValue() );
+                    output.putMerge( dataSource, templateEntry.getKey() ); // and merge the results into output incrementally
+                  }));
+      });
       
       if (interactive) {
         output.forEach( (templateName, translationPair) ->
@@ -149,7 +151,7 @@ public class S2KLearner {
   }
   
   // All of these try to find the path for a single field
-  private static Optional<Path> matchElement(JSONObject jsonObj, Collection<String> matchValues, Path node) {
+  private static Optional<Path> matchElement(JSONObject jsonObj, Collection<String> matchValues, Path node, Object reference) {
     for (Object key : jsonObj.keySet()) {
       try {
         String keyStr = (String)key;
@@ -158,7 +160,7 @@ public class S2KLearner {
           continue;
         }
         Object val = jsonObj.get(keyStr);
-        matchElement(val, matchValues, new Path(keyStr)).ifPresent( node::addBranch );
+        matchElement(val, matchValues, new Path(keyStr), reference).ifPresent( node::addBranch );
       } catch (ClassCastException e) {
         // silently ignore the bad key
       }
@@ -177,9 +179,9 @@ public class S2KLearner {
       }
     }
   }
-  private static Optional<Path> matchElement(JSONArray jsonObj, Collection<String> matchValues, Path node) {
+  private static Optional<Path> matchElement(JSONArray jsonObj, Collection<String> matchValues, Path node, Object reference) {
     for (int i = 0; i < jsonObj.length(); ++i) {
-      matchElement(jsonObj.get(i), matchValues, new Path(i)).ifPresent( node::addBranch );
+      matchElement(jsonObj.get(i), matchValues, new Path(i), reference).ifPresent( node::addBranch );
     }
     if (node.isLeaf()) {
       // didn't actually find a value, prune this branch
@@ -188,15 +190,15 @@ public class S2KLearner {
       return Optional.of(node);
     }
   }
-  private static Optional<Path> matchElement(Object jsonObj, Collection<String> matchValues, Path node) {
+  private static Optional<Path> matchElement(Object jsonObj, Collection<String> matchValues, Path node, Object reference) {
     if (isNull(jsonObj)) {
       return Optional.empty();
       
     } else if (jsonObj instanceof JSONObject) {
-      return matchElement((JSONObject)jsonObj, matchValues, node);
+      return matchElement((JSONObject)jsonObj, matchValues, node, reference);
       
     } else if (jsonObj instanceof JSONArray) {
-      return matchElement((JSONArray)jsonObj, matchValues, node);
+      return matchElement((JSONArray)jsonObj, matchValues, node, reference);
       
     } else if (matchValues.contains(S2KUtil.ksanitize(jsonObj.toString()))) {
       return Optional.of(node);
@@ -215,7 +217,7 @@ public class S2KLearner {
   private static TemplateDataSource matchElements(JSONObject jsonObj, Collection<TemplateMatch> matches) {
     TemplateDataSource output = new TemplateDataSource();
     collateFieldValues(matches).forEach( (fieldName, matchValues) -> {
-      matchElement(jsonObj, matchValues, new Path()).ifPresent( path -> {
+      matchElement(jsonObj, matchValues, new Path(), jsonObj).ifPresent( path -> {
         path.simplify();
         output.put(fieldName, path);
       });
@@ -235,4 +237,31 @@ public class S2KLearner {
     
     return output;
   }
+
+  private static TemplateDataSource constrainByReference(TemplateDataSource toBeConstrained, TranslationDescription.TranslationPair referencePair, JSONObject source) {
+    TemplateDataSource output = new TemplateDataSource();
+    Path referencePath = referencePair.templateDataSource.get( referencePair.template.getTriggerName() ).withoutLeaves();
+    toBeConstrained.forEach( (fieldName, path) -> {
+      output.put(fieldName, constrainPathByReference(path, referencePath, source));
+    });
+    return output;
+  }
+  
+  private static Path constrainPathByReference(Path toBeConstrained, Path reference, JSONObject source) {
+    // TODO: Implement this
+    throw new UnsupportedOperationException("Not implemented yet.");
+  }
+  
+  /// Public sub-classes
+  
+  public static class Example {
+    public String input;
+    public String output;
+    
+    public Example(String input, String output) {
+      this.input  = input;
+      this.output = output;
+    }
+  }
+  
 }

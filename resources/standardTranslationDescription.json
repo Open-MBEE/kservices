@@ -43,6 +43,33 @@
     "_type": "TranslationPair",
     "templateDataSource": {"_type": "TemplateDataSource"}
   },
+  "Requirement_WITHIN_Class": {
+    "template": {
+      "regex": "\\Qreq\\E\\s+\\Q(\\E\\s+\\Q\\E(?<expr>\\w+)\\Q\\E\\s+\\Q)\\E",
+      "stringForm": "req ( %!expr$s )",
+      "triggerField": {
+        "isRecursive": false,
+        "_type": "Field",
+        "name": "expr",
+        "isTrigger": true,
+        "isLong": true,
+        "isNecessary": true
+      },
+      "_type": "Template",
+      "name": "Requirement",
+      "fields": [
+      {
+        "isRecursive": false,
+        "_type": "Field",
+        "name": "expr",
+        "isTrigger": true,
+        "isLong": true,
+        "isNecessary": true
+      }]
+    },
+    "_type": "TranslationPair",
+    "templateDataSource": {"_type": "TemplateDataSource"}
+  },
   "Requirement": {
     "template": {
       "regex": "\\Qreq\\E\\s+\\Q(\\E\\s+\\Q\\E(?<expr>\\w+)\\Q\\E\\s+\\Q)\\E",
@@ -105,140 +132,9 @@
     "_type": "TranslationPair",
     "templateDataSource": {
       "_type": "TemplateDataSource",
-      "name": {
-        "_type": "Path",
-        "branches": [{
-          "_type": "Path",
-          "branches": [{
-            "_type": "Path",
-            "branches": [{
-              "_type": "Path",
-              "branches": [{
-                "_type": "Path",
-                "branches": [],
-                "element": {
-                  "_type": "TagPathElement",
-                  "tag": "name"
-                }
-              }],
-              "element": {
-                "_type": "AlternationPathElement",
-                "innerElements": [
-                  {
-                    "_type": "AttributeFilterPathElement",
-                    "attribute": {
-                      "_type": "Path",
-                      "branches": [],
-                      "element": {
-                        "_type": "TagPathElement",
-                        "tag": "type"
-                      }
-                    },
-                    "value": "Port"
-                  },
-                  {
-                    "_type": "AttributeFilterPathElement",
-                    "attribute": {
-                      "_type": "Path",
-                      "branches": [],
-                      "element": {
-                        "_type": "TagPathElement",
-                        "tag": "type"
-                      }
-                    },
-                    "value": "Property"
-                  }
-                ]
-              }
-            }],
-            "element": {
-              "_type": "IndexPathElement",
-              "index": -1
-            }
-          }],
-          "element": {
-            "_type": "TagPathElement",
-            "tag": "elements"
-          }
-        }],
-        "element": {
-          "_type": "TagPathElement",
-          "tag": "$"
-        }
-      },
-      "type": {
-        "_type": "Path",
-        "branches": [{
-          "_type": "Path",
-          "branches": [],
-          "element": {
-            "_type": "TagPathElement",
-            "tag": "typeId"
-          }
-        }],
-        "element": {
-          "_type": "TagPathElement",
-          "tag": "^"
-        }
-      },
-      "PARENT_REFERENCE": {
-        "_type": "Path",
-        "branches": [{
-          "_type": "Path",
-          "branches": [{
-            "_type": "Path",
-            "branches": [{
-              "_type": "Path",
-              "branches": [{
-                "_type": "Path",
-                "branches": [],
-                "element": {
-                  "_type": "TagPathElement",
-                  "tag": "name"
-                }
-              }],
-              "element": {
-                "_type": "DoubleAttributeFilterPathElement",
-                "mainAttribute": {
-                  "_type": "Path",
-                  "branches": [],
-                  "element": {
-                    "_type": "TagPathElement",
-                    "tag": "id"
-                  }
-                },
-                "comparisonAttribute": {
-                  "_type": "Path",
-                  "branches": [{
-                    "_type": "Path",
-                    "branches": [],
-                    "element": {
-                      "_type": "TagPathElement",
-                      "tag": "ownerId"
-                    }
-                  }],
-                  "element": {
-                    "_type": "TagPathElement",
-                    "tag": "^"
-                  }
-                }
-              }
-            }],
-            "element": {
-              "_type": "IndexPathElement",
-              "index": -1
-            }
-          }],
-          "element": {
-            "_type": "TagPathElement",
-            "tag": "elements"
-          }
-        }],
-        "element": {
-          "_type": "TagPathElement",
-          "tag": "$"
-        }
-      }
+      "name": "$.elements[*][?(.type=\"Property\"),?(.type=\"Port\")].name",
+      "type": "^.typeId",
+      "PARENT_REFERENCE": "$.elements[*]?(.id=^.ownerId).name"
     }
   },
   "Variable": {
@@ -277,96 +173,8 @@
     "_type": "TranslationPair",
     "templateDataSource": {
       "_type": "TemplateDataSource",
-      "name": {
-        "_type": "Path",
-        "branches": [{
-          "_type": "Path",
-          "branches": [{
-            "_type": "Path",
-            "branches": [{
-              "_type": "Path",
-              "branches": [{
-                "_type": "Path",
-                "branches": [{
-                  "_type": "Path",
-                  "branches": [],
-                  "element": {
-                    "_type": "TagPathElement",
-                    "tag": "name"
-                  }
-                }],
-                "element": {
-                  "_type": "NegationFilterPathElement",
-                  "negatedPath": {
-                    "_type": "Path",
-                    "branches": [],
-                    "element": {
-                      "_type": "TagPathElement",
-                      "tag": "ownerId"
-                    }
-                  }
-                }
-              }],
-              "element": {
-                "_type": "AlternationPathElement",
-                "innerElements": [
-                  {
-                    "_type": "AttributeFilterPathElement",
-                    "attribute": {
-                      "_type": "Path",
-                      "branches": [],
-                      "element": {
-                        "_type": "TagPathElement",
-                        "tag": "type"
-                      }
-                    },
-                    "value": "Port"
-                  },
-                  {
-                    "_type": "AttributeFilterPathElement",
-                    "attribute": {
-                      "_type": "Path",
-                      "branches": [],
-                      "element": {
-                        "_type": "TagPathElement",
-                        "tag": "type"
-                      }
-                    },
-                    "value": "Property"
-                  }
-                ]
-              }
-            }],
-            "element": {
-              "_type": "IndexPathElement",
-              "index": -1
-            }
-          }],
-          "element": {
-            "_type": "TagPathElement",
-            "tag": "elements"
-          }
-        }],
-        "element": {
-          "_type": "TagPathElement",
-          "tag": "$"
-        }
-      },
-      "type": {
-        "_type": "Path",
-        "branches": [{
-          "_type": "Path",
-          "branches": [],
-          "element": {
-            "_type": "TagPathElement",
-            "tag": "typeId"
-          }
-        }],
-        "element": {
-          "_type": "TagPathElement",
-          "tag": "^"
-        }
-      }
+      "name": "$.elements[*][?(.type=\"Port\"),?(.type=\"Property\")]?(!.ownerId).name",
+      "type": "^.typeId"
     }
   },
   "Generalized Class": {
@@ -412,199 +220,9 @@
     },
     "_type": "TranslationPair",
     "templateDataSource": {
-      "superClass": {
-        "_type": "Path",
-        "branches": [{
-          "_type": "Path",
-          "branches": [{
-            "_type": "Path",
-            "branches": [{
-              "_type": "Path",
-              "branches": [{
-                "_type": "Path",
-                "branches": [{
-                  "_type": "Path",
-                  "branches": [],
-                  "element": {
-                    "_type": "TagPathElement",
-                    "tag": "name"
-                  }
-                }],
-                "element": {
-                  "_type": "DoubleAttributeFilterPathElement",
-                  "mainAttribute": {
-                    "_type": "Path",
-                    "branches": [],
-                    "element": {
-                      "_type": "TagPathElement",
-                      "tag": "id"
-                    }
-                  },
-                  "comparisonAttribute": {
-                    "_type": "Path",
-                    "branches": [{
-                      "_type": "Path",
-                      "branches": [{
-                        "_type": "Path",
-                        "branches": [{
-                          "_type": "Path",
-                          "branches": [{
-                            "_type": "Path",
-                            "branches": [{
-                              "_type": "Path",
-                              "branches": [],
-                              "element": {
-                                "_type": "TagPathElement",
-                                "tag": "generalId"
-                              }
-                            }],
-                            "element": {
-                              "_type": "DoubleAttributeFilterPathElement",
-                              "mainAttribute": {
-                                "_type": "Path",
-                                "branches": [],
-                                "element": {
-                                  "_type": "TagPathElement",
-                                  "tag": "specificId"
-                                }
-                              },
-                              "comparisonAttribute": {
-                                "_type": "Path",
-                                "branches": [{
-                                  "_type": "Path",
-                                  "branches": [],
-                                  "element": {
-                                    "_type": "TagPathElement",
-                                    "tag": "id"
-                                  }
-                                }],
-                                "element": {
-                                  "_type": "TagPathElement",
-                                  "tag": "^"
-                                }
-                              }
-                            }
-                          }],
-                          "element": {
-                            "_type": "AttributeFilterPathElement",
-                            "attribute": {
-                              "_type": "Path",
-                              "branches": [],
-                              "element": {
-                                "_type": "TagPathElement",
-                                "tag": "type"
-                              }
-                            },
-                            "value": "Generalization"
-                          }
-                        }],
-                        "element": {
-                          "_type": "IndexPathElement",
-                          "index": -1
-                        }
-                      }],
-                      "element": {
-                        "_type": "TagPathElement",
-                        "tag": "elements"
-                      }
-                    }],
-                    "element": {
-                      "_type": "TagPathElement",
-                      "tag": "$"
-                    }
-                  }
-                }
-              }],
-              "element": {
-                "_type": "AttributeFilterPathElement",
-                "attribute": {
-                  "_type": "Path",
-                  "branches": [],
-                  "element": {
-                    "_type": "TagPathElement",
-                    "tag": "type"
-                  }
-                },
-                "value": "Class"
-              }
-            }],
-            "element": {
-              "_type": "IndexPathElement",
-              "index": -1
-            }
-          }],
-          "element": {
-            "_type": "TagPathElement",
-            "tag": "elements"
-          }
-        }],
-        "element": {
-          "_type": "TagPathElement",
-          "tag": "$"
-        }
-      },
+      "superClass": "$.elements[*]?(.type=\"Class\")?(.id=$.elements[*]?(.type=\"Generalization\")?(.specificId=^.id).generalId).name",
       "_type": "TemplateDataSource",
-      "name": {
-        "_type": "Path",
-        "branches": [{
-          "_type": "Path",
-          "branches": [{
-            "_type": "Path",
-            "branches": [{
-              "_type": "Path",
-              "branches": [{
-                "_type": "Path",
-                "branches": [],
-                "element": {
-                  "_type": "TagPathElement",
-                  "tag": "name"
-                }
-              }],
-              "element": {
-                "_type": "AlternationPathElement",
-                "innerElements": [
-                  {
-                    "_type": "AttributeFilterPathElement",
-                    "attribute": {
-                      "_type": "Path",
-                      "branches": [],
-                      "element": {
-                        "_type": "TagPathElement",
-                        "tag": "type"
-                      }
-                    },
-                    "value": "Diagram"
-                  },
-                  {
-                    "_type": "AttributeFilterPathElement",
-                    "attribute": {
-                      "_type": "Path",
-                      "branches": [],
-                      "element": {
-                        "_type": "TagPathElement",
-                        "tag": "type"
-                      }
-                    },
-                    "value": "Class"
-                  }
-                ]
-              }
-            }],
-            "element": {
-              "_type": "IndexPathElement",
-              "index": -1
-            }
-          }],
-          "element": {
-            "_type": "TagPathElement",
-            "tag": "elements"
-          }
-        }],
-        "element": {
-          "_type": "TagPathElement",
-          "tag": "$"
-        }
-      }
+      "name": "$.elements[*][?(.type=\"Class\"),?(.type=\"Diagram\")].name"
     }
   },
   "_type": "TranslationDescription",
@@ -644,71 +262,7 @@
     "_type": "TranslationPair",
     "templateDataSource": {
       "_type": "TemplateDataSource",
-      "name": {
-        "_type": "Path",
-        "branches": [{
-          "_type": "Path",
-          "branches": [{
-            "_type": "Path",
-            "branches": [{
-              "_type": "Path",
-              "branches": [{
-                "_type": "Path",
-                "branches": [{
-                  "_type": "Path",
-                  "branches": [],
-                  "element": {
-                    "_type": "TagPathElement",
-                    "tag": "name"
-                  }
-                }],
-                "element": {
-                  "_type": "NegationFilterPathElement",
-                  "negatedPath": {
-                    "_type": "Path",
-                    "branches": [{
-                      "_type": "Path",
-                      "branches": [],
-                      "element": {
-                        "_type": "IndexPathElement",
-                        "index": -1
-                      }
-                    }],
-                    "element": {
-                      "_type": "TagPathElement",
-                      "tag": "generalizationIds"
-                    }
-                  }
-                }
-              }],
-              "element": {
-                "_type": "AttributeFilterPathElement",
-                "attribute": {
-                  "_type": "Path",
-                  "branches": [],
-                  "element": {
-                    "_type": "TagPathElement",
-                    "tag": "type"
-                  }
-                },
-                "value": "Class"
-              }
-            }],
-            "element": {
-              "_type": "IndexPathElement",
-              "index": -1
-            }
-          }],
-          "element": {
-            "_type": "TagPathElement",
-            "tag": "elements"
-          }
-        }],
-        "element": {
-          "_type": "TagPathElement",
-          "tag": "$"
-        }
-      }
+      "name": "$.elements[*]?(.type=\"Class\")?(!.generalizationIds[*]).name"
     }
   }
 }

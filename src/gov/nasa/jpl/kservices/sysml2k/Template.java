@@ -85,8 +85,20 @@ class Template {
     return fields;
   }
 
-  public Integer getReferenceDepth() {
+  public Integer getContainmentDepth() {
     return this.name.split(CHILD_TEMPLATE_MODIFIER).length - 1;
+  }
+  
+  /**
+   * Extracts the name of the parent template.
+   * @return Parent template's name, or this one's name if it's top-level.
+   */
+  public String getParentTemplateName() {
+    if (!this.name.contains(CHILD_TEMPLATE_MODIFIER)) {
+      return this.name;
+    } else {
+      return this.name.split(CHILD_TEMPLATE_MODIFIER, 2)[1];
+    }
   }
   
   

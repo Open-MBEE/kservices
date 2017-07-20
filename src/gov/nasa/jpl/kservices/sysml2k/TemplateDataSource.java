@@ -44,7 +44,7 @@ public class TemplateDataSource extends LinkedHashMap<String, Path> {
         .filter( key -> !key.equals("_type") && !key.equals("parentTemplate") )
         .forEach( key -> {
           try {
-            output.put(key, Path.fromJSON(jsonObj.getJSONObject(key)));
+            output.put(key, Path.fromJSON(jsonObj.get(key)));
           } catch (S2KParseException | JSONException e) {
             // silently ignore exceptions, but log the exception
             e.printStackTrace();

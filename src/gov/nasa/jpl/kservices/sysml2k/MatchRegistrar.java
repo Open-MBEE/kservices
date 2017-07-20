@@ -14,7 +14,7 @@ public class MatchRegistrar extends Registrar<Template,TemplateMatch> {
     return this.pairingStream()
         .map( entry -> new TemplatePair(entry.getKey(), entry.getValue()) )
         .sorted( (templatePair1, templatePair2) -> 
-            -templatePair1.template.getReferenceDepth().compareTo( templatePair2.template.getReferenceDepth() ));
+            -templatePair1.template.getContainmentDepth().compareTo( templatePair2.template.getContainmentDepth() ));
   }
   
   /// Public sub-classes
