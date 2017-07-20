@@ -1382,6 +1382,7 @@ public class KtoJava {
         StringBuffer stmtsMain = new StringBuffer();
 
         stmtsMain.append( "Main scenario = new Main();" );
+        stmtsMain.append( "scenario.amTopEventToSimulate = true;" );
         stmtsMain.append( "scenario.satisfy( true, null );" );
         stmtsMain.append( "System.out.println((scenario.isSatisfied(true, null) ? \"Satisfied\" : \"Not Satisfied\") + \"\\n\" + scenario.executionString());" );
 

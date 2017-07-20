@@ -24,10 +24,15 @@
     <orderEntry type="library" name="Maven: gov.nasa.jpl.mbee.util:mbee_util:2.3.4-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.apache.commons:commons-lang3:3.0" level="project" />
     <orderEntry type="library" name="Maven: org.apache.commons:commons-collections4:4.0" level="project" />
-    <orderEntry type="library" name="Maven: gov.nasa.jpl.mbee.bae:bae:2.3.4-SNAPSHOT" level="project" />
-    <orderEntry type="library" name="Maven: org.eclipse.emf:org.eclipse.emf.ecore:2.9.1-v20130827-0309" level="project" />
-    <orderEntry type="library" name="Maven: concurrent:concurrent:1.3.3" level="project" />
-    <orderEntry type="library" name="Maven: org.scijava:jython-shaded:2.5.3" level="project" />
+    <orderEntry type="module-library">
+      <library name="Maven: gov.nasa.jpl.mbee.bae:bae:1.0">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../bae/target/bae-2.3.4-SNAPSHOT.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
     <orderEntry type="module-library">
       <library name="Maven: klang:klang:1.0">
         <CLASSES>

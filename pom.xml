@@ -45,46 +45,6 @@
 	<!-- profiles for specific dependencies for developers or users -->
 	<profiles>
 		<profile>
-			<id>mms-dev</id>
-			<dependencies>
-				<dependency>
-					<groupId>gov.nasa.jpl.ae</groupId>
-					<artifactId>AE</artifactId>
-					<version>1.0</version>
-					<scope>system</scope>
-					<type>jar</type>
-					<systemPath>${project.basedir}/lib/AE.jar</systemPath>
-				</dependency>
-				<dependency>
-					<groupId>sysml</groupId>
-					<artifactId>sysml</artifactId>
-					<version>1.0</version>
-					<scope>system</scope>
-					<type>jar</type>
-					<systemPath>${project.basedir}/lib/sysml.jar</systemPath>
-				</dependency>
-<!-- 				<dependency>
-					<groupId>mbee_util</groupId>
-					<artifactId>mbee_util</artifactId>
-					<version>1.0</version>
-					<scope>system</scope>
-					<type>jar</type>
-					<systemPath>${project.basedir}/lib/mbee_util.jar</systemPath>
-				</dependency>
- -->				<dependency>
-					<groupId>klang</groupId>
-					<artifactId>klang</artifactId>
-					<version>1.0</version>
-					<scope>system</scope>
-					<type>jar</type>
-					<systemPath>${project.basedir}/lib/klang.jar</systemPath>
-				</dependency>
-			</dependencies>
-			<properties>
-				<env.BUILD_NUMBER>1</env.BUILD_NUMBER>
-			</properties>
-		</profile>
-		<profile>
 			<id>mbee-dev</id>
 			<dependencies>
 <!-- 				<dependency>
@@ -100,7 +60,11 @@
 			    <dependency>
 					<groupId>gov.nasa.jpl.mbee.bae</groupId>
 					<artifactId>bae</artifactId>
-					<version>${mbee.version}</version>
+					<!--<version>${mbee.version}</version>-->
+					<version>1.0</version>
+					<scope>system</scope>
+					<type>jar</type>
+					<systemPath>${project.basedir}/../bae/target/bae-2.3.4-SNAPSHOT.jar</systemPath>
 				</dependency>
                 <dependency>
                     <groupId>klang</groupId>
