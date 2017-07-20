@@ -45,17 +45,6 @@ public class S2KLearner {
       System.out.println(test_output);
     } catch (Exception e1) {
       e1.printStackTrace();
-      System.out.println("Continuing...");
-    }
-    
-    while (true) {
-      try {
-        System.out.println("Enter path string to translate:");
-        System.out.println( Path.fromPathStr( systemInScanner.nextLine() ).toJSON().toString(2) );
-        
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
     }
   }
   
@@ -110,6 +99,7 @@ public class S2KLearner {
                     TranslationDescription.TranslationPair referencePair = null;
                     if (templateEntry.getKey().getContainmentDepth() > 0) { // but if it is recursive, additionally constrain the template
                       referencePair = output.get(templateEntry.getKey().getParentTemplateName());
+                      // TODO: figure out how to properly do that constraining
                     }
                     TemplateDataSource dataSource = matchElements( source, templateEntry.getValue() );
                     output.putMerge( dataSource, templateEntry.getKey() ); // and merge the results into output incrementally
