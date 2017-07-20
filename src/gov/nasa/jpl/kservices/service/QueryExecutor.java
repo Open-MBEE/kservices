@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.Set;
 
 import generatedCode.Main;
+//import generatedCode.Main;
 import gov.nasa.jpl.ae.event.Expression;
 import gov.nasa.jpl.kservices.KToAe;
 import gov.nasa.jpl.kservices.KtoJava;
@@ -74,7 +75,7 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
      * @return a Result object with evaluation result as as string and with any errors.
      */
     public Result<String> kQuery( String k ) {
-        KToAe k2ae = new KToAe( k );
+        KToAe k2ae = new KToAe();
 
         Object expr = k2ae.astToAeExpr( k, null, true, true, true, true, null );
 
@@ -278,8 +279,8 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
                     scenario.satisfy(true, null);
                     System.out.println( ( scenario.isSatisfied( true, null ) ? "Satisfied"
                                                                              : "Not Satisfied" )
-                                        + "\n" + scenario.executionString() );
-                	}
+                                        + "\n" + scenario.executionToString() );
+                }
                 
                 // output result
                 } catch (Throwable e) {
@@ -297,4 +298,43 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
 
     }
     
+    public Result<String> P( String k ) {
+        KToAe k2ae = new KToAe();
+        Object expr = k2ae.astToAeExpr( k, null, true, true, true, true, null );
+
+        Object value = null;
+        ArrayList<String> errors = null;
+
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter writer = new PrintWriter(stringWriter);
+
+        String error = null;
+        try {
+            value = Expression.evaluateDeep( expr, null, true, false );
+        } catch ( ClassCastException e ) {
+            e.printStackTrace( writer );
+        } catch ( IllegalAccessException e ) {
+            e.printStackTrace( writer );
+        } catch ( InvocationTargetException e ) {
+            e.printStackTrace( writer );
+        } catch ( InstantiationException e ) {
+            e.printStackTrace( writer );
+        }
+        error = stringWriter.toString();
+        if (error != null && error.length() > 0) {
+            errors = new ArrayList<String>();
+            errors.add( error );
+        }
+        Result<String> result =
+                        new Result< String >( errors, "" + value, String.class );
+        try {
+            writer.close();
+            stringWriter.close();
+        } catch ( IOException e ) {
+            e.printStackTrace();
+        }
+        
+        return result;
+    }
+
 }

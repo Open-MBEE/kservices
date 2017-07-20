@@ -45,63 +45,27 @@
 	<!-- profiles for specific dependencies for developers or users -->
 	<profiles>
 		<profile>
-			<id>mms-dev</id>
-			<dependencies>
-				<dependency>
-					<groupId>gov.nasa.jpl.ae</groupId>
-					<artifactId>AE</artifactId>
-					<version>1.0</version>
-					<scope>system</scope>
-					<type>jar</type>
-					<systemPath>${project.basedir}/lib/AE.jar</systemPath>
-				</dependency>
-				<dependency>
-					<groupId>sysml</groupId>
-					<artifactId>sysml</artifactId>
-					<version>1.0</version>
-					<scope>system</scope>
-					<type>jar</type>
-					<systemPath>${project.basedir}/lib/sysml.jar</systemPath>
-				</dependency>
-				<dependency>
-					<groupId>mbee_util</groupId>
-					<artifactId>mbee_util</artifactId>
-					<version>1.0</version>
-					<scope>system</scope>
-					<type>jar</type>
-					<systemPath>${project.basedir}/lib/mbee_util.jar</systemPath>
-				</dependency>
-				<dependency>
-					<groupId>klang</groupId>
-					<artifactId>klang</artifactId>
-					<version>1.0</version>
-					<scope>system</scope>
-					<type>jar</type>
-					<systemPath>${project.basedir}/lib/klang.jar</systemPath>
-				</dependency>
-			</dependencies>
-			<properties>
-				<env.BUILD_NUMBER>1</env.BUILD_NUMBER>
-			</properties>
-		</profile>
-		<profile>
 			<id>mbee-dev</id>
 			<dependencies>
-				<dependency>
+<!-- 				<dependency>
 					<groupId>gov.nasa.jpl.mbee.util</groupId>
 					<artifactId>mbee_util</artifactId>
 					<version>${mbee.version}</version>
 				</dependency>
-				<dependency>
+ -->				<dependency>
 					<groupId>gov.nasa.jpl.mbee.sysml</groupId>
 					<artifactId>sysml</artifactId>
 					<version>${mbee.version}</version>
 				</dependency>
-<!--  				<dependency>
+			    <dependency>
 					<groupId>gov.nasa.jpl.mbee.bae</groupId>
 					<artifactId>bae</artifactId>
-					<version>${mbee.version}</version>
-				</dependency> -->
+					<!--<version>${mbee.version}</version>-->
+					<version>1.0</version>
+					<scope>system</scope>
+					<type>jar</type>
+					<systemPath>${project.basedir}/../bae/target/bae-2.3.4-SNAPSHOT.jar</systemPath>
+				</dependency>
                 <dependency>
                     <groupId>klang</groupId>
                     <artifactId>klang</artifactId>
@@ -195,6 +159,27 @@
 			<artifactId>antlr4</artifactId>
 			<version>4.5</version>
 		</dependency>
+		
+ 		<dependency>
+			<groupId>org.antlr</groupId>
+			<artifactId>antlr4</artifactId>
+			<version>4.5</version>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-math3 -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-math3</artifactId>
+			<version>3.6.1</version>
+		</dependency>
+		
+		<!-- https://mvnrepository.com/artifact/org.nuiton.thirdparty/JRI -->
+		<dependency>
+			<groupId>org.nuiton.thirdparty</groupId>
+			<artifactId>JRI</artifactId>
+			<version>0.9-9</version>
+		</dependency>
+		
 	</dependencies>
 
 
