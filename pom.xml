@@ -64,7 +64,7 @@
 					<version>1.0</version>
 					<scope>system</scope>
 					<type>jar</type>
-					<systemPath>${project.basedir}/../bae/target/bae-2.3.4-SNAPSHOT.jar</systemPath>
+					<systemPath>${project.basedir}/../bae/target/bae-${mbee.version}.jar</systemPath>
 				</dependency>
                 <dependency>
                     <groupId>klang</groupId>
@@ -72,7 +72,7 @@
                     <version>1.0</version>
                     <scope>system</scope>
                     <type>jar</type>
-                    <systemPath>${project.basedir}/../KLang/target/klang-2.3.4-SNAPSHOT.jar</systemPath>
+                    <systemPath>${project.basedir}/../KLang/target/klang-${mbee.version}.jar</systemPath>
                 </dependency>
 <!-- 				<dependency>
 					<groupId>gov.nasa.jpl.mbee.klang</groupId>
