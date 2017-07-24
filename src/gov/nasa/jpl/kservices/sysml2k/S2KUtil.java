@@ -3,8 +3,12 @@ package gov.nasa.jpl.kservices.sysml2k;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 
 public class S2KUtil {
   /// Private members
@@ -12,9 +16,9 @@ public class S2KUtil {
   /**
    * Set of character that cannot be used in a K name.
    */
-  protected static final HashSet<Character> allowedNameChars = makeAllowedNameChars();
-  private static HashSet<Character> makeAllowedNameChars() {
-    HashSet<Character> output = new HashSet<Character>();
+  protected static final Set<Character> allowedNameChars = makeAllowedNameChars();
+  private static Set<Character> makeAllowedNameChars() {
+    Set<Character> output = new LinkedHashSet<Character>();
     for (char c = 'a'; c <= 'z'; ++c) {
       output.add(c);
     }
@@ -31,17 +35,35 @@ public class S2KUtil {
   /**
    * Set of keywords that are disallowed as identifiers in K.
    */
-  protected static final HashSet<String> protectedKeywords = makeProtectedKeywords();
-  private static HashSet<String> makeProtectedKeywords() {
-    HashSet<String> output = new HashSet<String>();
+  protected static final Set<String> protectedKeywords = makeProtectedKeywords();
+  private static Set<String> makeProtectedKeywords() {
+    Set<String> output = new LinkedHashSet<String>();
     String[] keywords = readResource("/keywords.txt").split("\n");
     
     for (String kw : keywords) {
-      output.add(kw.toLowerCase());
+      output.add(kw); // maintain case sensitivity by not doing toLowerCase here.
     }
     
     return output;
   }
+
+  /**
+   * Set of keywords that are disallowed as identifiers in K.
+   */
+  protected static final Map<String,String> keywordDictionary = makeKeywordDictionary();
+  private static Map<String,String> makeKeywordDictionary() {
+    Map<String,String> output = new LinkedHashMap<String,String>();
+    String[] keyAndTranslation = readResource("/keywordDictionary.txt").split("\n");
+    
+    for (String kt : keyAndTranslation) {
+      String[] keyTranslation = kt.split("=");
+      // use case-insensitive keys, but case-sensitive translations
+      output.put(keyTranslation[0].toLowerCase(), keyTranslation[1]);
+    }
+    
+    return output;
+  }
+  
 
   /// Public methods
   
@@ -98,10 +120,33 @@ public class S2KUtil {
         output += "_";
       }
     }
-    if (protectedKeywords.contains(output.toLowerCase())) {
+    if (protectedKeywords.contains(output)) {
       output = "__" + output;
     }
     return output;
+  }
+
+  /**
+   * Attempts to replace given identifier with native K construct.
+   * @param name The original identifier
+   * @return The closest K keyword, if available, or else the original name.
+   */
+  protected static String knative(String name) {
+    // first, check for the most precise translation available:
+    String explicitTranslation = keywordDictionary.get(name.toLowerCase());
+    if (explicitTranslation != null) {
+      return explicitTranslation;
+    }
+    
+    // else, check if this is equal to a keyword modulo case:
+    for (String keyword : protectedKeywords) {
+      if (name.equalsIgnoreCase(keyword)) {
+        return keyword;
+      }
+    }
+    
+    // else, we have no "close" matches:
+    return name;
   }
 }
 

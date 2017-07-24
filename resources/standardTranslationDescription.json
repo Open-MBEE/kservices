@@ -50,25 +50,29 @@
       "triggerField": {
         "isRecursive": false,
         "_type": "Field",
-        "name": "expr",
+        "name": "main",
         "isTrigger": true,
-        "isLong": true,
+        "isLong": false,
         "isNecessary": true
       },
       "_type": "Template",
-      "name": "Requirement",
-      "fields": [
-      {
+      "name": "Requirement_WITHIN_Class",
+      "fields": [{
         "isRecursive": false,
         "_type": "Field",
         "name": "expr",
-        "isTrigger": true,
+        "isTrigger": false,
         "isLong": true,
         "isNecessary": true
       }]
     },
     "_type": "TranslationPair",
-    "templateDataSource": {"_type": "TemplateDataSource"}
+    "templateDataSource": {
+      "_type": "TemplateDataSource",
+      "main": "$.elements[*]?(.type=\"Constraint\").id",
+      "expr": "^.specification.body[*]",
+      "PARENT_REFERENCE": "$.elements[*]?(.id=^.ownerId).name"
+    }
   },
   "Requirement": {
     "template": {
@@ -133,7 +137,7 @@
     "templateDataSource": {
       "_type": "TemplateDataSource",
       "name": "$.elements[*][?(.type=\"Property\"),?(.type=\"Port\")].name",
-      "type": "^.typeId",
+      "type": "[LIB:,$].elements[*]?(.id=^.typeId).name",
       "PARENT_REFERENCE": "$.elements[*]?(.id=^.ownerId).name"
     }
   },
@@ -173,7 +177,7 @@
     "_type": "TranslationPair",
     "templateDataSource": {
       "_type": "TemplateDataSource",
-      "name": "$.elements[*][?(.type=\"Port\"),?(.type=\"Property\")]?(!.ownerId).name",
+      "name": "$.elements[*][?(.type=\"Port\"),?(.type=\"Property\")]?(!?(.ownerId=$.elements[*]?(.type=\"Class\").id)).name",
       "type": "^.typeId"
     }
   },

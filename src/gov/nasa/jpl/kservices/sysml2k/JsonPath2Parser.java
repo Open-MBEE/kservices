@@ -18,8 +18,8 @@ public class JsonPath2Parser extends Parser {
 		new PredictionContextCache();
 	public static final int
 		T__0=1, T__1=2, T__2=3, T__3=4, T__4=5, T__5=6, STRING=7, FILTERSTART=8, 
-		FILTEREND=9, WILDCARD=10, ROOTTAG=11, REFTAG=12, IDENTIFIER=13, NATURALNUM=14, 
-		WS=15;
+		FILTEREND=9, WILDCARD=10, ROOTTAG=11, REFTAG=12, LIBTAG=13, IDENTIFIER=14, 
+		NATURALNUM=15, WS=16;
 	public static final int
 		RULE_path = 0, RULE_element = 1, RULE_tagelement = 2, RULE_tag = 3, RULE_indexelement = 4, 
 		RULE_index = 5, RULE_attributefilterelement = 6, RULE_attributevalue = 7, 
@@ -33,11 +33,12 @@ public class JsonPath2Parser extends Parser {
 
 	private static final String[] _LITERAL_NAMES = {
 		null, "'.'", "'['", "']'", "'='", "'!'", "','", null, "'?('", "')'", "'*'", 
-		"'$'", "'^'"
+		"'$'", "'^'", "'LIB:'"
 	};
 	private static final String[] _SYMBOLIC_NAMES = {
 		null, null, null, null, null, null, null, "STRING", "FILTERSTART", "FILTEREND", 
-		"WILDCARD", "ROOTTAG", "REFTAG", "IDENTIFIER", "NATURALNUM", "WS"
+		"WILDCARD", "ROOTTAG", "REFTAG", "LIBTAG", "IDENTIFIER", "NATURALNUM", 
+		"WS"
 	};
 	public static final Vocabulary VOCABULARY = new VocabularyImpl(_LITERAL_NAMES, _SYMBOLIC_NAMES);
 
@@ -117,7 +118,7 @@ public class JsonPath2Parser extends Parser {
 			element();
 			setState(26);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << T__0) | (1L << T__1) | (1L << FILTERSTART) | (1L << ROOTTAG) | (1L << REFTAG))) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << T__0) | (1L << T__1) | (1L << FILTERSTART) | (1L << ROOTTAG) | (1L << REFTAG) | (1L << LIBTAG))) != 0)) {
 				{
 				setState(25);
 				branches();
@@ -232,6 +233,7 @@ public class JsonPath2Parser extends Parser {
 	public static class TagelementContext extends ParserRuleContext {
 		public TerminalNode ROOTTAG() { return getToken(JsonPath2Parser.ROOTTAG, 0); }
 		public TerminalNode REFTAG() { return getToken(JsonPath2Parser.REFTAG, 0); }
+		public TerminalNode LIBTAG() { return getToken(JsonPath2Parser.LIBTAG, 0); }
 		public TagContext tag() {
 			return getRuleContext(TagContext.class,0);
 		}
@@ -250,7 +252,7 @@ public class JsonPath2Parser extends Parser {
 		TagelementContext _localctx = new TagelementContext(_ctx, getState());
 		enterRule(_localctx, 4, RULE_tagelement);
 		try {
-			setState(40);
+			setState(41);
 			switch (_input.LA(1)) {
 			case ROOTTAG:
 				enterOuterAlt(_localctx, 1);
@@ -266,12 +268,19 @@ public class JsonPath2Parser extends Parser {
 				match(REFTAG);
 				}
 				break;
-			case T__0:
+			case LIBTAG:
 				enterOuterAlt(_localctx, 3);
 				{
 				setState(38);
-				match(T__0);
+				match(LIBTAG);
+				}
+				break;
+			case T__0:
+				enterOuterAlt(_localctx, 4);
+				{
 				setState(39);
+				match(T__0);
+				setState(40);
 				tag();
 				}
 				break;
@@ -311,7 +320,7 @@ public class JsonPath2Parser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(42);
+			setState(43);
 			_la = _input.LA(1);
 			if ( !(_la==WILDCARD || _la==IDENTIFIER) ) {
 			_errHandler.recoverInline(this);
@@ -352,11 +361,11 @@ public class JsonPath2Parser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(44);
-			match(T__1);
 			setState(45);
-			index();
+			match(T__1);
 			setState(46);
+			index();
+			setState(47);
 			match(T__2);
 			}
 		}
@@ -392,7 +401,7 @@ public class JsonPath2Parser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(48);
+			setState(49);
 			_la = _input.LA(1);
 			if ( !(_la==WILDCARD || _la==NATURALNUM) ) {
 			_errHandler.recoverInline(this);
@@ -438,15 +447,15 @@ public class JsonPath2Parser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(50);
-			match(FILTERSTART);
 			setState(51);
-			path();
+			match(FILTERSTART);
 			setState(52);
-			match(T__3);
+			path();
 			setState(53);
-			attributevalue();
+			match(T__3);
 			setState(54);
+			attributevalue();
+			setState(55);
 			match(FILTEREND);
 			}
 		}
@@ -480,7 +489,7 @@ public class JsonPath2Parser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(56);
+			setState(57);
 			match(STRING);
 			}
 		}
@@ -521,15 +530,15 @@ public class JsonPath2Parser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(58);
-			match(FILTERSTART);
 			setState(59);
-			path();
+			match(FILTERSTART);
 			setState(60);
-			match(T__3);
-			setState(61);
 			path();
+			setState(61);
+			match(T__3);
 			setState(62);
+			path();
+			setState(63);
 			match(FILTEREND);
 			}
 		}
@@ -567,13 +576,13 @@ public class JsonPath2Parser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(64);
-			match(FILTERSTART);
 			setState(65);
-			match(T__4);
+			match(FILTERSTART);
 			setState(66);
-			path();
+			match(T__4);
 			setState(67);
+			path();
+			setState(68);
 			match(FILTEREND);
 			}
 		}
@@ -613,27 +622,27 @@ public class JsonPath2Parser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(69);
-			match(T__1);
 			setState(70);
+			match(T__1);
+			setState(71);
 			element();
-			setState(75);
+			setState(76);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
 			while (_la==T__5) {
 				{
 				{
-				setState(71);
-				match(T__5);
 				setState(72);
+				match(T__5);
+				setState(73);
 				element();
 				}
 				}
-				setState(77);
+				setState(78);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 			}
-			setState(78);
+			setState(79);
 			match(T__2);
 			}
 		}
@@ -671,40 +680,40 @@ public class JsonPath2Parser extends Parser {
 		enterRule(_localctx, 22, RULE_branches);
 		int _la;
 		try {
-			setState(92);
+			setState(93);
 			_errHandler.sync(this);
 			switch ( getInterpreter().adaptivePredict(_input,5,_ctx) ) {
 			case 1:
 				enterOuterAlt(_localctx, 1);
 				{
-				setState(80);
+				setState(81);
 				path();
 				}
 				break;
 			case 2:
 				enterOuterAlt(_localctx, 2);
 				{
-				setState(81);
-				match(T__1);
 				setState(82);
+				match(T__1);
+				setState(83);
 				path();
-				setState(87);
+				setState(88);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 				while (_la==T__5) {
 					{
 					{
-					setState(83);
-					match(T__5);
 					setState(84);
+					match(T__5);
+					setState(85);
 					path();
 					}
 					}
-					setState(89);
+					setState(90);
 					_errHandler.sync(this);
 					_la = _input.LA(1);
 				}
-				setState(90);
+				setState(91);
 				match(T__2);
 				}
 				break;
@@ -722,29 +731,30 @@ public class JsonPath2Parser extends Parser {
 	}
 
 	public static final String _serializedATN =
-		"\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd\3\21a\4\2\t\2\4\3\t"+
+		"\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd\3\22b\4\2\t\2\4\3\t"+
 		"\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t\13\4"+
 		"\f\t\f\4\r\t\r\3\2\3\2\5\2\35\n\2\3\3\3\3\3\3\3\3\3\3\3\3\5\3%\n\3\3\4"+
-		"\3\4\3\4\3\4\5\4+\n\4\3\5\3\5\3\6\3\6\3\6\3\6\3\7\3\7\3\b\3\b\3\b\3\b"+
-		"\3\b\3\b\3\t\3\t\3\n\3\n\3\n\3\n\3\n\3\n\3\13\3\13\3\13\3\13\3\13\3\f"+
-		"\3\f\3\f\3\f\7\fL\n\f\f\f\16\fO\13\f\3\f\3\f\3\r\3\r\3\r\3\r\3\r\7\rX"+
-		"\n\r\f\r\16\r[\13\r\3\r\3\r\5\r_\n\r\3\r\2\2\16\2\4\6\b\n\f\16\20\22\24"+
-		"\26\30\2\4\4\2\f\f\17\17\4\2\f\f\20\20_\2\32\3\2\2\2\4$\3\2\2\2\6*\3\2"+
-		"\2\2\b,\3\2\2\2\n.\3\2\2\2\f\62\3\2\2\2\16\64\3\2\2\2\20:\3\2\2\2\22<"+
-		"\3\2\2\2\24B\3\2\2\2\26G\3\2\2\2\30^\3\2\2\2\32\34\5\4\3\2\33\35\5\30"+
-		"\r\2\34\33\3\2\2\2\34\35\3\2\2\2\35\3\3\2\2\2\36%\5\6\4\2\37%\5\n\6\2"+
-		" %\5\16\b\2!%\5\22\n\2\"%\5\24\13\2#%\5\26\f\2$\36\3\2\2\2$\37\3\2\2\2"+
-		"$ \3\2\2\2$!\3\2\2\2$\"\3\2\2\2$#\3\2\2\2%\5\3\2\2\2&+\7\r\2\2\'+\7\16"+
-		"\2\2()\7\3\2\2)+\5\b\5\2*&\3\2\2\2*\'\3\2\2\2*(\3\2\2\2+\7\3\2\2\2,-\t"+
-		"\2\2\2-\t\3\2\2\2./\7\4\2\2/\60\5\f\7\2\60\61\7\5\2\2\61\13\3\2\2\2\62"+
-		"\63\t\3\2\2\63\r\3\2\2\2\64\65\7\n\2\2\65\66\5\2\2\2\66\67\7\6\2\2\67"+
-		"8\5\20\t\289\7\13\2\29\17\3\2\2\2:;\7\t\2\2;\21\3\2\2\2<=\7\n\2\2=>\5"+
-		"\2\2\2>?\7\6\2\2?@\5\2\2\2@A\7\13\2\2A\23\3\2\2\2BC\7\n\2\2CD\7\7\2\2"+
-		"DE\5\2\2\2EF\7\13\2\2F\25\3\2\2\2GH\7\4\2\2HM\5\4\3\2IJ\7\b\2\2JL\5\4"+
-		"\3\2KI\3\2\2\2LO\3\2\2\2MK\3\2\2\2MN\3\2\2\2NP\3\2\2\2OM\3\2\2\2PQ\7\5"+
-		"\2\2Q\27\3\2\2\2R_\5\2\2\2ST\7\4\2\2TY\5\2\2\2UV\7\b\2\2VX\5\2\2\2WU\3"+
-		"\2\2\2X[\3\2\2\2YW\3\2\2\2YZ\3\2\2\2Z\\\3\2\2\2[Y\3\2\2\2\\]\7\5\2\2]"+
-		"_\3\2\2\2^R\3\2\2\2^S\3\2\2\2_\31\3\2\2\2\b\34$*MY^";
+		"\3\4\3\4\3\4\3\4\5\4,\n\4\3\5\3\5\3\6\3\6\3\6\3\6\3\7\3\7\3\b\3\b\3\b"+
+		"\3\b\3\b\3\b\3\t\3\t\3\n\3\n\3\n\3\n\3\n\3\n\3\13\3\13\3\13\3\13\3\13"+
+		"\3\f\3\f\3\f\3\f\7\fM\n\f\f\f\16\fP\13\f\3\f\3\f\3\r\3\r\3\r\3\r\3\r\7"+
+		"\rY\n\r\f\r\16\r\\\13\r\3\r\3\r\5\r`\n\r\3\r\2\2\16\2\4\6\b\n\f\16\20"+
+		"\22\24\26\30\2\4\4\2\f\f\20\20\4\2\f\f\21\21a\2\32\3\2\2\2\4$\3\2\2\2"+
+		"\6+\3\2\2\2\b-\3\2\2\2\n/\3\2\2\2\f\63\3\2\2\2\16\65\3\2\2\2\20;\3\2\2"+
+		"\2\22=\3\2\2\2\24C\3\2\2\2\26H\3\2\2\2\30_\3\2\2\2\32\34\5\4\3\2\33\35"+
+		"\5\30\r\2\34\33\3\2\2\2\34\35\3\2\2\2\35\3\3\2\2\2\36%\5\6\4\2\37%\5\n"+
+		"\6\2 %\5\16\b\2!%\5\22\n\2\"%\5\24\13\2#%\5\26\f\2$\36\3\2\2\2$\37\3\2"+
+		"\2\2$ \3\2\2\2$!\3\2\2\2$\"\3\2\2\2$#\3\2\2\2%\5\3\2\2\2&,\7\r\2\2\',"+
+		"\7\16\2\2(,\7\17\2\2)*\7\3\2\2*,\5\b\5\2+&\3\2\2\2+\'\3\2\2\2+(\3\2\2"+
+		"\2+)\3\2\2\2,\7\3\2\2\2-.\t\2\2\2.\t\3\2\2\2/\60\7\4\2\2\60\61\5\f\7\2"+
+		"\61\62\7\5\2\2\62\13\3\2\2\2\63\64\t\3\2\2\64\r\3\2\2\2\65\66\7\n\2\2"+
+		"\66\67\5\2\2\2\678\7\6\2\289\5\20\t\29:\7\13\2\2:\17\3\2\2\2;<\7\t\2\2"+
+		"<\21\3\2\2\2=>\7\n\2\2>?\5\2\2\2?@\7\6\2\2@A\5\2\2\2AB\7\13\2\2B\23\3"+
+		"\2\2\2CD\7\n\2\2DE\7\7\2\2EF\5\2\2\2FG\7\13\2\2G\25\3\2\2\2HI\7\4\2\2"+
+		"IN\5\4\3\2JK\7\b\2\2KM\5\4\3\2LJ\3\2\2\2MP\3\2\2\2NL\3\2\2\2NO\3\2\2\2"+
+		"OQ\3\2\2\2PN\3\2\2\2QR\7\5\2\2R\27\3\2\2\2S`\5\2\2\2TU\7\4\2\2UZ\5\2\2"+
+		"\2VW\7\b\2\2WY\5\2\2\2XV\3\2\2\2Y\\\3\2\2\2ZX\3\2\2\2Z[\3\2\2\2[]\3\2"+
+		"\2\2\\Z\3\2\2\2]^\7\5\2\2^`\3\2\2\2_S\3\2\2\2_T\3\2\2\2`\31\3\2\2\2\b"+
+		"\34$+NZ_";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 	static {

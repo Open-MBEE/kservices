@@ -30,7 +30,7 @@ public class TemplateMatch extends LinkedHashMap<String, String> {
               });
         }
       } else {
-        newMatch.put(field.name, matcher.group(field.name)); // because of object references, this builds it into output as well
+        newMatch.put(field.name, matcher.group(field.name));
       }
     }
     

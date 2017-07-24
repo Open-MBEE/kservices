@@ -34,6 +34,7 @@ class Path {
   private static final String WILD_TAG = "*";
   private static final String ROOT_TAG = "$";
   private static final String REFERENCE_TAG = "^";
+  private static final String LIBRARY_TAG = "LIB:";
   private static final String WILD_INDEX = "*";
   
   private static enum ELEMENT_MATCH_TYPE { NONE, STRUCTURE, WILD, EXACT }
@@ -231,11 +232,11 @@ class Path {
     }
   }
   
-  public Map<Path,Object> access(Object jsonObj) {
-    return innerAccess(jsonObj, jsonObj, jsonObj);
+  public Map<Path,Object> access(Object jsonObj, Collection<JSONObject> libraries) {
+    return innerAccess(new AccessContext(jsonObj, jsonObj, jsonObj, libraries));
   }
-  public Map<Path,Object> access(Object jsonObj, Object referenceJsonObj) {
-    return innerAccess(jsonObj, jsonObj, referenceJsonObj);
+  public Map<Path,Object> access(Object jsonObj, Object referenceJsonObj, Collection<JSONObject> libraries) {
+    return innerAccess(new AccessContext(jsonObj, jsonObj, referenceJsonObj, libraries));
   }
   
   public Integer distance(Path other) {
@@ -303,8 +304,8 @@ class Path {
     this.branches = new LinkedList<Path>();
   }
 
-  private Map<Path,Object> innerAccess(Object jsonObj, Object root, Object referenceJsonObj) {
-    Map<PathElement,Object> values = this.element.access(jsonObj, root, referenceJsonObj);
+  private Map<Path,Object> innerAccess(AccessContext accessContext) {
+    Map<PathElement,Object> values = this.element.access(accessContext);
     if (this.isLeaf()) {
       return values.entrySet().stream()
           .map( entry -> new AbstractMap.SimpleEntry<>(new Path(entry.getKey()), entry.getValue()) )
@@ -312,7 +313,7 @@ class Path {
     } else {
       return branches.stream()
           .flatMap( branch -> values.entrySet().stream()
-              .flatMap( value -> branch.innerAccess(value.getValue(), root, referenceJsonObj).entrySet().stream()
+              .flatMap( value -> branch.innerAccess( accessContext.swapObject(value.getValue()) ).entrySet().stream()
                   .map( pathValue -> {
                     Path wrapped = new Path(value.getKey());
                     wrapped.branches.add(pathValue.getKey());
@@ -365,6 +366,30 @@ class Path {
   
   /// Private inner classes
   
+  private static class AccessContext {
+    public Object object;
+    public Object root;
+    public Object reference;
+    public Collection<JSONObject> libraries;
+    
+    public AccessContext(Object object, Object root, Object reference, Collection<JSONObject> libraries) {
+      this.object    = object;
+      this.root      = root;
+      this.reference = reference;
+      this.libraries = libraries;
+    }
+    
+    public AccessContext copy() {
+      return new AccessContext(object, root, reference, libraries);
+    }
+    
+    public AccessContext swapObject(Object newObject) {
+      AccessContext output = this.copy();
+      output.object = newObject;
+      return output;
+    }
+  }
+  
   
   private static abstract class PathElement {
     protected static Map<String, Function<JSONObject, Optional<PathElement>>> fromJsonMethods = new LinkedHashMap<String, Function<JSONObject, Optional<PathElement>>>();
@@ -385,7 +410,7 @@ class Path {
     public abstract PathElement copy();
     public abstract ELEMENT_MATCH_TYPE specLevel();
     public abstract PathElement makeWild();
-    public abstract Map<PathElement, Object> access(Object jsonObj, Object root, Object reference);
+    public abstract Map<PathElement, Object> access(AccessContext accessContext);
     public abstract String toString();
     public abstract JSONObject toJSON();
     
@@ -429,6 +454,7 @@ class Path {
     private static final String WILD = WILD_TAG;
     private static final String ROOT = ROOT_TAG;
     private static final String REF  = REFERENCE_TAG;
+    private static final String LIB  = LIBRARY_TAG;
     private String tag;
     
     static{
@@ -450,23 +476,28 @@ class Path {
     }
     
     public ELEMENT_MATCH_TYPE specLevel() {
-      return tag == WILD ? ELEMENT_MATCH_TYPE.STRUCTURE : ELEMENT_MATCH_TYPE.EXACT;
+      return tag.equals(WILD) ? ELEMENT_MATCH_TYPE.STRUCTURE : ELEMENT_MATCH_TYPE.EXACT;
     }
     
     public PathElement makeWild() {
       return new TagPathElement(WILD);
     }
     
-    public Map<PathElement, Object> access(Object jsonObj, Object root, Object reference) {
+    public Map<PathElement, Object> access(AccessContext accessContext) {
       try {
-        JSONObject trueJsonObj = (JSONObject) jsonObj;
         if (tag.equals(ROOT)) {
-          return makeAccessMap(this, root);
+          return makeAccessMap(this, accessContext.root);
           
         } else if (tag.equals(REF)) {
-          return makeAccessMap(this, reference);
+          return makeAccessMap(this, accessContext.reference);
+          
+        } else if (tag.equals(LIB)) {
+          Map<PathElement, Object> output = newAccessMap();
+          accessContext.libraries.forEach( lib -> output.put(this, lib) );
+          return output;
           
         } else if (tag.equals(WILD)) {
+          JSONObject trueJsonObj = (JSONObject) accessContext.object;
           Map<PathElement, Object> output = newAccessMap();
           for (Object key : trueJsonObj.keySet()) {
             output.put( new TagPathElement((String) key), trueJsonObj.get((String) key) );
@@ -474,7 +505,7 @@ class Path {
           return output;
           
         } else {
-          return makeAccessMap(this, trueJsonObj.get(tag));
+          return makeAccessMap(this, ((JSONObject) accessContext.object).get(tag));
         }
       } catch (ClassCastException | JSONException e) {
         return newAccessMap();
@@ -489,7 +520,9 @@ class Path {
     }
     
     public String toString() {
-      return (tag.equals(ROOT) || tag.equals(REF) ? tag : "." + tag);
+      return (tag.equals(ROOT) ||
+              tag.equals(REF)  || 
+              tag.equals(LIB)  ?  tag : "." + tag);
     }
     
     public JSONObject toJSON() {
@@ -547,9 +580,9 @@ class Path {
       return new IndexPathElement(WILD);
     }
     
-    public Map<PathElement, Object> access(Object jsonObj, Object root, Object reference) {
+    public Map<PathElement, Object> access(AccessContext accessContext) {
       try {
-        JSONArray jsonArray = (JSONArray) jsonObj;
+        JSONArray jsonArray = (JSONArray) accessContext.object;
         if (index.equals(WILD)) {
           Map<PathElement, Object> output = newAccessMap();
           for (int i = 0; i < jsonArray.length(); ++i) {
@@ -651,9 +684,9 @@ class Path {
       return innerElements.iterator().next().makeWild();
     }
     
-    public Map<PathElement, Object> access(Object jsonObj, Object root, Object reference) {
+    public Map<PathElement, Object> access(AccessContext accessContext) {
       return innerElements.stream()
-          .map( e -> e.access(jsonObj, root, reference) )
+          .map( e -> e.access(accessContext) )
           .reduce( newAccessMap(), (acc, map) -> { acc.putAll(map); return acc; } );
     }
     
@@ -743,10 +776,10 @@ class Path {
       return this; // what does this mean, really?
     }
     
-    public Map<PathElement, Object> access(Object jsonObj, Object root, Object reference) {
-      Map<Path, Object> lookup = negatedPath.innerAccess(jsonObj, root, reference);
+    public Map<PathElement, Object> access(AccessContext accessContext) {
+      Map<Path, Object> lookup = negatedPath.innerAccess(accessContext);
       if (lookup.isEmpty()) {
-        return makeAccessMap(this, jsonObj);
+        return makeAccessMap(this, accessContext.object);
       } else {
         return newAccessMap();
       }
@@ -821,17 +854,17 @@ class Path {
       return new AttributeFilterPathElement(attribute, WILD);
     }
     
-    public Map<PathElement, Object> access(Object jsonObj, Object root, Object reference) {
-      Map<Path, Object> attrValues = attribute.innerAccess(jsonObj, root, reference);
+    public Map<PathElement, Object> access(AccessContext accessContext) {
+      Map<Path, Object> attrValues = attribute.innerAccess(accessContext);
       // define matching on a wild attribute to be just having that attribute
       if ( value.equals(WILD) && !attrValues.isEmpty() ) {
         return makeAccessMap(
             new AttributeFilterPathElement(attribute,
                 attrValues.values().iterator().next().toString()), // choose an arbitrary value to "match" the wildcard
-            jsonObj);
+            accessContext.object);
         
       } else if ( attrValues.values().contains(value) ) {
-        return makeAccessMap( this, jsonObj ); // this is already a specific attribute value
+        return makeAccessMap( this, accessContext.object ); // this is already a specific attribute value
         
       } else {
         return newAccessMap(); // no match at all
@@ -907,14 +940,14 @@ class Path {
       return this; // dummy method, since merging is basically disabled for this.
     }
     
-    public Map<PathElement, Object> access(Object jsonObj, Object root, Object reference) {
-      Map<Path, Object> mainAttrLookup = mainAttribute.innerAccess(jsonObj, root, reference),
-                  comparisonAttrLookup = comparisonAttribute.innerAccess(jsonObj, root, reference);
+    public Map<PathElement, Object> access(AccessContext accessContext) {
+      Map<Path, Object> mainAttrLookup = mainAttribute.innerAccess(accessContext),
+                  comparisonAttrLookup = comparisonAttribute.innerAccess(accessContext);
       
       Set<Object> commonValues = new LinkedHashSet<>(mainAttrLookup.values());
       commonValues.retainAll(comparisonAttrLookup.values());
       if ( !commonValues.isEmpty() ) {
-        return makeAccessMap( this, jsonObj );
+        return makeAccessMap( this, accessContext.object );
         
       } else {
         return newAccessMap(); // no match at all

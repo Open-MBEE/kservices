@@ -127,11 +127,11 @@ class Template {
    * @param source The source model to draw information from.
    * @return A Collection of TemplateMatches, each representing an instance of the template in the source.
    */
-  public Collection<TemplateMatch> matchToSource(TemplateDataSource dataSource, JSONObject source) {
+  public Collection<TemplateMatch> matchToSource(TemplateDataSource dataSource, JSONObject source, Collection<JSONObject> libraries) {
     if (!dataSource.containsKey( getTriggerName() )) {
       return Collections.emptyList();
     }
-    Map<Path, Object> triggerMap = dataSource.get( getTriggerName() ).access(source);
+    Map<Path, Object> triggerMap = dataSource.get( getTriggerName() ).access(source, libraries);
     
     return triggerMap.entrySet().stream()
         .map( triggerEntry -> {
@@ -141,7 +141,8 @@ class Template {
             .filter( fieldName -> !fieldName.equals(getTriggerName()) ) // for any field but the triggering field...
             .forEach( fieldName -> {
               Map<Path, Object> relativeLookup = dataSource.get(fieldName).access(source,
-                  triggerEntry.getKey().withoutLeaves().access(source).values().iterator().next()); // access that path, with this trigger's containing object as the reference object
+                  triggerEntry.getKey().withoutLeaves().access(source, libraries).values().iterator().next(), // access that path, with this trigger's containing object as the reference object
+                  libraries);
               relativeLookup.entrySet().stream()
                 .map( pathValue -> new AbstractMap.SimpleEntry<>(pathValue.getKey().distance(triggerEntry.getKey()), pathValue.getValue()) ) // compute the distances to the triggering path
                 .min( (distanceValue1, distanceValue2) -> distanceValue1.getKey().compareTo(distanceValue2.getKey()) ) // choose the "closest" path
@@ -167,8 +168,10 @@ class Template {
     for (Field field : fields) {
       if (field.isRecursive) {
         fieldValues[i] = templateRegistrar.getOrDefault( templateMatch.get( getTriggerName() ), new LinkedList<String>() ).stream().collect( Collectors.joining("\n") );
-      } else if (templateMatch.containsKey(field.name) || !field.isNecessary) {
-        fieldValues[i] = templateMatch.getOrDefault(field.name, "");
+      } else if ( ( templateMatch.containsKey(field.name)   &&
+                   !templateMatch.get(field.name).isEmpty() ) ||
+                 !field.isNecessary) {
+        fieldValues[i] = S2KUtil.knative( templateMatch.getOrDefault(field.name, "") );
       } else {
         return; // quit early if a necessary field isn't available
       }

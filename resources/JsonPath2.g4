@@ -26,6 +26,7 @@ element  : tagelement
 
 tagelement : ROOTTAG
            | REFTAG
+           | LIBTAG
            | '.' tag
            ;
 
@@ -68,6 +69,7 @@ FILTEREND   : ')'  ;
 WILDCARD    : '*'  ;
 ROOTTAG     : '$'  ;
 REFTAG      : '^'  ;
+LIBTAG      : 'LIB:' ;
 IDENTIFIER  : [a-zA-Z_][a-zA-Z0-9_]* ;
 NATURALNUM  : '0' | [1-9][0-9]* ;
 WS : [ \t\n\r]+ -> skip ;

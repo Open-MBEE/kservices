@@ -18,7 +18,7 @@ public class Registrar<K,V> extends LinkedHashMap<K,Collection<V>> {
   
   public void register(K key, V value) {
     if (!this.containsKey(key)) {
-      this.put(key, new LinkedList<V>());
+      addKey(key);
     }
     this.get(key).add(value);
   }
@@ -27,9 +27,24 @@ public class Registrar<K,V> extends LinkedHashMap<K,Collection<V>> {
     values.forEach( value -> this.register(key, value) );
   }
   
+  @SuppressWarnings("unchecked")
+  @Override
+  public Collection<V> get(Object key) {
+    if (!this.containsKey(key)) {
+      addKey((K) key);
+    }
+    return super.get(key);
+  }
+  
   public Stream<Map.Entry<K,V>> pairingStream() {
     return this.entrySet().stream().flatMap( entry ->
         entry.getValue().stream().map( value ->
             new AbstractMap.SimpleEntry<K, V>(entry.getKey(), value) ));
+  }
+  
+  /// Private helpers
+  
+  private void addKey(K key) {
+    this.put(key, new LinkedList<V>());
   }
 }
