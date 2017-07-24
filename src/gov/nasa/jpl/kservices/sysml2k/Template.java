@@ -18,6 +18,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 class Template {
+  private static final Integer PRIORITY_INCREMENT = 10;
   private static final String CHILD_TEMPLATE_MODIFIER = "_WITHIN_"; //TODO: abstract these constants to a config file, except maybe for NOT_ESCAPED and below
   private static final String TRIGGER_FLAG = "!";
   private static final String RECUR_FLAG   = "@";
@@ -31,6 +32,7 @@ class Template {
   private String stringForm;
   private List<Field> fields;
   private Field triggerField;
+  private Integer instantiationPriority; // higher = instantiated sooner
   private Pattern regex; // to memoize the regex for matching instantiated templates
   //TODO: change this from a regex-based solution to a parser-based one.
   
@@ -70,6 +72,7 @@ class Template {
   public Template asChildOf(Template parent) {
     Template output     = new Template(this);
     output.name         = this.name + CHILD_TEMPLATE_MODIFIER + parent.name;
+    output.instantiationPriority = this.instantiationPriority + PRIORITY_INCREMENT;
     return output;
   }
   
@@ -85,8 +88,12 @@ class Template {
     return fields;
   }
 
+  /**
+   * Estimate of the "depth" to which this template is nested. Note: this is only a relative, not absolute, metric.
+   * @return Integer, greater numbers indicating "deeper" elements.
+   */
   public Integer getContainmentDepth() {
-    return this.name.split(CHILD_TEMPLATE_MODIFIER).length - 1;
+    return instantiationPriority;
   }
   
   /**
@@ -192,6 +199,7 @@ class Template {
         .put("stringForm", stringForm)
         .put("fields", fields.stream().map( Field::toJSON ).collect( Collectors.toList() ))
         .put("triggerField", triggerField.toJSON())
+        .put("instantiationPriority", instantiationPriority)
         .put("regex", regex.pattern());
   }
   
@@ -208,6 +216,7 @@ class Template {
         output.fields.add( Field.fromJSON( fieldArr.getJSONObject(i) ));
       }
       output.triggerField = Field.fromJSON( jsonObj.getJSONObject("triggerField") );
+      output.instantiationPriority = jsonObj.getInt("instantiationPriority");
       output.regex = Pattern.compile( jsonObj.getString("regex") );
       return output;
       
