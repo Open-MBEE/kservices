@@ -7,4 +7,4 @@ package java.math.abs
 --      x
 --}
 
-var y : Real = java.math.abs(-1.0)
+var y : Real = java.lang.Math.abs(-1.0)

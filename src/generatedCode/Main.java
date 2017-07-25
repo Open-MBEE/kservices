@@ -21,7 +21,9 @@ import gov.nasa.jpl.ae.event.Dependency;
 import gov.nasa.jpl.ae.event.ElaborationRule;
 import gov.nasa.jpl.ae.event.EventInvocation;
 import gov.nasa.jpl.ae.event.DurativeEvent;
+import gov.nasa.jpl.ae.event.ParameterListenerImpl;
 import gov.nasa.jpl.ae.event.Event;
+import gov.nasa.jpl.ae.solver.ObjectDomain;
 import gov.nasa.jpl.mbee.util.Utils;
 import gov.nasa.jpl.mbee.util.Debug;
 import gov.nasa.jpl.mbee.util.ClassUtils;
@@ -36,7 +38,9 @@ public class Main extends Global {
 
     public static void main(String[] args) {
         Main scenario = new Main();
+        scenario.amTopEventToSimulate = true;
+        scenario.redirectStdOut = true;
         scenario.satisfy(true, null);
-        System.out.println((scenario.isSatisfied(true, null) ? "Satisfied" : "Not Satisfied") + "\n" + scenario.executionString());
+        System.out.println(scenario.simpleString());
     }
 }

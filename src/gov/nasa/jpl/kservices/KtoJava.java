@@ -225,28 +225,27 @@ public class KtoJava {
         System.out.println(  );
         try {
             typeChecker = new TypeChecker( this.model ); 
-            this.allClasses =
-                    new HashSet< EntityDecl >( JavaConversions.asJavaCollection( Frontend.getEntitiesFromModel( this.model ) ) );
-            this.allClassNames = new TreeSet< String >();
-            this.classToParentNames = new TreeMap<String, Set<String>>();
-            for ( EntityDecl e : allClasses ) {
-                this.allClassNames.add( e.ident() );
-                this.classToParentNames.put( e.ident(), new TreeSet<String>(JavaConversions.asJavaCollection(e.getExtendingNames()) ));
-                
-            }
-            for (String e: allClassNames) {
-                getAllSuperClassNames(e);
-            }
-            
-            this.instantiatedClassNames = new TreeSet< String >();
-            buildParamTable( getClassData().getParamTable() );
-            buildMethodTable( getClassData().getMethodTable() );
-            if ( translate ) {
-                translateClasses();
-            }
         } catch (Throwable e) {
             System.err.println( "Input did not Type Check " + e ); //don't continue
+        }
+        this.allClasses =
+                new HashSet< EntityDecl >( JavaConversions.asJavaCollection( Frontend.getEntitiesFromModel( this.model ) ) );
+        this.allClassNames = new TreeSet< String >();
+        this.classToParentNames = new TreeMap<String, Set<String>>();
+        for ( EntityDecl e : allClasses ) {
+            this.allClassNames.add( e.ident() );
+            this.classToParentNames.put( e.ident(), new TreeSet<String>(JavaConversions.asJavaCollection(e.getExtendingNames()) ));
             
+        }
+        for (String e: allClassNames) {
+            getAllSuperClassNames(e);
+        }
+        
+        this.instantiatedClassNames = new TreeSet< String >();
+        buildParamTable( getClassData().getParamTable() );
+        buildMethodTable( getClassData().getMethodTable() );
+        if ( translate ) {
+            translateClasses();
         }
         
         
