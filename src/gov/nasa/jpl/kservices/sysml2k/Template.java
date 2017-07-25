@@ -4,6 +4,7 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,21 +19,20 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 class Template {
-  private static final Integer PRIORITY_INCREMENT = 10;
   private static final String CHILD_TEMPLATE_MODIFIER = "_WITHIN_"; //TODO: abstract these constants to a config file, except maybe for NOT_ESCAPED and below
   private static final String TRIGGER_FLAG = "!";
   private static final String RECUR_FLAG   = "@";
   private static final String NECESS_FLAG  = "&";
   private static final String LONG_FLAG    = "+";
   private static final String NOT_ESCAPED = "(?<!\\\\)(?:\\\\{2})*"; // not preceded by an odd number of slashes. Stolen from maksymiuk (https://stackoverflow.com/questions/6525556/regular-expression-to-match-escaped-characters-quotes)
-  private static final Function<String, String> matchFieldRegex = name -> NOT_ESCAPED + "%(?<flags>\\W*?)" + name + "\\$(?<mods>[\\w\\-#+0,(]+)"; //Non-escaped %, name expression, $, assumed valid Java format codes
+  private static final Function<String, String> matchFieldRegex = name -> "(?<indent>(?<=\n)[ \t]*)?" + NOT_ESCAPED + "%(?<flags>\\W*?)" + name + "\\$(?<mods>[\\w\\-#+0,(]+)"; //Non-escaped %, name expression, $, assumed valid Java format codes
   private static final Pattern GENERAL_FIELD_PATTERN = Pattern.compile( matchFieldRegex.apply("(?<name>\\w+)") );
   
   private String name;
   private String stringForm;
-  private List<Field> fields;
+  private String recursiveIndent;
+  private Map<String,Field> fields;
   private Field triggerField;
-  private Integer instantiationPriority; // higher = instantiated sooner
   private Pattern regex; // to memoize the regex for matching instantiated templates
   //TODO: change this from a regex-based solution to a parser-based one.
   
@@ -49,12 +49,12 @@ class Template {
     }
     
     Matcher fieldMatcher = GENERAL_FIELD_PATTERN.matcher(stringForm);
-    fields = new ArrayList<Field>( fieldMatcher.groupCount() );
+    fields = new LinkedHashMap<String,Field>( fieldMatcher.groupCount() );
+    Boolean foundRecursive = false;
     
-    // NOTE: by using a list for fields, we preserve order. This is important for later instantiation
     while (fieldMatcher.find()) {
       Field newField = new Field( fieldMatcher );
-      fields.add( newField );
+      this.putField( newField );
       if (newField.isTrigger) {
         if (triggerField == null) {
           triggerField = newField;
@@ -62,52 +62,54 @@ class Template {
           throw new S2KParseException("Template " + name + " instantiated with more than one trigger field.");
         }
       }
+      if (newField.isRecursive) {
+        if (foundRecursive) {
+          throw new S2KParseException("Template " + name + " instantiated with more than one recursive field.");
+        }
+        foundRecursive = true;
+        this.recursiveIndent = fieldMatcher.group("indent"); // if no match, leaves recursiveIndent as null
+      }
     }
     
     if (triggerField == null) {
       throw new S2KParseException("Template " + name + " instantiated with no trigger field.");
     }
+    if (recursiveIndent == null) {
+      this.recursiveIndent = "";
+    }
   }
 
+  /**
+   * Builds an inner template. 
+   * @param parent The Template in which this Template is contained.
+   * @return A copy of this template, with appropriate modifications to be contained in the given parent.
+   */
   public Template asChildOf(Template parent) {
     Template output     = new Template(this);
     output.name         = this.name + CHILD_TEMPLATE_MODIFIER + parent.name;
-    output.instantiationPriority = this.instantiationPriority + PRIORITY_INCREMENT;
     return output;
   }
   
+  /**
+   * @return This Template's name.
+   */
   public String getName() {
     return name;
   }
   
+  /**
+   * @return Trigger Field's name.
+   */
   public String getTriggerName() {
     return this.triggerField.name;
   }
   
-  public List<Field> getFields() {
-    return fields;
-  }
-
   /**
-   * Estimate of the "depth" to which this template is nested. Note: this is only a relative, not absolute, metric.
-   * @return Integer, greater numbers indicating "deeper" elements.
+   * @return A Collection of Fields used in this Template.
    */
-  public Integer getContainmentDepth() {
-    return instantiationPriority;
+  public Collection<Field> getFields() {
+    return fields.values();
   }
-  
-  /**
-   * Extracts the name of the parent template.
-   * @return Parent template's name, or this one's name if it's top-level.
-   */
-  public String getParentTemplateName() {
-    if (!this.name.contains(CHILD_TEMPLATE_MODIFIER)) {
-      return this.name;
-    } else {
-      return this.name.split(CHILD_TEMPLATE_MODIFIER, 2)[1];
-    }
-  }
-  
   
   /**
    * Represents all parts of the target code that match the specified template.
@@ -144,48 +146,63 @@ class Template {
         .map( triggerEntry -> {
           TemplateMatch match = new TemplateMatch();
           match.put(getTriggerName(), triggerEntry.getValue().toString());
+          Object triggerObject = triggerEntry.getKey().withoutLeaves().access(source, libraries).values().iterator().next();
           dataSource.keySet().stream()
             .filter( fieldName -> !fieldName.equals(getTriggerName()) ) // for any field but the triggering field...
             .forEach( fieldName -> {
-              Map<Path, Object> relativeLookup = dataSource.get(fieldName).access(source,
-                  triggerEntry.getKey().withoutLeaves().access(source, libraries).values().iterator().next(), // access that path, with this trigger's containing object as the reference object
-                  libraries);
+              // access that path, with this trigger's reference object
+              Map<Path, Object> relativeLookup = dataSource.get(fieldName).access(source, triggerObject, libraries);
               relativeLookup.entrySet().stream()
                 .map( pathValue -> new AbstractMap.SimpleEntry<>(pathValue.getKey().distance(triggerEntry.getKey()), pathValue.getValue()) ) // compute the distances to the triggering path
                 .min( (distanceValue1, distanceValue2) -> distanceValue1.getKey().compareTo(distanceValue2.getKey()) ) // choose the "closest" path
-                .ifPresent( distanceValue -> {
-                  match.put(fieldName, distanceValue.getValue().toString()); // if we have a path, add it to the match
-                });
+                .map( Map.Entry::getValue )
+                .ifPresent( value -> match.put(fieldName, value.toString()) ); // if we have a path, add it to the match
             });
           return match;
         })
+        .filter( this::isValidMatch )
         .collect( Collectors.toList() );
   }
   
   /**
    * Builds the target code, and registers it with templateRegistrar.
    * @param templateMatch The TemplateMatch that describes information for this template.
-   * @param templateRegistrar The TemplateRegistrar for this translation.
+   * @param instantiationRegistrar The InstantiationRegistrar for this translation.
    */
-  public void instantiate(TemplateMatch templateMatch, InstantiationRegistrar templateRegistrar) {
-    String formatStr = GENERAL_FIELD_PATTERN.matcher(stringForm).replaceAll("%${mods}"); // replace all fields with Java String.format codes
-    String[] fieldValues = new String[fields.size()];
-    // Note: iteration order will be in the order of the template because of list structure.
-    int i = 0;
-    for (Field field : fields) {
+  public void instantiate(TemplateMatch templateMatch, InstantiationRegistrar instantiationRegistrar) {
+    Matcher fieldMatcher = GENERAL_FIELD_PATTERN.matcher(stringForm);
+    List<String> fieldValues = new LinkedList<String>();
+    // matcher will iterate forward through the stringForm, so we can guarantee order of fields
+    while (fieldMatcher.find()) {
+      Field field = fields.get(fieldMatcher.group("name"));
       if (field.isRecursive) {
-        fieldValues[i] = templateRegistrar.getOrDefault( templateMatch.get( getTriggerName() ), new LinkedList<String>() ).stream().collect( Collectors.joining("\n") );
-      } else if ( ( templateMatch.containsKey(field.name)   &&
-                   !templateMatch.get(field.name).isEmpty() ) ||
-                 !field.isNecessary) {
-        fieldValues[i] = S2KUtil.knative( templateMatch.getOrDefault(field.name, "") );
+        fieldValues.add( indent( 
+            instantiationRegistrar.get( getReferenceName(templateMatch) ).stream()
+                .collect( Collectors.joining("\n") )));
       } else {
-        return; // quit early if a necessary field isn't available
+        Optional<String> value = instantiateField(field, templateMatch);
+        if (value.isPresent()) {
+          fieldValues.add( value.get() );
+        } else {
+          return; // quit early if a necessary field isn't available
+        }
       }
-      ++i;
     }
+    String formatStr = GENERAL_FIELD_PATTERN.matcher(stringForm).replaceAll("%${mods}"); // replace all fields with Java String.format codes
+    
     Optional<String> reference = templateMatch.getParentReference();
-    templateRegistrar.register( reference.orElseGet( templateRegistrar::getTopLevelReference ), String.format(formatStr, (Object[])fieldValues));
+    instantiationRegistrar.register(
+        reference.orElseGet( instantiationRegistrar::getTopLevelReference ),
+        String.format(formatStr, fieldValues.toArray()));
+  }
+
+  /**
+   * Returns the name of this instance in the target code.
+   * @param referenceMatch The TemplateMatch corresponding to the instantiation of the Template being referenced.
+   * @return The name of that instantiation, as given in the target code.
+   */
+  public String getReferenceName(TemplateMatch referenceMatch) {
+    return instantiateField(triggerField, referenceMatch).orElse("");
   }
   
   public String toString() {
@@ -197,9 +214,9 @@ class Template {
         .put("_type", "Template")
         .put("name", name)
         .put("stringForm", stringForm)
-        .put("fields", fields.stream().map( Field::toJSON ).collect( Collectors.toList() ))
+        .put("recursiveIndent", recursiveIndent)
+        .put("fields", fields.values().stream().map( Field::toJSON ).collect( Collectors.toList() ))
         .put("triggerField", triggerField.toJSON())
-        .put("instantiationPriority", instantiationPriority)
         .put("regex", regex.pattern());
   }
   
@@ -210,13 +227,13 @@ class Template {
       }
       // rebuild the input format to reuse the constructor
       Template output = new Template( jsonObj.getString("name") + "\n" + jsonObj.getString("stringForm") );
-      output.fields = new LinkedList<Field>();
+      output.fields = new LinkedHashMap<String,Field>();
       JSONArray fieldArr = jsonObj.getJSONArray("fields");
       for (int i = 0; i < fieldArr.length(); ++i) {
-        output.fields.add( Field.fromJSON( fieldArr.getJSONObject(i) ));
+        output.putField( Field.fromJSON( fieldArr.getJSONObject(i) ));
       }
+      output.recursiveIndent = jsonObj.getString("recursiveIndent");
       output.triggerField = Field.fromJSON( jsonObj.getJSONObject("triggerField") );
-      output.instantiationPriority = jsonObj.getInt("instantiationPriority");
       output.regex = Pattern.compile( jsonObj.getString("regex") );
       return output;
       
@@ -227,6 +244,7 @@ class Template {
   
   /// Private Helpers
   
+  // shallow copy constructor
   private Template(Template other) {
     this.stringForm   = other.stringForm;
     this.fields       = other.fields;
@@ -234,9 +252,24 @@ class Template {
     this.regex        = other.regex;
   }
   
+  private void putField(Field field) {
+    fields.put(field.name, field);
+  }
+  
+  private Boolean isValidMatch(TemplateMatch templateMatch) {
+    return this.fields.values().stream()
+        .filter( field -> field.isNecessary && !field.isRecursive )
+        .map( field -> field.name )
+        .allMatch( templateMatch::containsKey );
+  }
+  
+  private String indent(String recursiveContent) {
+    return recursiveContent.replaceAll("\n", "\n" + recursiveIndent);
+  }
+  
   private Pattern asRegex() {
     String tempStrForm = Pattern.quote(stringForm).replaceAll("\\s+", patternUnquote("\\\\s+"));
-    for (Field field : fields) {
+    for (Field field : fields.values()) {
       // replace the java-style naming pattern with a regex to capture and name the match in an instantiated template
       tempStrForm = tempStrForm.replaceAll(
           matchFieldRegex.apply( field.name ),
@@ -254,6 +287,17 @@ class Template {
     return "\\\\E" + regex + "\\\\Q";
   }
 
+  private Optional<String> instantiateField(Field field, TemplateMatch templateMatch) {
+    if ( ( templateMatch.containsKey(field.name)   &&
+                 !templateMatch.get(field.name).isEmpty() ) ||
+               !field.isNecessary) {
+      String basicValue = templateMatch.getOrDefault(field.name, "");
+      return Optional.of( field.isLong ? basicValue : S2KUtil.knative(basicValue) );
+    } else {
+      return Optional.empty();
+    }
+  }
+  
   /// Public Sub-classes
   
   public static class Field {

@@ -83,38 +83,37 @@ public class S2KLearner {
   }
 
   private static TranslationDescription innerLearnTranslation(Collection<Template> templates, Collection<Example> examples, boolean interactive) throws S2KException {
-    try {
-      TranslationDescription output = new TranslationDescription();
-      
-      examples.forEach( example -> {// each example is handled separately at first
-        JSONObject source = new JSONObject(example.input);
-        templates.stream()
-            .map( template -> template.matchToTarget(example.output, templates) ) // individually match each template (and its recursive sub-templates) to the target code
-            .reduce( MatchRegistrar::merge ) // merge all instances of all templates into a single MatchRegistrar
-            .ifPresent( matchRegistrar -> 
-              matchRegistrar.entrySet().stream()
-                  .sorted( (templateEntry1, templateEntry2) -> // get the shallow templates first, i.e., parents before their children 
-                      templateEntry1.getKey().getContainmentDepth().compareTo( templateEntry2.getKey().getContainmentDepth() ))
-                  .forEachOrdered( templateEntry -> {// then look up each template individually, regardless of recursive level
-                    TranslationDescription.TranslationPair referencePair = null;
-                    if (templateEntry.getKey().getContainmentDepth() > 0) { // but if it is recursive, additionally constrain the template
-                      referencePair = output.get(templateEntry.getKey().getParentTemplateName());
-                      // TODO: figure out how to properly do that constraining
-                    }
-                    TemplateDataSource dataSource = matchElements( source, templateEntry.getValue() );
-                    output.putMerge( dataSource, templateEntry.getKey() ); // and merge the results into output incrementally
-                  }));
-      });
-      
-      if (interactive) {
-        output.forEach( (templateName, translationPair) ->
-          translationPair.templateDataSource = getFeedback(translationPair.template, translationPair.templateDataSource) );
-      }
-      
-      return output;
-    } catch (JSONException e) {
-      throw new S2KParseException("Could not parse example inputs.", e);
-    }
+    // TODO: Implement this
+    throw new UnsupportedOperationException("Not implemented yet.");
+//    try {
+//      TranslationDescription output = new TranslationDescription();
+//      
+//      examples.forEach( example -> {// each example is handled separately at first
+//        JSONObject source = new JSONObject(example.input);
+//        templates.stream()
+//            .map( template -> template.matchToTarget(example.output, templates) ) // individually match each template (and its recursive sub-templates) to the target code
+//            .reduce( MatchRegistrar::merge ) // merge all instances of all templates into a single MatchRegistrar
+//            .ifPresent( matchRegistrar -> 
+//              matchRegistrar.instantiationOrder()
+//                  .forEach( pair -> {// then look up each template individually, regardless of recursive level
+//                    TranslationDescription.TranslationPair referencePair = null;
+//                    if (pair.templateMatch.getParentReference().isPresent()) { // but if it is recursive, additionally constrain the template
+//                      // TODO: figure out how to properly do that constraining
+//                    }
+////                    TemplateDataSource dataSource = matchElements( source, pair.templateMatch );
+////                    output.putMerge( dataSource, pair.template ); // and merge the results into output incrementally
+//                  }));
+//      });
+//      
+//      if (interactive) {
+//        output.forEach( (templateName, translationPair) ->
+//          translationPair.templateDataSource = getFeedback(translationPair.template, translationPair.templateDataSource) );
+//      }
+//      
+//      return output;
+//    } catch (JSONException e) {
+//      throw new S2KParseException("Could not parse example inputs.", e);
+//    }
   }
   
   private static TemplateDataSource getFeedback(Template template, TemplateDataSource dataSource) {

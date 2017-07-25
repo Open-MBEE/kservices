@@ -9,6 +9,12 @@ import java.util.stream.Stream;
 
 @SuppressWarnings("serial")
 public class Registrar<K,V> extends LinkedHashMap<K,Collection<V>> {
+  public static <K,V> Registrar<K,V> fromMap(Map<K,Collection<V>> map) {
+    Registrar<K,V> output = new Registrar<K,V>();
+    map.forEach( output::registerAll );
+    return output;
+  }
+  
   public Registrar<K,V> merge(Registrar<K,V> other) {
     Registrar<K,V> output = new Registrar<K,V>();
     this .forEach( output::registerAll );

@@ -13,7 +13,7 @@
       },
       "_type": "Template",
       "name": "Nullary Function",
-      "instantiationPriority": 100,
+      "recursiveIndent": "  ",
       "fields": [
         {
           "isRecursive": false,
@@ -58,15 +58,25 @@
       },
       "_type": "Template",
       "name": "Requirement",
-      "instantiationPriority": 100,
-      "fields": [{
-        "isRecursive": false,
-        "_type": "Field",
-        "name": "expr",
-        "isTrigger": false,
-        "isLong": true,
-        "isNecessary": true
-      }]
+      "recursiveIndent": "  ",
+      "fields": [
+        {
+          "isRecursive": false,
+          "_type": "Field",
+          "name": "main",
+          "isTrigger": true,
+          "isLong": false,
+          "isNecessary": true
+        },
+        {
+          "isRecursive": false,
+          "_type": "Field",
+          "name": "expr",
+          "isTrigger": false,
+          "isLong": true,
+          "isNecessary": true
+        }
+      ]
     },
     "_type": "TranslationPair",
     "templateDataSource": {
@@ -79,7 +89,7 @@
   "Set_Variable": {
     "template": {
       "regex": "\\Qvar\\E\\s+\\Q\\E(?<name>\\w+)\\Q\\E\\s+\\Q:\\E\\s+\\Q\\E(?<type>\\w+)\\Q\\E",
-      "stringForm": "var %!name$s : Set[%type$s]\n-- req %nameDup$s.size() = %size$s",
+      "stringForm": "var %!name$s : Set[%type$s]\n-- req %name$s.size() >= %minSize$s && %name$s.size() <= %maxSize$s",
       "triggerField": {
         "isRecursive": false,
         "_type": "Field",
@@ -90,20 +100,12 @@
       },
       "_type": "Template",
       "name": "Set Variable",
-      "instantiationPriority": 100,
+      "recursiveIndent": "  ",
       "fields": [
         {
           "isRecursive": false,
           "_type": "Field",
           "name": "name",
-          "isTrigger": true,
-          "isLong": false,
-          "isNecessary": true
-        },
-        {
-          "isRecursive": false,
-          "_type": "Field",
-          "name": "nameDup",
           "isTrigger": true,
           "isLong": false,
           "isNecessary": true
@@ -119,7 +121,15 @@
         {
           "isRecursive": false,
           "_type": "Field",
-          "name": "size",
+          "name": "minSize",
+          "isTrigger": false,
+          "isLong": false,
+          "isNecessary": true
+        },
+        {
+          "isRecursive": false,
+          "_type": "Field",
+          "name": "maxSize",
           "isTrigger": false,
           "isLong": false,
           "isNecessary": true
@@ -129,10 +139,10 @@
     "_type": "TranslationPair",
     "templateDataSource": {
       "_type": "TemplateDataSource",
-      "name": ".DEBUG$.elements[*][?(.type=\"Property\"),?(.type=\"Port\")].name",
-      "nameDup": "^.name",
-      "type": "[LIB:,$].elements[*]?(.id=^.typeId).name",
-      "size": "^.lowerValue.value",
+      "name": "$.elements[*][?(.type=\"Property\"),?(.type=\"Port\")].name",
+      "type": "$[^.defaultValue.type,[LIB:,$].elements[*]?(.id=^[.typeId,.defaultValue.typeId]).name]",
+      "minSize": "^.lowerValue.value",
+      "maxSize": "^.upperValue.value",
       "PARENT_REFERENCE": "$.elements[*]?(.id=^.ownerId).name"
     }
   },
@@ -150,7 +160,7 @@
       },
       "_type": "Template",
       "name": "Variable",
-      "instantiationPriority": 100,
+      "recursiveIndent": "  ",
       "fields": [
         {
           "isRecursive": false,
@@ -174,14 +184,14 @@
     "templateDataSource": {
       "_type": "TemplateDataSource",
       "name": "$.elements[*][?(.type=\"Property\"),?(.type=\"Port\")].name",
-      "type": "[LIB:,$].elements[*]?(.id=^.typeId).name",
+      "type": "$[^.defaultValue.type,[LIB:,$].elements[*]?(.id=^[.typeId,.defaultValue.typeId]).name]",
       "PARENT_REFERENCE": "$.elements[*]?(.id=^.ownerId).name"
     }
   },
   "Generalized Class": {
     "template": {
       "regex": "\\Qclass\\E\\s+\\Q\\E(?<name>\\w+)\\Q\\E\\s+\\Qextends\\E\\s+\\Q\\E(?<superClass>\\w+)\\Q\\E\\s+\\Q{\n\\E(?<content>.*?)\\Q\n}\\E",
-      "stringForm": "class %!name$s extends %superClass$s {\n%@content$s\n}",
+      "stringForm": "class %!name$s extends %superClass$s {\n  %@content$s\n}",
       "triggerField": {
         "isRecursive": false,
         "_type": "Field",
@@ -192,97 +202,7 @@
       },
       "_type": "Template",
       "name": "Generalized Class",
-      "instantiationPriority": 0,
-      "fields": [
-        {
-          "isRecursive": false,
-          "_type": "Field",
-          "name": "name",
-          "isTrigger": true,
-          "isLong": false,
-          "isNecessary": true
-        },
-        {
-          "isRecursive": false,
-          "_type": "Field",
-          "name": "superClass",
-          "isTrigger": false,
-          "isLong": false,
-          "isNecessary": true
-        },
-        {
-          "isRecursive": true,
-          "_type": "Field",
-          "name": "content",
-          "isTrigger": false,
-          "isLong": true,
-          "isNecessary": false
-        }
-      ]
-    },
-    "_type": "TranslationPair",
-    "templateDataSource": {
-      "superClass": "$.elements[*]?(.type=\"Class\")?(.id=$.elements[*]?(.type=\"Generalization\")?(.specificId=^.id).generalId).name",
-      "_type": "TemplateDataSource",
-      "name": "$.elements[*][?(.type=\"Class\"),?(.type=\"Diagram\")]?(!?(.ownerId=$.elements[*]?(.type=\"Class\").id)).name"
-    }
-  },
-  "_type": "TranslationDescription",
-  "Class": {
-    "template": {
-      "regex": "\\Qclass\\E\\s+\\Q\\E(?<name>\\w+)\\Q\\E\\s+\\Q{\n\\E(?<content>.*?)\\Q\n}\\E",
-      "stringForm": "class %!name$s {\n%@content$s\n}",
-      "triggerField": {
-        "isRecursive": false,
-        "_type": "Field",
-        "name": "name",
-        "isTrigger": true,
-        "isLong": false,
-        "isNecessary": true
-      },
-      "_type": "Template",
-      "name": "Class",
-      "instantiationPriority": 0,
-      "fields": [
-        {
-          "isRecursive": false,
-          "_type": "Field",
-          "name": "name",
-          "isTrigger": true,
-          "isLong": false,
-          "isNecessary": true
-        },
-        {
-          "isRecursive": true,
-          "_type": "Field",
-          "name": "content",
-          "isTrigger": false,
-          "isLong": true,
-          "isNecessary": false
-        }
-      ]
-    },
-    "_type": "TranslationPair",
-    "templateDataSource": {
-      "_type": "TemplateDataSource",
-      "name": "$.elements[*]?(.type=\"Class\")?(!.generalizationIds[*])?(!?(.ownerId=$.elements[*]?(.type=\"Class\").id)).name"
-    }
-  },
-  "Generalized Inner Class": {
-    "template": {
-      "regex": "\\Qclass\\E\\s+\\Q\\E(?<name>\\w+)\\Q\\E\\s+\\Qextends\\E\\s+\\Q\\E(?<superClass>\\w+)\\Q\\E\\s+\\Q{\n\\E(?<content>.*?)\\Q\n}\\E",
-      "stringForm": "\nclass %!name$s extends %superClass$s {\n%@content$s\n}\n",
-      "triggerField": {
-        "isRecursive": false,
-        "_type": "Field",
-        "name": "name",
-        "isTrigger": true,
-        "isLong": false,
-        "isNecessary": true
-      },
-      "_type": "Template",
-      "name": "Generalized Inner Class",
-      "instantiationPriority": 50,
+      "recursiveIndent": "  ",
       "fields": [
         {
           "isRecursive": false,
@@ -318,10 +238,11 @@
       "PARENT_REFERENCE": "$.elements[*]?(.id=^.ownerId).name"
     }
   },
-  "Inner Class": {
+  "_type": "TranslationDescription",
+  "Class": {
     "template": {
       "regex": "\\Qclass\\E\\s+\\Q\\E(?<name>\\w+)\\Q\\E\\s+\\Q{\n\\E(?<content>.*?)\\Q\n}\\E",
-      "stringForm": "\nclass %!name$s {\n%@content$s\n}\n",
+      "stringForm": "class %!name$s {\n  %@content$s\n}",
       "triggerField": {
         "isRecursive": false,
         "_type": "Field",
@@ -331,8 +252,8 @@
         "isNecessary": true
       },
       "_type": "Template",
-      "name": "Inner Class",
-      "instantiationPriority": 50,
+      "name": "Class",
+      "recursiveIndent": "  ",
       "fields": [
         {
           "isRecursive": false,
@@ -355,7 +276,7 @@
     "_type": "TranslationPair",
     "templateDataSource": {
       "_type": "TemplateDataSource",
-      "name": "$.elements[*]?(.type=\"Class\")?(!.generalizationIds[*]).name",
+      "name": "$.elements[*][?(.type=\"Class\"),?(.type=\"Package\")]?(!.generalizationIds[*]).name",
       "PARENT_REFERENCE": "$.elements[*]?(.id=^.ownerId).name"
     }
   }

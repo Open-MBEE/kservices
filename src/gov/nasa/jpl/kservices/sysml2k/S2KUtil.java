@@ -112,24 +112,14 @@ public class S2KUtil {
    * @return new name, transformed as necessary to make a legal identifier
    */
   protected static String ksanitize(String name) {
-    String output = "";
-    for (Character c : name.toCharArray()) {
-      if (allowedNameChars.contains(c)) {
-        output += c;
-      } else {
-        output += "_";
-      }
-    }
-    if (protectedKeywords.contains(output)) {
-      output = "__" + output;
-    }
-    return output;
+    String output = cleanChars(name);
+    return ( protectedKeywords.contains(output) ? output : "__" + output );
   }
 
   /**
    * Attempts to replace given identifier with native K construct.
    * @param name The original identifier
-   * @return The closest K keyword, if available, or else the original name.
+   * @return The closest K keyword, if available, or else the original name, using legal k characters.
    */
   protected static String knative(String name) {
     // first, check for the most precise translation available:
@@ -146,7 +136,20 @@ public class S2KUtil {
     }
     
     // else, we have no "close" matches:
-    return name;
+    return cleanChars(name);
+  }
+  
+  /// Private helpers
+  private static String cleanChars(String name) {
+    String output = "";
+    for (Character c : name.toCharArray()) {
+      if (allowedNameChars.contains(c)) {
+        output += c;
+      } else {
+        output += "_";
+      }
+    }
+    return output;
   }
 }
 
