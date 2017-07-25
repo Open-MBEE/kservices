@@ -108,6 +108,8 @@ import gov.nasa.jpl.mbee.util.Debug;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 // import gov.nasa.jpl.kservices.scala.AeKUtil;
 
@@ -205,7 +207,7 @@ public class KtoJava {
     Set< EntityDecl > allClasses;
     Set< String > allClassNames;
     Set< String > instantiatedClassNames;
-    Map<String, Set<String>> classToParentNames;
+    Map< String, Set< String > > classToParentNames;
 
     public KtoJava( String k, String pkgName, boolean translate ) {
         this.globalName = "Global";
@@ -219,48 +221,48 @@ public class KtoJava {
         this.expressionCounter = 0;
         this.expressionTranslator =
                 new JavaToConstraintExpression( packageName );
-        System.out.println(  );
+        System.out.println();
 
         this.model = Frontend.getModelFromString( this.k );
-        System.out.println(  );
+        System.out.println();
         try {
-            typeChecker = new TypeChecker( this.model ); 
+            typeChecker = new TypeChecker( this.model );
             this.allClasses =
                     new HashSet< EntityDecl >( JavaConversions.asJavaCollection( Frontend.getEntitiesFromModel( this.model ) ) );
             this.allClassNames = new TreeSet< String >();
-            this.classToParentNames = new TreeMap<String, Set<String>>();
+            this.classToParentNames = new TreeMap< String, Set< String > >();
             for ( EntityDecl e : allClasses ) {
                 this.allClassNames.add( e.ident() );
-                this.classToParentNames.put( e.ident(), new TreeSet<String>(JavaConversions.asJavaCollection(e.getExtendingNames()) ));
-                
+                this.classToParentNames.put( e.ident(),
+                                             new TreeSet< String >( JavaConversions.asJavaCollection( e.getExtendingNames() ) ) );
+
             }
-            for (String e: allClassNames) {
-                getAllSuperClassNames(e);
+            for ( String e : allClassNames ) {
+                getAllSuperClassNames( e );
             }
-            
+
             this.instantiatedClassNames = new TreeSet< String >();
             buildParamTable( getClassData().getParamTable() );
             buildMethodTable( getClassData().getMethodTable() );
             if ( translate ) {
                 translateClasses();
             }
-        } catch (Throwable e) {
-            System.err.println( "Input did not Type Check " + e ); //don't continue
-            
+        } catch ( Throwable e ) {
+            System.err.println( "Input did not Type Check " + e ); // don't
+                                                                   // continue
+
         }
-        
-        
+
     }
 
     public KtoJava( String k, String pkgName ) {
         this( k, pkgName, true );
     }
-    
-    
-    public void getAllSuperClassNames(String entityName) {
-        Set<String> extendingList = classToParentNames.get( entityName );
-        for (String e : extendingList) {
-            getAllSuperClassNames(e);
+
+    public void getAllSuperClassNames( String entityName ) {
+        Set< String > extendingList = classToParentNames.get( entityName );
+        for ( String e : extendingList ) {
+            getAllSuperClassNames( e );
             extendingList.addAll( classToParentNames.get( e ) );
         }
     }
@@ -272,7 +274,7 @@ public class KtoJava {
         ClassData.Param param;
         addGlobalParams( paramTable );
 
-        for ( EntityDecl entity : this.allClasses ) { //pass 1
+        for ( EntityDecl entity : this.allClasses ) { // pass 1
             String entityName = getClassName( entity );
             params = new TreeMap< String, ClassData.Param >();
             ArrayList< PropertyDecl > propertyList =
@@ -300,21 +302,20 @@ public class KtoJava {
 
             }
             paramTable.put( entityName, params );
-            
 
         }
-        for ( EntityDecl entity : this.allClasses ) { //pass 2
+        for ( EntityDecl entity : this.allClasses ) { // pass 2
             String entityName = getClassName( entity );
             params = paramTable.get( entityName );
-            Set<String> extendingList = classToParentNames.get( entity.ident() );
-            for (String e : extendingList) {
-                Map< String, ClassData.Param > otherParams = paramTable.get( getClassName(e) );
-                params.putAll( otherParams);
+            Set< String > extendingList =
+                    classToParentNames.get( entity.ident() );
+            for ( String e : extendingList ) {
+                Map< String, ClassData.Param > otherParams =
+                        paramTable.get( getClassName( e ) );
+                params.putAll( otherParams );
             }
 
-
         }
-        
 
     }
 
@@ -427,8 +428,11 @@ public class KtoJava {
 
     public MethodDeclaration makeMethodDecl( FunDecl funDecl ) {
         MethodDeclaration methodDecl = new MethodDeclaration();
-        String typeString = JavaToConstraintExpression.typeToClass( funDecl.ty().get().toString() );
-        methodDecl.setType( new ClassOrInterfaceType("Expression<" + typeString + ">") );
+        String typeString =
+                JavaToConstraintExpression.typeToClass( funDecl.ty().get()
+                                                               .toString() );
+        methodDecl.setType( new ClassOrInterfaceType( "Expression<" + typeString
+                                                      + ">" ) );
         methodDecl.setModifiers( 1 );
         methodDecl.setName( funDecl.ident() );
         List< Param > funParams =
@@ -470,10 +474,10 @@ public class KtoJava {
         return type;
 
     }
-    
-    
-    public Boolean isPrimitive(String typeString) {
-        return typeString.equals( "Int") || typeString.equals( "Bool" ) || typeString.equals( "Real" ) || typeString.equals("String");
+
+    public Boolean isPrimitive( String typeString ) {
+        return typeString.equals( "Int" ) || typeString.equals( "Bool" )
+               || typeString.equals( "Real" ) || typeString.equals( "String" );
     }
 
     public ClassData.Param makeParam( PropertyDecl p, EntityDecl e ) {
@@ -481,12 +485,12 @@ public class KtoJava {
         String typeOld =
                 JavaToConstraintExpression.typeToClass( p.ty().toString() );
         String type = typeOld;
-        if (e != null) {
+        if ( e != null ) {
             type = globalName + "." + type;
         }
         if ( ( typeOld.equals( "Boolean" ) || typeOld.equals( "Double" )
-                || typeOld.equals( "Integer" ) || typeOld.equals( "Long" )
-                || typeOld.equals( "String" ) ) ) {
+               || typeOld.equals( "Integer" ) || typeOld.equals( "Long" )
+               || typeOld.equals( "String" ) ) ) {
             type = typeOld;
         }
         String value;
@@ -496,43 +500,44 @@ public class KtoJava {
                     || typeOld.equals( "Integer" ) || typeOld.equals( "Long" )
                     || typeOld.equals( "String" ) ) ) {
                 value = "new " + type + "()";
-            } 
+            }
         } else {
             value = p.expr().get().toJavaString();
         }
         return new ClassData.Param( name, type, value );
     }
-        
-        public ClassData.Param makeParam( PropertyDecl p, EntityDecl e, Boolean nullValue) {
-            if (!nullValue) {
-                return makeParam(p, e);
-            }
-        
-            String name = p.name();
-            String typeOld =
-                    JavaToConstraintExpression.typeToClass( p.ty().toString() );
-            String type = typeOld;
-            if (e != null) {
-                type = globalName + "." + type;
-            }
-            if ( ( typeOld.equals( "Boolean" ) || typeOld.equals( "Double" )
+
+    public ClassData.Param makeParam( PropertyDecl p, EntityDecl e,
+                                      Boolean nullValue ) {
+        if ( !nullValue ) {
+            return makeParam( p, e );
+        }
+
+        String name = p.name();
+        String typeOld =
+                JavaToConstraintExpression.typeToClass( p.ty().toString() );
+        String type = typeOld;
+        if ( e != null ) {
+            type = globalName + "." + type;
+        }
+        if ( ( typeOld.equals( "Boolean" ) || typeOld.equals( "Double" )
+               || typeOld.equals( "Integer" ) || typeOld.equals( "Long" )
+               || typeOld.equals( "String" ) ) ) {
+            type = typeOld;
+        }
+        String value;
+        if ( p.expr().isEmpty() ) {
+            value = "null";
+            if ( !( typeOld.equals( "Boolean" ) || typeOld.equals( "Double" )
                     || typeOld.equals( "Integer" ) || typeOld.equals( "Long" )
                     || typeOld.equals( "String" ) ) ) {
-                type = typeOld;
+                value = "new " + type + "()";
             }
-            String value;
-            if ( p.expr().isEmpty() ) {
-                value = "null";
-                if ( !( typeOld.equals( "Boolean" ) || typeOld.equals( "Double" )
-                        || typeOld.equals( "Integer" ) || typeOld.equals( "Long" )
-                        || typeOld.equals( "String" ) ) ) {
-                    value = "new " + type + "()";
-                } 
-            } else {
-                value = "null";
-               
-            }
-            return new ClassData.Param( name, type, value );
+        } else {
+            value = "null";
+
+        }
+        return new ClassData.Param( name, type, value );
 
     }
 
@@ -664,8 +669,7 @@ public class KtoJava {
         }
         return className;
     }
-    
-    
+
     public String getClassName( String entityName ) {
         String className = globalName;
         if ( entityName != null ) {
@@ -673,7 +677,6 @@ public class KtoJava {
         }
         return className;
     }
-
 
     public ClassOrInterfaceDeclaration
            processClassDeclaration( EntityDecl entity,
@@ -737,8 +740,7 @@ public class KtoJava {
                                                                   typeString,
                                                                   true, true,
                                                                   true, false );
-                        addStatements( body, "return " + aeString
-                                             + ";" );
+                        addStatements( body, "return " + aeString + ";" );
 
                         methodDecl.setBody( body );
                     }
@@ -883,9 +885,6 @@ public class KtoJava {
 
     }
 
-
-
-
     public ArrayList< FieldDeclaration >
            getParameters( EntityDecl entity, MethodDeclaration initMembers ) {
         ArrayList< FieldDeclaration > parameters =
@@ -910,7 +909,7 @@ public class KtoJava {
             propertyList =
                     new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDecls() ) );
         }
-        
+
         for ( PropertyDecl property : propertyList ) {
             ClassData.Param p = makeParam( property, entity, true );
             f = createParameterField( p, initMembers );
@@ -919,8 +918,6 @@ public class KtoJava {
             }
 
         }
-
-        
 
         return parameters;
     }
@@ -936,10 +933,11 @@ public class KtoJava {
             for ( ExpressionDecl expressionDecl : expressionList ) {
                 Exp exp = expressionDecl.exp();
                 String name = new String( "expression" + expressionCounter++ );
-//                String type =
-//                        JavaToConstraintExpression.typeToClass( TypeChecker.exp2Type()
-//                                                                           .get( exp )
-//                                                                           .toString() );
+                // String type =
+                // JavaToConstraintExpression.typeToClass(
+                // TypeChecker.exp2Type()
+                // .get( exp )
+                // .toString() );
                 String type = "Object";
                 ClassData.Param p =
                         new ClassData.Param( name, type, exp.toJavaString() );
@@ -961,11 +959,12 @@ public class KtoJava {
         FieldDeclaration f;
         String expression;
         ArrayList< ConstraintDecl > constraintList;
-        ArrayList<PropertyDecl> propertyList;
+        ArrayList< PropertyDecl > propertyList;
         if ( entity == null ) {
             constraintList =
                     new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelConstraints( this.model ) ) );
-            propertyList = new ArrayList<PropertyDecl> (JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model ) ));
+            propertyList =
+                    new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model ) ) );
         } else {
             constraintList =
                     new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( entity.getConstraintDecls() ) );
@@ -984,13 +983,16 @@ public class KtoJava {
             }
 
         }
-        
-        
-        
+
         for ( PropertyDecl property : propertyList ) {
-            
-            if (!property.expr().isEmpty() && isPrimitive(property.ty().toString())) {
-                f = createConstraintField( null, property.name() + " == " + property.expr().get().toJavaString(), initMembers );
+
+            if ( !property.expr().isEmpty()
+                 && isPrimitive( property.ty().toString() ) ) {
+                f = createConstraintField( null,
+                                           property.name() + " == "
+                                                 + property.expr().get()
+                                                           .toJavaString(),
+                                           initMembers );
                 if ( f != null ) {
                     constraints.add( f );
                 }
@@ -1581,82 +1583,222 @@ public class KtoJava {
         return fileArr;
     }
 
+    public static JSONObject propertyToJSON( PropertyDecl p ) {
+        JSONObject property = new JSONObject();
+        property.put( "name", p.name() );
+        property.put( "type", p.ty().toString() );
+        property.put( "children", new JSONArray() );
+
+        return property;
+    }
+
+    public static JSONObject functionToJSON( FunDecl f ) {
+        JSONObject property = new JSONObject();
+        property.put( "name", f.ident() );
+        property.put( "type", "function" );
+        property.put( "children", new JSONArray() );
+
+        return property;
+    }
+
+    public static JSONObject entityToJSON( EntityDecl e ) {
+        JSONObject entity = new JSONObject();
+        entity.put( "name", e.ident() );
+        entity.put( "type", "class" );
+        JSONArray children = new JSONArray();
+        List< PropertyDecl > properties =
+                new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( e.getPropertyDecls() ) );
+        for ( PropertyDecl p : properties ) {
+            children.put( propertyToJSON( p ) );
+        }
+        List< FunDecl > functions =
+                new ArrayList< FunDecl >( JavaConversions.asJavaCollection( e.getFunDecls() ) );
+        for ( FunDecl f : functions ) {
+            children.put( functionToJSON( f ) );
+        }
+
+        List< ConstraintDecl > constraints =
+                new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( e.getConstraintDecls() ) );
+        for ( ConstraintDecl c : constraints ) {
+            JSONObject constraint = constraintToJSON( c );
+            if ( constraint != null ) {
+                children.put( constraint );
+            }
+        }
+        entity.put( "children", children );
+
+        return entity;
+    }
+
+    public static JSONObject constraintToJSON( ConstraintDecl c ) {
+        if ( c.name().isEmpty() ) {
+            return null;
+        }
+        JSONObject constraint = new JSONObject();
+        constraint.put( "name", c.name().get() );
+        constraint.put( "type", "req" );
+        constraint.put( "children", new JSONArray() );
+        return constraint;
+    }
+
+    public static String kToContainmentTree( String k ) {
+        Model m = Frontend.getModelFromString( k );
+        JSONObject tree = new JSONObject();
+        JSONArray topDecls = new JSONArray();
+        List< EntityDecl > entities =
+                new ArrayList< EntityDecl >( JavaConversions.asJavaCollection( Frontend.getEntitiesFromModel( m ) ) );
+        List< PropertyDecl > properties =
+                new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( m ) ) );
+        List< FunDecl > functions =
+                new ArrayList< FunDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelFunctions( m ) ) );
+        List< ConstraintDecl > constraints =
+                new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelConstraints( m ) ) );
+
+        for ( EntityDecl e : entities ) {
+            JSONObject entity = entityToJSON( e );
+            topDecls.put( entity );
+        }
+        for ( FunDecl e : functions ) {
+            JSONObject function = functionToJSON( e );
+            topDecls.put( function );
+        }
+
+        for ( ConstraintDecl c : constraints ) {
+            JSONObject constraint = constraintToJSON( c );
+            if ( constraint != null ) {
+                topDecls.put( constraint );
+            }
+        }
+
+        for ( PropertyDecl p : properties ) {
+            JSONObject property = propertyToJSON( p );
+            topDecls.put( property );
+        }
+
+        tree.put( "tree", topDecls );
+        return tree.toString();
+    }
+
+    
+
     public static void main( String[] args ) {
-        // ParameterListenerImpl p = new ParameterListenerImpl( "hi" );
-        // IntegerParameter i = new IntegerParameter( "i", p );
-        // p.getParameters().add( i );
-        // p.getConstraintExpressions()
-        // .add( new ConstraintExpression( new Functions.Less( new
-        // gov.nasa.jpl.ae.event.Expression( i ),
-        // new gov.nasa.jpl.ae.event.Expression( 5 ) ) ) );
-        // p.satisfy( true, null );
-        // System.out.println( "i = " + i.getValue() );
+
         PrintStream oldOut = System.out;
         PrintStream oldErr = System.err;
         ByteArrayOutputStream baosOut = new ByteArrayOutputStream();
         ByteArrayOutputStream baosErr = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(baosOut));
-        System.setErr(new PrintStream(baosErr));
+         System.setOut(new PrintStream(baosOut));
+         System.setErr(new PrintStream(baosErr));
+
+        Boolean containmentTree = false;
+        Boolean errorInfo = false;
+        Boolean translate = false;
 
         String kToExecute = "";
         Boolean areFiles = args.length > 0;
         for ( String arg : args ) {
-        		if ( !FileUtils.exists(arg) ) {
-        			areFiles = false;
-        			break;
-        		}
+            if ( !arg.contains( "--" ) && !FileUtils.exists( arg ) ) {
+                areFiles = false;
+                break;
+            }
         }
         if ( areFiles ) {
-	        for ( String arg : args ) {
-	        		String k;
-				try {
-					k = FileUtils.fileToString(arg);
-		            kToExecute += k + "\n";
-				} catch (FileNotFoundException e) {
-					e.printStackTrace();
-				}
-	        }
-        } else {
-	        for ( String arg : args ) {
-	            kToExecute += arg + " ";
-	        }
-        }
+            for ( String arg : args ) {
+                if ( !arg.contains( "--" ) ) {
 
-        KtoJava kToJava = new KtoJava( kToExecute, "generatedCode" );
-
-        kToJava.writeFiles( kToJava, "/Users/ayelaman/git/kservices" );
-        System.out.flush();
-        System.setOut(oldOut);
-        System.setErr( oldErr );
-        
-        String syntaxErrors = String.join( ",", syntaxErrors(baosErr));
-        Boolean typeCheckCompleted = !baosErr.toString().contains( "Type Check" );
-        StringBuffer sb = new StringBuffer();
-        if (!syntaxErrors.isEmpty()) {
-            sb.append( "Syntax Errors: " + syntaxErrors + "\n" );
-        }
-        if (!typeCheckCompleted) {
-            sb.append( "Input k did not type check" );
+                    String k;
+                    try {
+                        k = FileUtils.fileToString( arg );
+                        kToExecute += k + "\n";
+                    } catch ( FileNotFoundException e ) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    if ( arg.contains( "tree" ) ) {
+                        containmentTree = true;
+                        
+                    }
+                    if ( arg.contains( "solve" ) ) {
+                        errorInfo = true;
+                        translate = true;
+                    }
+                    if ( arg.contains( "error" ) ) {
+                        errorInfo = true;
+                    }
+                }
+            }
         } else {
-            sb.append( "Completed Java generation\n" );
+            System.out.println( args.length );
+            for ( String arg : args ) {
+                if (!arg.contains( "--" )) {
+                    kToExecute += arg + " ";
+
+                }else {
+                    if ( arg.contains( "tree" ) ) {
+                        containmentTree = true;
+                        
+                    }
+                    if ( arg.contains( "solve" ) ) {
+                        errorInfo = true;
+                        translate = true;
+                    }
+                    if ( arg.contains( "error" ) ) {
+                        errorInfo = true;
+                    }
+                }
+            }
         }
         
-        System.out.println( sb.toString() );
+        if (!containmentTree && !errorInfo) {
+            translate = true;
+            errorInfo = true;
+        }
         
+        
+        if (containmentTree) {
+            System.out.flush();
+            System.setOut(oldOut);
+            System.setErr( oldErr );
+            System.out.println( kToContainmentTree( kToExecute ) );
+
+        } 
+        if (errorInfo) {
+            KtoJava kToJava = new KtoJava( kToExecute, "generatedCode" , translate);
+            String syntaxErrors = String.join( ",", syntaxErrors(baosErr));
+            Boolean typeCheckCompleted = !baosErr.toString().contains( "Type Check" );
+            StringBuffer sb = new StringBuffer();
+            sb.append( "Syntax Errors: " + (syntaxErrors.isEmpty() ? "None" : syntaxErrors) + "\n" );
+            if (!typeCheckCompleted) {
+                sb.append( "Input k did not type check" );
+            }
+            System.out.flush();
+            System.setOut(oldOut);
+            System.setErr( oldErr );
+            System.out.println( sb );
+            if (translate) {
+                kToJava.writeFiles( kToJava, "/Users/ayelaman/git/kservices" );
+
+            }
+
+        }
+        
+        
+        
+
 
     }
-    
-    public static List<String> syntaxErrors(ByteArrayOutputStream baos) {
+
+    public static List< String > syntaxErrors( ByteArrayOutputStream baos ) {
         String baosString = baos.toString();
-        List<String> errors = new ArrayList<String>();
+        List< String > errors = new ArrayList< String >();
         Pattern errorPattern = Pattern.compile( "[0-9]+:[0-9]+" );
-        Matcher m = errorPattern.matcher(baosString);
-        while (m.find()) {
+        Matcher m = errorPattern.matcher( baosString );
+        while ( m.find() ) {
             errors.add( m.group( 0 ) );
         }
-        
+
         return errors;
-        
+
     }
 
 }
