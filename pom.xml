@@ -101,7 +101,7 @@
 					<type>jar</type>
 					<systemPath>${project.basedir}/../sysml/target/sysml-2.3.4-SNAPSHOT.jar</systemPath> -->
 				</dependency>
-				<dependency>
+			    <dependency>
 					<groupId>gov.nasa.jpl.mbee.bae</groupId>
 					<artifactId>bae</artifactId>
 					<version>${mbee.version}</version>

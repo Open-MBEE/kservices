@@ -25,7 +25,7 @@ class Template {
   private static final String NECESS_FLAG  = "&";
   private static final String LONG_FLAG    = "+";
   private static final String NOT_ESCAPED = "(?<!\\\\)(?:\\\\{2})*"; // not preceded by an odd number of slashes. Stolen from maksymiuk (https://stackoverflow.com/questions/6525556/regular-expression-to-match-escaped-characters-quotes)
-  private static final Function<String, String> matchFieldRegex = name -> "(?<indent>(?<=\n)[ \t]*)?" + NOT_ESCAPED + "%(?<flags>\\W*?)" + name + "\\$(?<mods>[\\w\\-#+0,(]+)"; //Non-escaped %, name expression, $, assumed valid Java format codes
+  private static final Function<String, String> matchFieldRegex = name -> "(?<=(?<indent>(?<=\n)[ \t]*)?)" + NOT_ESCAPED + "%(?<flags>\\W*?)" + name + "\\$(?<mods>[\\w\\-#+0,(]+)"; //Non-escaped %, name expression, $, assumed valid Java format codes
   private static final Pattern GENERAL_FIELD_PATTERN = Pattern.compile( matchFieldRegex.apply("(?<name>\\w+)") );
   
   private String name;

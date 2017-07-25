@@ -120,7 +120,11 @@ public class KToAe {
     private JavaToConstraintExpression expressionTranslator;
     private ClassData classData;
 
+    public KToAe() {
+    }
+
     public KToAe(String k) {
+        this.k = k;
     }
 
     

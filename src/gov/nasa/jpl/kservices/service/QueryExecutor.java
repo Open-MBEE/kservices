@@ -1,20 +1,25 @@
 package gov.nasa.jpl.kservices.service;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.RandomAccessFile;
 import java.io.StringWriter;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Set;
 
+import generatedCode.Main;
+//import generatedCode.Main;
 import gov.nasa.jpl.ae.event.Expression;
 import gov.nasa.jpl.kservices.KToAe;
-import gov.nasa.jpl.kservices.sysml2k.S2KParseException;
-import gov.nasa.jpl.kservices.sysml2k.S2KLearner;
+import gov.nasa.jpl.kservices.KtoJava;
 import gov.nasa.jpl.mbee.util.Pair;
 import k.frontend.Exp;
 import k.frontend.Annotation;
@@ -27,6 +32,7 @@ import k.frontend.TypeParam;
 import scala.Option;
 import scala.collection.immutable.List;
 import sysml.SystemModel;
+
 
 public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > implements sysml.ProblemSolver<String,String,String,String,String,String,String,String,String,String,String>{
 
@@ -69,7 +75,7 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
      * @return a Result object with evaluation result as as string and with any errors.
      */
     public Result<String> kQuery( String k ) {
-        KToAe k2ae = new KToAe( k  );
+        KToAe k2ae = new KToAe();
 
         Object expr = k2ae.astToAeExpr( k, null, true, true, true, true, null );
 
@@ -114,17 +120,9 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
      * @return
      */
     public Result<String> jsonQuery( String json ) {
-    	String k = Frontend.json2exp2( json );
+        String k = Frontend.json2exp2( json );
         Result<String> result = kQuery( k );
         return result;
-    }
-
-    public static void main( String[] args ) {
-  		try {
-  		  // TODO add code for testing
-  		} catch (Exception e) {
-  			e.printStackTrace();
-  		}
     }
 
     @Override
@@ -205,5 +203,138 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
         return false;
     }
 
+    protected static void f() {
+        try {
+            // Connect to the named pipe
+            RandomAccessFile pipe = new RandomAccessFile(
+                "input", "r"); // "r" or "w" or for bidirectional (Windows only) "rw"
+         
+            String req = "Request text";
+         
+            // Write request to the pipe
+            //pipe.write(req.getBytes());
+         
+            // Read response from pipe
+            String res = pipe.readLine();
+         
+            // Close the pipe
+            pipe.close();
+         
+            // do something with res
+         
+        } catch (Exception e) {
+            // do something
+        }
+    }
     
+    protected static void readInputFile() {
+        try{
+            InputStream fis=new FileInputStream("input");
+            BufferedReader br=new BufferedReader(new InputStreamReader(fis));
+
+            for (String line = br.readLine(); line != null; line = br.readLine()) {
+               System.out.println(line);
+            }
+
+            br.close();
+        }
+        catch(Exception e){
+            System.err.println("Error: Target File Cannot Be Read");
+        }
+    }
+    
+    public static void main( String[] args ) {
+        StringBuffer k = new StringBuffer();
+        
+        // Connect to the named pipe
+        RandomAccessFile pipe;
+        try {
+            pipe = new RandomAccessFile("input", "r");
+            while (true) {
+                // read input file
+                // Read response from pipe
+                String line = pipe.readLine();
+                if ( line == null ) {
+//                    try {
+//                        Thread.sleep( 1000 );
+//                    } catch ( InterruptedException e ) {
+//                        e.printStackTrace();
+//                    }
+                    continue;
+                }
+                try {
+                //readInputFile();
+                System.out.println(line);
+                
+                // execute command
+                if ( line.trim().startsWith( "add" ) ) {
+                    String kToAdd = line.trim().substring( 4 );
+                    k.append( "\n" + kToAdd );
+
+                    KtoJava kToJava = new KtoJava( k.toString(), "generatedCode" );
+                    kToJava.writeFiles( kToJava, "/Users/ayelaman/git/kservices" );
+                }
+                if ( line.trim().startsWith( "solve" ) ) {
+                    Main scenario = new Main();
+                    scenario.satisfy(true, null);
+                    System.out.println( ( scenario.isSatisfied( true, null ) ? "Satisfied"
+                                                                             : "Not Satisfied" )
+                                        + "\n" + scenario.executionToString() );
+                }
+                
+                // output result
+                } catch (Throwable e) {
+					e.printStackTrace();
+				}
+            }
+        } catch ( FileNotFoundException e ) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } // "r" or "w" or for bidirectional (Windows only) "rw"
+        catch ( IOException e ) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+    }
+    
+    public Result<String> P( String k ) {
+        KToAe k2ae = new KToAe();
+        Object expr = k2ae.astToAeExpr( k, null, true, true, true, true, null );
+
+        Object value = null;
+        ArrayList<String> errors = null;
+
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter writer = new PrintWriter(stringWriter);
+
+        String error = null;
+        try {
+            value = Expression.evaluateDeep( expr, null, true, false );
+        } catch ( ClassCastException e ) {
+            e.printStackTrace( writer );
+        } catch ( IllegalAccessException e ) {
+            e.printStackTrace( writer );
+        } catch ( InvocationTargetException e ) {
+            e.printStackTrace( writer );
+        } catch ( InstantiationException e ) {
+            e.printStackTrace( writer );
+        }
+        error = stringWriter.toString();
+        if (error != null && error.length() > 0) {
+            errors = new ArrayList<String>();
+            errors.add( error );
+        }
+        Result<String> result =
+                        new Result< String >( errors, "" + value, String.class );
+        try {
+            writer.close();
+            stringWriter.close();
+        } catch ( IOException e ) {
+            e.printStackTrace();
+        }
+        
+        return result;
+    }
+
 }
