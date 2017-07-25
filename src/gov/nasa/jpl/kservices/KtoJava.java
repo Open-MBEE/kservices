@@ -52,6 +52,8 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.tools.JavaCompiler;
 import javax.tools.JavaCompiler.CompilationTask;
@@ -222,31 +224,32 @@ public class KtoJava {
         this.model = Frontend.getModelFromString( this.k );
         System.out.println(  );
         try {
-            typeChecker = new TypeChecker( this.model );
+            typeChecker = new TypeChecker( this.model ); 
+            this.allClasses =
+                    new HashSet< EntityDecl >( JavaConversions.asJavaCollection( Frontend.getEntitiesFromModel( this.model ) ) );
+            this.allClassNames = new TreeSet< String >();
+            this.classToParentNames = new TreeMap<String, Set<String>>();
+            for ( EntityDecl e : allClasses ) {
+                this.allClassNames.add( e.ident() );
+                this.classToParentNames.put( e.ident(), new TreeSet<String>(JavaConversions.asJavaCollection(e.getExtendingNames()) ));
+                
+            }
+            for (String e: allClassNames) {
+                getAllSuperClassNames(e);
+            }
+            
+            this.instantiatedClassNames = new TreeSet< String >();
+            buildParamTable( getClassData().getParamTable() );
+            buildMethodTable( getClassData().getMethodTable() );
+            if ( translate ) {
+                translateClasses();
+            }
         } catch (Throwable e) {
-            System.err.println( "Input did not Type Check " + e );
-        }
-        System.out.println(  );
-        
-        this.allClasses =
-                new HashSet< EntityDecl >( JavaConversions.asJavaCollection( Frontend.getEntitiesFromModel( this.model ) ) );
-        this.allClassNames = new TreeSet< String >();
-        this.classToParentNames = new TreeMap<String, Set<String>>();
-        for ( EntityDecl e : allClasses ) {
-            this.allClassNames.add( e.ident() );
-            this.classToParentNames.put( e.ident(), new TreeSet<String>(JavaConversions.asJavaCollection(e.getExtendingNames()) ));
+            System.err.println( "Input did not Type Check " + e ); //don't continue
             
         }
-        for (String e: allClassNames) {
-            getAllSuperClassNames(e);
-        }
         
-        this.instantiatedClassNames = new TreeSet< String >();
-        buildParamTable( getClassData().getParamTable() );
-        buildMethodTable( getClassData().getMethodTable() );
-        if ( translate ) {
-            translateClasses();
-        }
+        
     }
 
     public KtoJava( String k, String pkgName ) {
@@ -498,6 +501,38 @@ public class KtoJava {
             value = p.expr().get().toJavaString();
         }
         return new ClassData.Param( name, type, value );
+    }
+        
+        public ClassData.Param makeParam( PropertyDecl p, EntityDecl e, Boolean nullValue) {
+            if (!nullValue) {
+                return makeParam(p, e);
+            }
+        
+            String name = p.name();
+            String typeOld =
+                    JavaToConstraintExpression.typeToClass( p.ty().toString() );
+            String type = typeOld;
+            if (e != null) {
+                type = globalName + "." + type;
+            }
+            if ( ( typeOld.equals( "Boolean" ) || typeOld.equals( "Double" )
+                    || typeOld.equals( "Integer" ) || typeOld.equals( "Long" )
+                    || typeOld.equals( "String" ) ) ) {
+                type = typeOld;
+            }
+            String value;
+            if ( p.expr().isEmpty() ) {
+                value = "null";
+                if ( !( typeOld.equals( "Boolean" ) || typeOld.equals( "Double" )
+                        || typeOld.equals( "Integer" ) || typeOld.equals( "Long" )
+                        || typeOld.equals( "String" ) ) ) {
+                    value = "new " + type + "()";
+                } 
+            } else {
+                value = "null";
+               
+            }
+            return new ClassData.Param( name, type, value );
 
     }
 
@@ -877,7 +912,7 @@ public class KtoJava {
         }
         
         for ( PropertyDecl property : propertyList ) {
-            ClassData.Param p = makeParam( property, entity );
+            ClassData.Param p = makeParam( property, entity, true );
             f = createParameterField( p, initMembers );
             if ( f != null ) {
                 parameters.add( f );
@@ -1371,8 +1406,9 @@ public class KtoJava {
 
         stmtsMain.append( "Main scenario = new Main();" );
         stmtsMain.append( "scenario.amTopEventToSimulate = true;" );
+        stmtsMain.append( "scenario.redirectStdOut = true;" );
         stmtsMain.append( "scenario.satisfy( true, null );" );
-        stmtsMain.append( "System.out.println((scenario.isSatisfied(true, null) ? \"Satisfied\" : \"Not Satisfied\") + \"\\n\" + scenario.executionString());" );
+        stmtsMain.append( "System.out.println(scenario.simpleString());" );
 
         List< Expression > args = new ArrayList< Expression >();
 
@@ -1593,9 +1629,34 @@ public class KtoJava {
         System.setOut(oldOut);
         System.setErr( oldErr );
         
-        System.out.println("Stdout\n" + baosOut.toString() + "\n");
-        System.err.println("Errors:\n" + baosErr.toString());
+        String syntaxErrors = String.join( ",", syntaxErrors(baosErr));
+        Boolean typeCheckCompleted = !baosErr.toString().contains( "Type Check" );
+        StringBuffer sb = new StringBuffer();
+        if (!syntaxErrors.isEmpty()) {
+            sb.append( "Syntax Errors: " + syntaxErrors + "\n" );
+        }
+        if (!typeCheckCompleted) {
+            sb.append( "Input k did not type check" );
+        } else {
+            sb.append( "Completed Java generation\n" );
+        }
+        
+        System.out.println( sb.toString() );
+        
 
+    }
+    
+    public static List<String> syntaxErrors(ByteArrayOutputStream baos) {
+        String baosString = baos.toString();
+        List<String> errors = new ArrayList<String>();
+        Pattern errorPattern = Pattern.compile( "[0-9]+:[0-9]+" );
+        Matcher m = errorPattern.matcher(baosString);
+        while (m.find()) {
+            errors.add( m.group( 0 ) );
+        }
+        
+        return errors;
+        
     }
 
 }
