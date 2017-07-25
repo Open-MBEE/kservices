@@ -8,11 +8,15 @@ else
     m2=${HOME}/.m2/repository
 fi
 
-solve=false
+solve=true
+
+cd ${HOME}/git/kservices
+
 
 for arg in "$@"; do
 	case "$arg" in
-    	"--solve") solve=true
+    	"--error") solve=false;;
+    	"--tree") solve=false;;
     esac
 done
    

@@ -21,7 +21,9 @@ import gov.nasa.jpl.ae.event.Dependency;
 import gov.nasa.jpl.ae.event.ElaborationRule;
 import gov.nasa.jpl.ae.event.EventInvocation;
 import gov.nasa.jpl.ae.event.DurativeEvent;
+import gov.nasa.jpl.ae.event.ParameterListenerImpl;
 import gov.nasa.jpl.ae.event.Event;
+import gov.nasa.jpl.ae.solver.ObjectDomain;
 import gov.nasa.jpl.mbee.util.Utils;
 import gov.nasa.jpl.mbee.util.Debug;
 import gov.nasa.jpl.mbee.util.ClassUtils;
@@ -37,17 +39,14 @@ public class Global extends DurativeEvent {
         initGlobalDependencies();
     }
 
-    public Expression<Double> merpAbs(double x) throws Exception {
-        return new Expression<Double>(new Functions.Conditional(new Expression<Boolean>(new Functions.Less(new Expression(x), new Expression<Integer>(0))), new Expression(new Functions.Negative(new Expression(x))), new Expression(x)));
-    }
-
     public DoubleParameter y = null;
 
-    public Dependency< Double > yDependency = null;
+    public ConstraintExpression constraint0 = null;
 
     public void initGlobalMembers() {
         try {
-            if (y == null) y = new DoubleParameter("y", (Double) (new FunctionCall(this, ClassUtils.getMethodForArgTypes("Global", "generatedCode", "merpAbs", double.class), new Object[] { -1E0 }, (Class<?>) null)).evaluate(true), this);
+            if (y == null) y = new DoubleParameter("y", (Double) null, this);
+            if (constraint0 == null) constraint0 = new ConstraintExpression(new Expression<Boolean>(new Functions.Equals(new Expression<Double>(y), new Expression<Integer>(new FunctionCall(null, ClassUtils.getMethodForArgTypes("java.lang.Math", "generatedCode", "abs", int.class), new Object[] { new Expression<Double>(new Functions.Negative(new Expression<Double>(1E0))) }, (Class<?>) null)))));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -55,9 +54,9 @@ public class Global extends DurativeEvent {
 
     protected void initGlobalCollections() {
         parameters.add(y);
+        constraintExpressions.add(constraint0);
     }
 
     public void initGlobalDependencies() {
-        addDependency(y, new Expression(new FunctionCall(this, ClassUtils.getMethodForArgTypes("Global", "generatedCode", "merpAbs", double.class), new Object[] { new Expression<Double>(new Functions.Negative(new Expression<Double>(1E0))) }, (Class<?>) null)));
     }
 }
