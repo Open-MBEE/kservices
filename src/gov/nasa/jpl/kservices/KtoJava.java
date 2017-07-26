@@ -812,14 +812,13 @@ public class KtoJava {
         return Arrays.asList( new ClassOrInterfaceType( type.toString() ) );
     }
 
-    //
-    // protected void getImports( Node clsNode ) {
-    // List< String > imports =
-    // XmlUtils.getChildrenElementText( clsNode, "import" );
-    // for ( String imp : imports ) {
-    // addImport( imp );
-    // }
-    // }
+    // right now assumes imports are java imports
+    protected void getImports( ) {
+        List< ImportDecl > imports = new ArrayList<ImportDecl >( JavaConversions.asJavaCollection( model.imports()));
+        for ( ImportDecl imp : imports ) {
+            addImport( imp.toStringNoImport() );
+        }
+    }
     // TODO
 
     public Set< MethodDeclaration > getMethodsForClass( String className ) {
@@ -1260,6 +1259,8 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.ae.event.EventInvocation" );
         addImport( "gov.nasa.jpl.ae.event.DurativeEvent" );
         addImport( "gov.nasa.jpl.ae.event.ParameterListenerImpl" );
+        addImport( "gov.nasa.jpl.ae.event.TimeVarying" );
+        addImport( "gov.nasa.jpl.ae.event.TimeVaryingMap" );
         addImport( "gov.nasa.jpl.ae.event.Event" );
         addImport( "gov.nasa.jpl.ae.solver.ObjectDomain" );
         addImport( "gov.nasa.jpl.mbee.util.Utils" );
@@ -1267,6 +1268,7 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.mbee.util.ClassUtils" );
         addImport( "java.util.Vector" );
         addImport( "java.util.Map" );
+        getImports();
         return getClassData().getCurrentCompilationUnit();
     }
 
