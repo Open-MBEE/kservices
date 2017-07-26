@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 if [ -n "$M2_REPO" ]; then
     m2=$M2_REPO
 else
@@ -21,3 +20,5 @@ java -classpath ${HOME}/git/kservices/target/classes:${HOME}/git/Klang/target/cl
 rm ${HOME}/git/kservices/src/generatedCode/*
 
 rm ${HOME}/git/kservices/src/gov/nasa/jpl/kservices/*.class
+
+rm ${HOME}/git/kservices/target/classes/generatedCode/* || true
