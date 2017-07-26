@@ -1037,7 +1037,7 @@ public class KtoJava {
                                                    true );
         // constructorArgs = "new Expression<Boolean>( \"" + expression +
         // "\", \"Java\" )";
-        String constraintType = "ConstraintExpression";
+        String constraintType = "00";
 
         Statement s = createAssignmentOfGenericType( name, constraintType, null,
                                                      constructorArgs );
@@ -1688,8 +1688,8 @@ public class KtoJava {
         PrintStream oldErr = System.err;
         ByteArrayOutputStream baosOut = new ByteArrayOutputStream();
         ByteArrayOutputStream baosErr = new ByteArrayOutputStream();
-         System.setOut(new PrintStream(baosOut));
-         System.setErr(new PrintStream(baosErr));
+         //System.setOut(new PrintStream(baosOut));
+         //System.setErr(new PrintStream(baosErr));
 
         Boolean containmentTree = false;
         Boolean errorInfo = false;
@@ -1722,6 +1722,7 @@ public class KtoJava {
                     if ( arg.contains( "solve" ) ) {
                         errorInfo = true;
                         translate = true;
+                        containmentTree = true;
                     }
                     if ( arg.contains( "error" ) ) {
                         errorInfo = true;
@@ -1742,6 +1743,7 @@ public class KtoJava {
                     if ( arg.contains( "solve" ) ) {
                         errorInfo = true;
                         translate = true;
+                        containmentTree = true;
                     }
                     if ( arg.contains( "error" ) ) {
                         errorInfo = true;
@@ -1770,7 +1772,7 @@ public class KtoJava {
             StringBuffer sb = new StringBuffer();
             sb.append( "Syntax Errors: " + (syntaxErrors.isEmpty() ? "None" : syntaxErrors) + "\n" );
             if (!typeCheckCompleted) {
-                sb.append( "Input k did not type check" );
+                sb.append( "Input k did not type check\n" );
             }
             System.out.flush();
             System.setOut(oldOut);
