@@ -1037,7 +1037,7 @@ public class KtoJava {
                                                    true );
         // constructorArgs = "new Expression<Boolean>( \"" + expression +
         // "\", \"Java\" )";
-        String constraintType = "00";
+        String constraintType = "ConstraintExpression";
 
         Statement s = createAssignmentOfGenericType( name, constraintType, null,
                                                      constructorArgs );
@@ -1689,7 +1689,7 @@ public class KtoJava {
         ByteArrayOutputStream baosOut = new ByteArrayOutputStream();
         ByteArrayOutputStream baosErr = new ByteArrayOutputStream();
          //System.setOut(new PrintStream(baosOut));
-         //System.setErr(new PrintStream(baosErr));
+//         System.setErr(new PrintStream(baosErr));
 
         Boolean containmentTree = false;
         Boolean errorInfo = false;
@@ -1730,7 +1730,6 @@ public class KtoJava {
                 }
             }
         } else {
-            System.out.println( args.length );
             for ( String arg : args ) {
                 if (!arg.contains( "--" )) {
                     kToExecute += arg + " ";
