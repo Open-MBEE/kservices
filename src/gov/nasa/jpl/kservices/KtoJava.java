@@ -194,7 +194,6 @@ import k.frontend.TypeChecker;
  */
 
 public class KtoJava {
-    private static final Boolean DEBUG = true;
 
     String k;
     String packageName;
@@ -1659,10 +1658,8 @@ public class KtoJava {
         PrintStream oldErr = System.err;
         ByteArrayOutputStream baosOut = new ByteArrayOutputStream();
         ByteArrayOutputStream baosErr = new ByteArrayOutputStream();
-        if (!DEBUG) {
-          System.setOut(new PrintStream(baosOut));
-          System.setErr(new PrintStream(baosErr));
-        }
+        System.setOut(new PrintStream(baosOut));
+        System.setErr(new PrintStream(baosErr));
 
         String kToExecute = "";
         Boolean areFiles = args.length > 0;
@@ -1692,10 +1689,8 @@ public class KtoJava {
 
         kToJava.writeFiles( kToJava, "/Users/dlegg/git/kservices" );
         System.out.flush();
-        if (!DEBUG) {
-          System.setOut(oldOut);
-          System.setErr( oldErr );
-        }
+        System.setOut(oldOut);
+        System.setErr( oldErr );
         
         String syntaxErrors = String.join( ",", syntaxErrors(baosErr));
         Boolean typeCheckCompleted = !baosErr.toString().contains( "Type Check" );
