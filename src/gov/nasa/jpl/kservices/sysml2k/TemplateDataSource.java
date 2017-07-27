@@ -32,7 +32,7 @@ public class TemplateDataSource extends LinkedHashMap<String, Path> {
   }
   
   public static TemplateDataSource fromJSON(JSONObject jsonObj) throws S2KParseException {
-    if (!jsonObj.getString("_type").equals("TemplateDataSource")) {
+    if (!jsonObj.optString("_type", "TemplateDataSource").equals("TemplateDataSource")) {
       throw new S2KParseException("jsonObj does not represent a TemplateDataSource.");
     }
 

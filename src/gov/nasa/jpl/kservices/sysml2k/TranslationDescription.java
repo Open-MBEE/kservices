@@ -28,10 +28,13 @@ public class TranslationDescription extends LinkedHashMap<String, TranslationDes
   }
 
   public JSONObject toJSON() {
+    return toJSON(true);
+  }
+  
+  public JSONObject toJSON(boolean strict) {
     JSONObject output = new JSONObject().put("_type", "TranslationDescription");
-    this.forEach( (key, translationPair) -> {
-      output.put(key, translationPair.toJSON());
-    });
+    this.forEach( (key, translationPair) ->
+      output.put(key, translationPair.toJSON(strict)) );
     return output;
   }
   
@@ -62,19 +65,40 @@ public class TranslationDescription extends LinkedHashMap<String, TranslationDes
     }
     
     public JSONObject toJSON() {
-      return new JSONObject()
-          .put("_type", "TranslationPair")
-          .put("templateDataSource", templateDataSource.toJSON() )
-          .put("template", template.toJSON() );
+      return toJSON(true);
+    }
+    
+    public JSONObject toJSON(boolean strict) {
+      if (strict) {
+        return new JSONObject()
+            .put("_type", "TranslationPair")
+            .put("templateDataSource", templateDataSource.toJSON() )
+            .put("template", template.toJSON() );
+      } else {
+        JSONObject output = template.toJSON(strict);
+        JSONObject dataSourceJson = templateDataSource.toJSON();
+        dataSourceJson.remove("_type");
+        output.put("templateDataSource", dataSourceJson);
+        return output;
+      }
     }
     
     public static TranslationPair fromJSON(JSONObject jsonObj) throws S2KParseException {
-      if (!jsonObj.getString("_type").equals("TranslationPair")) {
+      if (!jsonObj.optString("_type", "TranslationPair").equals("TranslationPair")) {
         throw new S2KParseException("Could not parse JSON as a TranslationPair.");
       }
-      return new TranslationPair(
-          TemplateDataSource.fromJSON(jsonObj.getJSONObject("templateDataSource")),
-          Template.fromJSON(jsonObj.getJSONObject("template")));
+      if (jsonObj.get("template") instanceof String) {
+        // non-strict format:
+        return new TranslationPair(
+            TemplateDataSource.fromJSON(jsonObj.getJSONObject("templateDataSource")),
+            Template.fromJSON(jsonObj));
+        
+      } else {
+        // strict format:
+        return new TranslationPair(
+            TemplateDataSource.fromJSON(jsonObj.getJSONObject("templateDataSource")),
+            Template.fromJSON(jsonObj.getJSONObject("template")));
+      }
     }
   }
 }

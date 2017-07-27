@@ -22,11 +22,13 @@ public class Translator {
   public static void main(String[] args) {
     try {
       Translator translator = new Translator();
+      String input = S2KUtil.readResource("/shapes-project2.json");
 //      String input = S2KUtil.readResource("/shapes-project.json");
-      String input = S2KUtil.readResource("/project.json");
+//      String input = S2KUtil.readResource("/project.json");
       JSONObject source = new JSONObject(input);
       String test_output = translator.translate(source);
       System.out.println(test_output);
+//      System.out.println(translator.translationDescription.toJSON(false).toString(2));
 
     } catch (Exception e) {
       e.printStackTrace();

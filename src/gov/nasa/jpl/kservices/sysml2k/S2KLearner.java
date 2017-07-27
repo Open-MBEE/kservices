@@ -1,7 +1,6 @@
 package gov.nasa.jpl.kservices.sysml2k;
 
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -10,8 +9,8 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 public class S2KLearner {
@@ -36,13 +35,32 @@ public class S2KLearner {
     examples.add( new Example(input, output) );
 
     try {
-      TranslationDescription result = learnTranslation(examples, true);
-      System.out.println(result.toJSON().toString(2));
-      Translator translator = new Translator(result);
+//      TranslationDescription result = learnTranslation(examples, true);
+//      System.out.println(result.toJSON().toString(2));
+//      Translator translator = new Translator(result);
+//      
+//      // test the tranlsator on the input used for learning, as a baseline
+//      String test_output = translator.translate( new JSONObject(input) );
+//      System.out.println(test_output);
       
-      // test the tranlsator on the input used for learning, as a baseline
-      String test_output = translator.translate( new JSONObject(input) );
-      System.out.println(test_output);
+      String pathStr = "";
+      String line;
+      while (true) {
+        System.out.println("Input path:");
+        line = systemInScanner.nextLine();
+        while (!line.isEmpty()) {
+          pathStr += line;
+          line = systemInScanner.nextLine();
+        }
+        pathStr = pathStr.trim();
+        if (pathStr.isEmpty()) break;
+        //else:
+        System.out.println("Validation & Compression:");
+        System.out.println( "\"" +
+            StringEscapeUtils.escapeJava(
+                Path.fromPathStr(pathStr).toString() ) + "\"");
+        pathStr = "";
+      }
     } catch (Exception e1) {
       e1.printStackTrace();
     }

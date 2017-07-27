@@ -1,7 +1,6 @@
 package gov.nasa.jpl.kservices.sysml2k;
 
 import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -25,7 +24,7 @@ class Template {
   private static final String NECESS_FLAG  = "&";
   private static final String LONG_FLAG    = "+";
   private static final String NOT_ESCAPED = "(?<!\\\\)(?:\\\\{2})*"; // not preceded by an odd number of slashes. Stolen from maksymiuk (https://stackoverflow.com/questions/6525556/regular-expression-to-match-escaped-characters-quotes)
-  private static final Function<String, String> matchFieldRegex = name -> "(?<=(?<indent>(?<=\n)[ \t]*)?)" + NOT_ESCAPED + "%(?<flags>\\W*?)" + name + "\\$(?<mods>[\\w\\-#+0,(]+)"; //Non-escaped %, name expression, $, assumed valid Java format codes
+  private static final Function<String, String> matchFieldRegex = name -> "(?:(?<=\n)(?<indent>[ \t]*))?" + NOT_ESCAPED + "%(?<flags>\\W*?)" + name + "(?:\\$(?<mods>[\\w\\-#+0,(]+))?"; //Non-escaped %, name expression, $, assumed valid Java format codes
   private static final Pattern GENERAL_FIELD_PATTERN = Pattern.compile( matchFieldRegex.apply("(?<name>\\w+)") );
   
   private String name;
@@ -210,31 +209,60 @@ class Template {
   }
   
   public JSONObject toJSON() {
-    return new JSONObject()
-        .put("_type", "Template")
-        .put("name", name)
-        .put("stringForm", stringForm)
-        .put("recursiveIndent", recursiveIndent)
-        .put("fields", fields.values().stream().map( Field::toJSON ).collect( Collectors.toList() ))
-        .put("triggerField", triggerField.toJSON())
-        .put("regex", regex.pattern());
+    return toJSON(true);
+  }
+  public JSONObject toJSON(boolean strict) {
+    if (strict) {
+      return new JSONObject()
+          .put("_type", "Template")
+          .put("name", name)
+          .put("stringForm", stringForm)
+          .put("recursiveIndent", recursiveIndent)
+          .put("fields", fields.values().stream()
+              .map( Field::toJSON )
+              .collect( Collectors.toList() ))
+          .put("triggerField", triggerField.toJSON())
+          .put("regex", regex.pattern());
+    } else {
+      return new JSONObject()
+          .put("template", name + "\n" + stringForm)
+          .put("fields", fields.values().stream()
+              .map( field -> field.toJSON(strict) )
+              .collect( Collectors.toList() ));
+    }
   }
   
   public static Template fromJSON(JSONObject jsonObj) throws S2KParseException {
     try {
-      if (!jsonObj.getString("_type").equals("Template")) {
+      if (!jsonObj.optString("_type", "Template").equals("Template")) {
         throw new S2KParseException("Could not parse JSON as a Template.");
       }
-      // rebuild the input format to reuse the constructor
-      Template output = new Template( jsonObj.getString("name") + "\n" + jsonObj.getString("stringForm") );
-      output.fields = new LinkedHashMap<String,Field>();
-      JSONArray fieldArr = jsonObj.getJSONArray("fields");
-      for (int i = 0; i < fieldArr.length(); ++i) {
-        output.putField( Field.fromJSON( fieldArr.getJSONObject(i) ));
+      
+      Template output;
+      if (!jsonObj.optString("template").isEmpty()) {
+        // non-strict form
+        output = new Template(jsonObj.getString("template")); // grab most of our info from the string format, assume there were no overrides
+        output.fields = new LinkedHashMap<String,Field>();
+        JSONArray fieldArr = jsonObj.optJSONArray("fields");
+        if (fieldArr != null) {
+          for (int i = 0; i < fieldArr.length(); ++i) {
+            output.putField( Field.fromJSON( fieldArr.get(i) ));
+          }
+        }
+      } else {
+        // strict-form:
+        output = new Template(); // we'll set all the fields manually
+        output.name = jsonObj.getString("name");
+        output.stringForm = jsonObj.getString("stringForm");
+        output.recursiveIndent = jsonObj.getString("recursiveIndent");
+        output.fields = new LinkedHashMap<String,Field>();
+        JSONArray fieldArr = jsonObj.getJSONArray("fields");
+        for (int i = 0; i < fieldArr.length(); ++i) {
+          output.putField( Field.fromJSON( fieldArr.getJSONObject(i) ));
+        }
+        output.triggerField = Field.fromJSON( jsonObj.getJSONObject("triggerField") );
+        output.regex = Pattern.compile( jsonObj.getString("regex") );
       }
-      output.recursiveIndent = jsonObj.getString("recursiveIndent");
-      output.triggerField = Field.fromJSON( jsonObj.getJSONObject("triggerField") );
-      output.regex = Pattern.compile( jsonObj.getString("regex") );
       return output;
       
     } catch (JSONException e) {
@@ -244,12 +272,15 @@ class Template {
   
   /// Private Helpers
   
+  private Template() {
+  }
+  
   // shallow copy constructor
   private Template(Template other) {
-    this.stringForm   = other.stringForm;
-    this.fields       = other.fields;
-    this.triggerField = other.triggerField;
-    this.regex        = other.regex;
+  this.stringForm   = other.stringForm;
+  this.fields       = other.fields;
+  this.triggerField = other.triggerField;
+  this.regex        = other.regex;
   }
   
   private void putField(Field field) {
@@ -264,7 +295,7 @@ class Template {
   }
   
   private String indent(String recursiveContent) {
-    return recursiveContent.replaceAll("\n", "\n" + recursiveIndent);
+    return recursiveIndent + recursiveContent.replaceAll("\n", "\n" + recursiveIndent);
   }
   
   private Pattern asRegex() {
@@ -325,6 +356,12 @@ class Template {
       this.isNecessary = isNecessary || isTrigger; // a trigger is, by definition, necessary
     }
     
+    public static Field fromString(String fieldStr) {
+      Matcher matcher = GENERAL_FIELD_PATTERN.matcher(fieldStr);
+      matcher.find();
+      return new Field( matcher );
+    }
+    
     public String toRegexStr() {
       // Explanation: if long type, use a non-greedy "match-anything" pattern
       // otherwise, assume we're looking for an identifier, and use a greedy, non-empy "match-word" pattern
@@ -332,33 +369,46 @@ class Template {
     }
 
     public String toString() {
-      return (isTrigger   ? TRIGGER_FLAG : "") +
+      return "%" +
+             (isTrigger   ? TRIGGER_FLAG : "") +
              (isLong      ? LONG_FLAG    : "") +
              (isRecursive ? RECUR_FLAG   : "") +
              (isNecessary ? NECESS_FLAG  : "") +
              name;
     }
     
-    public JSONObject toJSON() {
-      return new JSONObject()
-          .put("_type", "Field")
-          .put("name", name)
-          .put("isTrigger", isTrigger)
-          .put("isLong", isLong)
-          .put("isRecursive", isRecursive)
-          .put("isNecessary", isNecessary);
+    public Object toJSON() {
+      return toJSON(true);
+    }
+    public Object toJSON(boolean strict) {
+      if (strict) {
+        return new JSONObject()
+            .put("_type", "Field")
+            .put("name", name)
+            .put("isTrigger", isTrigger)
+            .put("isLong", isLong)
+            .put("isRecursive", isRecursive)
+            .put("isNecessary", isNecessary);
+      } else {
+        return this.toString();
+      }
     }
     
-    public static Field fromJSON(JSONObject jsonObj) throws S2KParseException {
-      if (!jsonObj.getString("_type").equals("Field")) {
+    public static Field fromJSON(Object jsonObj) throws S2KParseException {
+      if (jsonObj instanceof String) {
+        return Field.fromString((String) jsonObj);
+      } // else:
+      
+      JSONObject trueJsonObj = (JSONObject) jsonObj;
+      if (!trueJsonObj.getString("_type").equals("Field")) {
         throw new S2KParseException("Could not parse JSON as a Field.");
       }
       return new Field(
-          jsonObj.getString("name"),
-          jsonObj.getBoolean("isTrigger"),
-          jsonObj.getBoolean("isLong"),
-          jsonObj.getBoolean("isRecursive"),
-          jsonObj.getBoolean("isNecessary"));
+          trueJsonObj.getString("name"),
+          trueJsonObj.optBoolean("isTrigger", false),
+          trueJsonObj.optBoolean("isLong", false),
+          trueJsonObj.optBoolean("isRecursive", false),
+          trueJsonObj.optBoolean("isNecessary", false));
     }
   }
 
