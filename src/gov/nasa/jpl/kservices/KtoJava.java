@@ -1689,8 +1689,10 @@ public class KtoJava {
         PrintStream oldErr = System.err;
         ByteArrayOutputStream baosOut = new ByteArrayOutputStream();
         ByteArrayOutputStream baosErr = new ByteArrayOutputStream();
-         //System.setOut(new PrintStream(baosOut));
-//         System.setErr(new PrintStream(baosErr));
+        String packageName = "generatedCode";
+
+        //System.setOut(new PrintStream(baosOut));
+        //System.setErr(new PrintStream(baosErr));
 
         Boolean containmentTree = false;
         Boolean errorInfo = false;
@@ -1698,56 +1700,46 @@ public class KtoJava {
 
         String kToExecute = "";
         Boolean areFiles = args.length > 0;
-        for ( String arg : args ) {
+        for ( int i = 0; i < args.length; ++i ) {
+            String arg = args[i];
+            if (arg.contains("package")) {
+                ++i;
+                continue;
+            }
             if ( !arg.contains( "--" ) && !FileUtils.exists( arg ) ) {
                 areFiles = false;
                 break;
             }
         }
-        if ( areFiles ) {
-            for ( String arg : args ) {
-                if ( !arg.contains( "--" ) ) {
 
-                    String k;
+        for (int i=0; i<args.length; ++i) {
+            String arg = args[i];
+            if (!arg.contains("--")) {
+                if (areFiles) {
                     try {
-                        k = FileUtils.fileToString( arg );
+                        String k;
+                        k = FileUtils.fileToString(arg);
                         kToExecute += k + "\n";
-                    } catch ( FileNotFoundException e ) {
+                    } catch (FileNotFoundException e) {
                         e.printStackTrace();
                     }
                 } else {
-                    if ( arg.contains( "tree" ) ) {
-                        containmentTree = true;
-                        
-                    }
-                    if ( arg.contains( "solve" ) ) {
-                        errorInfo = true;
-                        translate = true;
-                        containmentTree = true;
-                    }
-                    if ( arg.contains( "error" ) ) {
-                        errorInfo = true;
-                    }
-                }
-            }
-        } else {
-            for ( String arg : args ) {
-                if (!arg.contains( "--" )) {
                     kToExecute += arg + " ";
-
-                }else {
-                    if ( arg.contains( "tree" ) ) {
-                        containmentTree = true;
-                        
-                    }
-                    if ( arg.contains( "solve" ) ) {
-                        errorInfo = true;
-                        translate = true;
-                        containmentTree = true;
-                    }
-                    if ( arg.contains( "error" ) ) {
-                        errorInfo = true;
-                    }
+                }
+            } else {
+                if (arg.contains("tree")) {
+                    containmentTree = true;
+                }
+                if (arg.contains("solve")) {
+                    errorInfo = true;
+                    translate = true;
+                    containmentTree = true;
+                }
+                if (arg.contains("error")) {
+                    errorInfo = true;
+                }
+                if (arg.contains("package")) {
+                    packageName = args[++i];
                 }
             }
         }
@@ -1768,7 +1760,7 @@ public class KtoJava {
 
         } 
         if (errorInfo) {
-            KtoJava kToJava = new KtoJava( kToExecute, "generatedCode" , translate);
+            KtoJava kToJava = new KtoJava( kToExecute, packageName , translate);
             String syntaxErrors = String.join( ",", syntaxErrors(baosErr));
             System.out.println("===ERRORS===");
 
@@ -1784,15 +1776,10 @@ public class KtoJava {
             System.setErr( oldErr );
             System.out.println( sb );
             if (translate) {
-                kToJava.writeFiles( kToJava, "/Users/ayelaman/git/kservices" );
-
+                kToJava.writeFiles( kToJava, "/Users/bclement/git/kservices" );
             }
 
         }
-        
-        
-        
-
 
     }
 
