@@ -40,7 +40,7 @@ public class TemplateMatch extends LinkedHashMap<String, String> {
   
   public Optional<String> getParentReference() {
     if (this.containsKey(PARENT_REFERENCE_NAME)) {
-      return Optional.of(this.get(PARENT_REFERENCE_NAME));
+      return Optional.of(S2KUtil.knative(this.get(PARENT_REFERENCE_NAME)));
     } else {
       return Optional.empty();
     }

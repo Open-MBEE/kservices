@@ -89,7 +89,7 @@
   "Set_Variable": {
     "template": {
       "regex": "\\Qvar\\E\\s+\\Q\\E(?<name>\\w+)\\Q\\E\\s+\\Q:\\E\\s+\\Q\\E(?<type>\\w+)\\Q\\E",
-      "stringForm": "var %!name$s : Set[%type$s]\n-- req %name$s.size() >= %minSize$s && %name$s.size() <= %maxSize$s",
+      "stringForm": "-- var %!name$s : Set[%type$s]\n-- req %name$s.size() >= %minSize$s && %name$s.size() <= %maxSize$s",
       "triggerField": {
         "isRecursive": false,
         "_type": "Field",
@@ -183,7 +183,7 @@
     "_type": "TranslationPair",
     "templateDataSource": {
       "_type": "TemplateDataSource",
-      "name": "$.elements[*][?(.type=\"Property\"),?(.type=\"Port\")].name",
+      "name": "$.elements[*][?(.type=\"Property\"),?(.type=\"Port\")]?(![.upperValue,.lowerValue].*).name",
       "type": "$[^.defaultValue.type,[LIB:,$].elements[*]?(.id=^[.typeId,.defaultValue.typeId]).name]",
       "PARENT_REFERENCE": "$.elements[*]?(.id=^.ownerId).name"
     }
