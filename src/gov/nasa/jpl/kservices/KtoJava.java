@@ -29,7 +29,7 @@ import japa.parser.ast.type.PrimitiveType;
 import japa.parser.ast.type.Type;
 // import japa.parser.ast.type.Type;
 import japa.parser.ast.type.VoidType;
-
+import scala.Tuple2;
 import scala.collection.JavaConversions;
 
 import java.io.File;
@@ -145,6 +145,7 @@ import k.frontend.DotExp;
 import k.frontend.FunApplExp;
 import k.frontend.IfExp;
 import k.frontend.MatchExp;
+import k.frontend.MemberDecl;
 import k.frontend.MatchCase;
 import k.frontend.BlockExp;
 import k.frontend.WhileExp;
@@ -227,31 +228,31 @@ public class KtoJava {
         System.out.println();
         try {
 
-            typeChecker = new TypeChecker( this.model ); 
-        } catch (Throwable e) {
-            System.err.println( "Input did not Type Check " + e ); 
+            typeChecker = new TypeChecker( this.model );
+        } catch ( Throwable e ) {
+            System.err.println( "Input did not Type Check " + e );
         }
         this.allClasses =
                 new HashSet< EntityDecl >( JavaConversions.asJavaCollection( Frontend.getEntitiesFromModel( this.model ) ) );
         this.allClassNames = new TreeSet< String >();
-        this.classToParentNames = new TreeMap<String, Set<String>>();
+        this.classToParentNames = new TreeMap< String, Set< String > >();
         for ( EntityDecl e : allClasses ) {
             this.allClassNames.add( e.ident() );
-            this.classToParentNames.put( e.ident(), new TreeSet<String>(JavaConversions.asJavaCollection(e.getExtendingNames()) ));
-            
+            this.classToParentNames.put( e.ident(),
+                                         new TreeSet< String >( JavaConversions.asJavaCollection( e.getExtendingNames() ) ) );
+
         }
-        for (String e: allClassNames) {
-            getAllSuperClassNames(e);
+        for ( String e : allClassNames ) {
+            getAllSuperClassNames( e );
         }
-        
+
         this.instantiatedClassNames = new TreeSet< String >();
         buildParamTable( getClassData().getParamTable() );
         buildMethodTable( getClassData().getMethodTable() );
         if ( translate ) {
             translateClasses();
         }
-        
-        
+
     }
 
     public KtoJava( String k, String pkgName ) {
@@ -813,8 +814,9 @@ public class KtoJava {
     }
 
     // right now assumes imports are java imports
-    protected void getImports( ) {
-        List< ImportDecl > imports = new ArrayList<ImportDecl >( JavaConversions.asJavaCollection( model.imports()));
+    protected void getImports() {
+        List< ImportDecl > imports =
+                new ArrayList< ImportDecl >( JavaConversions.asJavaCollection( model.imports() ) );
         for ( ImportDecl imp : imports ) {
             addImport( imp.toStringNoImport() );
         }
@@ -1409,9 +1411,9 @@ public class KtoJava {
 
         stmtsMain.append( "Main scenario = new Main();" );
         stmtsMain.append( "scenario.amTopEventToSimulate = true;" );
-        stmtsMain.append( "System.out.println(\"===FULLOUTPUT===\" );");
+        stmtsMain.append( "System.out.println(\"===FULLOUTPUT===\" );" );
         stmtsMain.append( "scenario.satisfy( true, null );" );
-        stmtsMain.append( "System.out.println(\"===RESULTS===\" );");
+        stmtsMain.append( "System.out.println(\"===RESULTS===\" );" );
         stmtsMain.append( "System.out.println(scenario.kSolutionString());" );
 
         List< Expression > args = new ArrayList< Expression >();
@@ -1585,66 +1587,102 @@ public class KtoJava {
         return fileArr;
     }
 
-    public static JSONObject propertyToJSON( PropertyDecl p ) {
+    public static JSONObject
+           propertyToJSON( PropertyDecl p,
+                           Map< MemberDecl, Tuple2< Object, Object > > map ) {
         JSONObject property = new JSONObject();
         property.put( "name", p.name() );
         property.put( "type", p.ty().toString() );
+        Tuple2< Object, Object > numbers = map.get( p );
+
+        property.put( "line", numbers._1() );
+        property.put( "char", numbers._2() );
+
         property.put( "children", new JSONArray() );
 
         return property;
     }
 
-    public static JSONObject functionToJSON( FunDecl f ) {
-        JSONObject property = new JSONObject();
-        property.put( "name", f.ident() );
-        property.put( "type", "function" );
-        property.put( "children", new JSONArray() );
+    public static JSONObject
+           functionToJSON( FunDecl f,
+                           Map< MemberDecl, Tuple2< Object, Object > > map ) {
+        JSONObject function = new JSONObject();
+        function.put( "name", f.ident() );
+        function.put( "type", "function" );
+        Tuple2< Object, Object > numbers = map.get( f );
+        function.put( "line", numbers._1() );
+        function.put( "char", numbers._2() );
+        function.put( "children", new JSONArray() );
 
-        return property;
+        return function;
     }
 
-    public static JSONObject entityToJSON( EntityDecl e ) {
+    public static JSONObject
+           entityToJSON( EntityDecl e,
+                         Map< MemberDecl, Tuple2< Object, Object > > map ) {
         JSONObject entity = new JSONObject();
         entity.put( "name", e.ident() );
         entity.put( "type", "class" );
+        Tuple2< Object, Object > numbers = map.get( e );
+        entity.put( "line", numbers._1() );
+        entity.put( "char", numbers._2() );
         JSONArray children = new JSONArray();
         List< PropertyDecl > properties =
                 new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( e.getPropertyDecls() ) );
         for ( PropertyDecl p : properties ) {
-            children.put( propertyToJSON( p ) );
+            children.put( propertyToJSON( p, map ) );
         }
         List< FunDecl > functions =
                 new ArrayList< FunDecl >( JavaConversions.asJavaCollection( e.getFunDecls() ) );
         for ( FunDecl f : functions ) {
-            children.put( functionToJSON( f ) );
+            children.put( functionToJSON( f, map ) );
         }
 
         List< ConstraintDecl > constraints =
                 new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( e.getConstraintDecls() ) );
         for ( ConstraintDecl c : constraints ) {
-            JSONObject constraint = constraintToJSON( c );
+            JSONObject constraint = constraintToJSON( c, map );
             if ( constraint != null ) {
                 children.put( constraint );
             }
         }
+        
+        List< EntityDecl > entities =
+                new ArrayList< EntityDecl >( JavaConversions.asJavaCollection( e.getEntityDecls() ) );
+        for ( EntityDecl ent : entities ) {
+            JSONObject entJSON = entityToJSON(ent, map );
+            if ( entJSON != null ) {
+                children.put( entJSON );
+            }
+        }
+        
         entity.put( "children", children );
 
         return entity;
     }
 
-    public static JSONObject constraintToJSON( ConstraintDecl c ) {
+    public static JSONObject
+           constraintToJSON( ConstraintDecl c,
+                             Map< MemberDecl, Tuple2< Object, Object > > map ) {
         if ( c.name().isEmpty() ) {
             return null;
         }
         JSONObject constraint = new JSONObject();
         constraint.put( "name", c.name().get() );
         constraint.put( "type", "req" );
+        Tuple2< Object, Object > numbers = map.get( c );
+
+        constraint.put( "line", numbers._1() );
+        constraint.put( "char", numbers._2() );
+
         constraint.put( "children", new JSONArray() );
         return constraint;
     }
 
     public static String kToContainmentTree( String k ) {
         Model m = Frontend.getModelFromString( k );
+        Map< MemberDecl, Tuple2< Object, Object > > map =
+                JavaConversions.mapAsJavaMap( Frontend.getDeclDict( k ) );
         JSONObject tree = new JSONObject();
         JSONArray topDecls = new JSONArray();
         List< EntityDecl > entities =
@@ -1657,31 +1695,29 @@ public class KtoJava {
                 new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelConstraints( m ) ) );
 
         for ( EntityDecl e : entities ) {
-            JSONObject entity = entityToJSON( e );
+            JSONObject entity = entityToJSON( e, map );
             topDecls.put( entity );
         }
         for ( FunDecl e : functions ) {
-            JSONObject function = functionToJSON( e );
+            JSONObject function = functionToJSON( e, map );
             topDecls.put( function );
         }
 
         for ( ConstraintDecl c : constraints ) {
-            JSONObject constraint = constraintToJSON( c );
+            JSONObject constraint = constraintToJSON( c, map );
             if ( constraint != null ) {
                 topDecls.put( constraint );
             }
         }
 
         for ( PropertyDecl p : properties ) {
-            JSONObject property = propertyToJSON( p );
+            JSONObject property = propertyToJSON( p, map );
             topDecls.put( property );
         }
 
         tree.put( "tree", topDecls );
         return tree.toString();
     }
-
-    
 
     public static void main( String[] args ) {
 
@@ -1691,8 +1727,8 @@ public class KtoJava {
         ByteArrayOutputStream baosErr = new ByteArrayOutputStream();
         String packageName = "generatedCode";
 
-        //System.setOut(new PrintStream(baosOut));
-        //System.setErr(new PrintStream(baosErr));
+        // System.setOut(new PrintStream(baosOut));
+        // System.setErr(new PrintStream(baosErr));
 
         Boolean containmentTree = false;
         Boolean errorInfo = false;
@@ -1701,8 +1737,8 @@ public class KtoJava {
         String kToExecute = "";
         Boolean areFiles = args.length > 0;
         for ( int i = 0; i < args.length; ++i ) {
-            String arg = args[i];
-            if (arg.contains("package")) {
+            String arg = args[ i ];
+            if ( arg.contains( "package" ) ) {
                 ++i;
                 continue;
             }
@@ -1712,70 +1748,72 @@ public class KtoJava {
             }
         }
 
-        for (int i=0; i<args.length; ++i) {
-            String arg = args[i];
-            if (!arg.contains("--")) {
-                if (areFiles) {
+        for ( int i = 0; i < args.length; ++i ) {
+            String arg = args[ i ];
+            if ( !arg.contains( "--" ) ) {
+                if ( areFiles ) {
                     try {
                         String k;
-                        k = FileUtils.fileToString(arg);
+                        k = FileUtils.fileToString( arg );
                         kToExecute += k + "\n";
-                    } catch (FileNotFoundException e) {
+                    } catch ( FileNotFoundException e ) {
                         e.printStackTrace();
                     }
                 } else {
                     kToExecute += arg + " ";
                 }
             } else {
-                if (arg.contains("tree")) {
+                if ( arg.contains( "tree" ) ) {
                     containmentTree = true;
                 }
-                if (arg.contains("solve")) {
+                if ( arg.contains( "solve" ) ) {
                     errorInfo = true;
                     translate = true;
                     containmentTree = true;
                 }
-                if (arg.contains("error")) {
+                if ( arg.contains( "error" ) ) {
                     errorInfo = true;
                 }
-                if (arg.contains("package")) {
-                    packageName = args[++i];
+                if ( arg.contains( "package" ) ) {
+                    packageName = args[ ++i ];
                 }
             }
         }
-        
-        if (!containmentTree && !errorInfo) {
+
+        if ( !containmentTree && !errorInfo ) {
             containmentTree = true;
             translate = true;
             errorInfo = true;
         }
-        
-        
-        if (containmentTree) {
+
+        if ( containmentTree ) {
             System.out.flush();
-            System.setOut(oldOut);
+            System.setOut( oldOut );
             System.setErr( oldErr );
-            System.out.println("===TREE===");
+            System.out.println( "===TREE===" );
             System.out.println( kToContainmentTree( kToExecute ) );
 
-        } 
-        if (errorInfo) {
-            KtoJava kToJava = new KtoJava( kToExecute, packageName , translate);
-            String syntaxErrors = String.join( ",", syntaxErrors(baosErr));
-            System.out.println("===ERRORS===");
+        }
+        if ( errorInfo ) {
+            KtoJava kToJava = new KtoJava( kToExecute, packageName, translate );
+            String syntaxErrors = String.join( ",", syntaxErrors( baosErr ) );
+            System.out.println( "===ERRORS===" );
 
-            Boolean typeCheckCompleted = !baosErr.toString().contains( "Type Check" );
+            Boolean typeCheckCompleted =
+                    !baosErr.toString().contains( "Type Check" );
             StringBuffer sb = new StringBuffer();
-            
-            sb.append( "Syntax Errors: " + (syntaxErrors.isEmpty() ? "None" : syntaxErrors) + "\n" );
-            if (!typeCheckCompleted) {
+
+            sb.append( "Syntax Errors: "
+                       + ( syntaxErrors.isEmpty() ? "None" : syntaxErrors )
+                       + "\n" );
+            if ( !typeCheckCompleted ) {
                 sb.append( "Input k did not type check\n" );
             }
             System.out.flush();
-            System.setOut(oldOut);
+            System.setOut( oldOut );
             System.setErr( oldErr );
             System.out.println( sb );
-            if (translate) {
+            if ( translate ) {
                 kToJava.writeFiles( kToJava, "/Users/bclement/git/kservices" );
             }
 
