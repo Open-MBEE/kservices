@@ -1409,8 +1409,9 @@ public class KtoJava {
 
         stmtsMain.append( "Main scenario = new Main();" );
         stmtsMain.append( "scenario.amTopEventToSimulate = true;" );
-        stmtsMain.append( "scenario.redirectStdOut = true;" );
+        stmtsMain.append( "System.out.println(\"===FULLOUTPUT===\" );");
         stmtsMain.append( "scenario.satisfy( true, null );" );
+        stmtsMain.append( "System.out.println(\"===RESULTS===\" );");
         stmtsMain.append( "System.out.println(scenario.kSolutionString());" );
 
         List< Expression > args = new ArrayList< Expression >();
@@ -1752,6 +1753,7 @@ public class KtoJava {
         }
         
         if (!containmentTree && !errorInfo) {
+            containmentTree = true;
             translate = true;
             errorInfo = true;
         }
@@ -1761,14 +1763,18 @@ public class KtoJava {
             System.out.flush();
             System.setOut(oldOut);
             System.setErr( oldErr );
+            System.out.println("===TREE===");
             System.out.println( kToContainmentTree( kToExecute ) );
 
         } 
         if (errorInfo) {
             KtoJava kToJava = new KtoJava( kToExecute, "generatedCode" , translate);
             String syntaxErrors = String.join( ",", syntaxErrors(baosErr));
+            System.out.println("===ERRORS===");
+
             Boolean typeCheckCompleted = !baosErr.toString().contains( "Type Check" );
             StringBuffer sb = new StringBuffer();
+            
             sb.append( "Syntax Errors: " + (syntaxErrors.isEmpty() ? "None" : syntaxErrors) + "\n" );
             if (!typeCheckCompleted) {
                 sb.append( "Input k did not type check\n" );
