@@ -356,10 +356,14 @@ class Template {
       this.isNecessary = isNecessary || isTrigger; // a trigger is, by definition, necessary
     }
     
-    public static Field fromString(String fieldStr) {
-      Matcher matcher = GENERAL_FIELD_PATTERN.matcher(fieldStr);
-      matcher.find();
-      return new Field( matcher );
+    public static Field fromString(String fieldStr) throws S2KParseException {
+      try {
+        Matcher matcher = GENERAL_FIELD_PATTERN.matcher(fieldStr);
+        matcher.find();
+        return new Field( matcher );
+      } catch (Exception e) {
+        throw new S2KParseException("Could not parse string as a Field.");
+      }
     }
     
     public String toRegexStr() {
@@ -395,20 +399,24 @@ class Template {
     }
     
     public static Field fromJSON(Object jsonObj) throws S2KParseException {
-      if (jsonObj instanceof String) {
-        return Field.fromString((String) jsonObj);
-      } // else:
-      
-      JSONObject trueJsonObj = (JSONObject) jsonObj;
-      if (!trueJsonObj.getString("_type").equals("Field")) {
+      try {
+        if (jsonObj instanceof String) {
+          return Field.fromString((String) jsonObj);
+        } // else:
+        
+        JSONObject trueJsonObj = (JSONObject) jsonObj;
+        if (!trueJsonObj.getString("_type").equals("Field")) {
+          throw new S2KParseException("Could not parse JSON as a Field.");
+        }
+        return new Field(
+            trueJsonObj.getString("name"),
+            trueJsonObj.optBoolean("isTrigger", false),
+            trueJsonObj.optBoolean("isLong", false),
+            trueJsonObj.optBoolean("isRecursive", false),
+            trueJsonObj.optBoolean("isNecessary", false));
+      } catch (JSONException e) {
         throw new S2KParseException("Could not parse JSON as a Field.");
       }
-      return new Field(
-          trueJsonObj.getString("name"),
-          trueJsonObj.optBoolean("isTrigger", false),
-          trueJsonObj.optBoolean("isLong", false),
-          trueJsonObj.optBoolean("isRecursive", false),
-          trueJsonObj.optBoolean("isNecessary", false));
     }
   }
 

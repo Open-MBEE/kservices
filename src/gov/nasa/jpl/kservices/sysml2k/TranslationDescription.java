@@ -3,6 +3,7 @@ package gov.nasa.jpl.kservices.sysml2k;
 import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 @SuppressWarnings("serial")
@@ -39,7 +40,7 @@ public class TranslationDescription extends LinkedHashMap<String, TranslationDes
   }
   
   public static TranslationDescription fromJSON(JSONObject jsonObj) throws S2KParseException {
-    if (!jsonObj.getString("_type").equals("TranslationDescription")) {
+    if (!jsonObj.optString("_type", "TranslationDescription").equals("TranslationDescription")) {
       throw new S2KParseException("Could not parse JSON as a TranslationDescription.");
     }
     TranslationDescription output = new TranslationDescription();
@@ -84,20 +85,24 @@ public class TranslationDescription extends LinkedHashMap<String, TranslationDes
     }
     
     public static TranslationPair fromJSON(JSONObject jsonObj) throws S2KParseException {
-      if (!jsonObj.optString("_type", "TranslationPair").equals("TranslationPair")) {
+      try {
+        if (!jsonObj.optString("_type", "TranslationPair").equals("TranslationPair")) {
+          throw new S2KParseException("Could not parse JSON as a TranslationPair.");
+        }
+        if (jsonObj.get("template") instanceof String) {
+          // non-strict format:
+          return new TranslationPair(
+              TemplateDataSource.fromJSON(jsonObj.getJSONObject("templateDataSource")),
+              Template.fromJSON(jsonObj));
+          
+        } else {
+          // strict format:
+          return new TranslationPair(
+              TemplateDataSource.fromJSON(jsonObj.getJSONObject("templateDataSource")),
+              Template.fromJSON(jsonObj.getJSONObject("template")));
+        }
+      } catch (JSONException e) {
         throw new S2KParseException("Could not parse JSON as a TranslationPair.");
-      }
-      if (jsonObj.get("template") instanceof String) {
-        // non-strict format:
-        return new TranslationPair(
-            TemplateDataSource.fromJSON(jsonObj.getJSONObject("templateDataSource")),
-            Template.fromJSON(jsonObj));
-        
-      } else {
-        // strict format:
-        return new TranslationPair(
-            TemplateDataSource.fromJSON(jsonObj.getJSONObject("templateDataSource")),
-            Template.fromJSON(jsonObj.getJSONObject("template")));
       }
     }
   }

@@ -148,12 +148,16 @@ class Path {
   }
   
   public static Path fromPathStr(String pathStr) throws S2KParseException {
-    ANTLRInputStream inputStream = new ANTLRInputStream(pathStr);
-    JsonPath2Lexer lexer = new JsonPath2Lexer(inputStream);
-    CommonTokenStream commonTokenStream = new CommonTokenStream(lexer);
-    JsonPath2Parser parser = new JsonPath2Parser(commonTokenStream);
-    PathVisitor pathVisitor = new PathVisitor();
-    return pathVisitor.visit(parser.path());
+    try {
+      ANTLRInputStream inputStream = new ANTLRInputStream(pathStr);
+      JsonPath2Lexer lexer = new JsonPath2Lexer(inputStream);
+      CommonTokenStream commonTokenStream = new CommonTokenStream(lexer);
+      JsonPath2Parser parser = new JsonPath2Parser(commonTokenStream);
+      PathVisitor pathVisitor = new PathVisitor();
+      return pathVisitor.visit(parser.path());
+    } catch (Exception e) {
+      throw new S2KParseException("Could not parse string as a Path.", e);
+    }
   }
   
   public boolean isLeaf() {
@@ -419,7 +423,7 @@ class Path {
         return fromJsonMethods.get(jsonObj.getString("_type")).apply(jsonObj)
             .orElseThrow( () -> new S2KParseException("JSON object could not be parsed as a PathElement.") );
       } catch (JSONException | NullPointerException e) {
-        throw new S2KParseException("JSON object could not be parsed as a PathElement.", e);
+        throw new S2KParseException("Could not parse JSON as a PathElement.", e);
       }
     }
 

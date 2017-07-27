@@ -45,7 +45,7 @@
       "name": "$.elements[*][?(.type=\"Class\"),?(.type=\"Diagram\")].name"
     }
   },
-  "Set_Variable": {
+  "Set Variable": {
     "template": "Set Variable\n-- var %!name$s : Set[%type$s]\n-- req %name$s.size() >= %minSize$s && %name$s.size() <= %maxSize$s",
     "fields": [
       "%!&name",
@@ -61,7 +61,6 @@
       "type": "$[^.defaultValue.type,[LIB:,$].elements[*]?(.id=^[.typeId,.defaultValue.typeId]).name]"
     }
   },
-  "_type": "TranslationDescription",
   "Class": {
     "template": "Class\nclass %!name$s {\n  %@content$s\n}",
     "fields": [
