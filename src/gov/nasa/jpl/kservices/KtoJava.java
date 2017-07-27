@@ -1409,7 +1409,7 @@ public class KtoJava {
         stmtsMain.append( "scenario.amTopEventToSimulate = true;" );
         stmtsMain.append( "scenario.redirectStdOut = true;" );
         stmtsMain.append( "scenario.satisfy( true, null );" );
-        stmtsMain.append( "System.out.println(scenario.simpleString());" );
+        stmtsMain.append( "System.out.println(scenario.kSolutionString());" );
 
         List< Expression > args = new ArrayList< Expression >();
 
