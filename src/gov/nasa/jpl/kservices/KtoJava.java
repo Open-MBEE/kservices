@@ -1699,7 +1699,12 @@ public class KtoJava {
 
         String kToExecute = "";
         Boolean areFiles = args.length > 0;
-        for ( String arg : args ) {
+        for ( int i = 0; i < args.length; ++i ) {
+            String arg = args[i];
+            if (arg.contains("package")) {
+                ++i;
+                continue;
+            }
             if ( !arg.contains( "--" ) && !FileUtils.exists( arg ) ) {
                 areFiles = false;
                 break;
@@ -1765,7 +1770,7 @@ public class KtoJava {
             System.setErr( oldErr );
             System.out.println( sb );
             if (translate) {
-                kToJava.writeFiles( kToJava, "/Users/ayelaman/git/kservices" );
+                kToJava.writeFiles( kToJava, "/Users/bclement/git/kservices" );
             }
 
         }
