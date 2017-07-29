@@ -1,5 +1,6 @@
 package gov.nasa.jpl.kservices;
 
+import gov.nasa.jpl.ae.util.*;
 import japa.parser.ASTHelper;
 import japa.parser.ASTParser;
 import japa.parser.ParseException;
@@ -32,12 +33,7 @@ import japa.parser.ast.type.VoidType;
 import scala.Tuple2;
 import scala.collection.JavaConversions;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.StringReader;
+import java.io.*;
 import java.lang.Math;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -76,9 +72,6 @@ import org.xml.sax.SAXException;
 
 // Keep these for resolving class references.
 import gov.nasa.jpl.ae.event.*;
-import gov.nasa.jpl.ae.util.ClassData;
-import gov.nasa.jpl.ae.util.JavaForFunctionCall;
-import gov.nasa.jpl.ae.util.JavaToConstraintExpression;
 import gov.nasa.jpl.ae.xml.EventXmlToJava;
 import gov.nasa.jpl.ae.xml.XmlUtils;
 import gov.nasa.jpl.mbee.util.Pair;
@@ -106,9 +99,6 @@ import java.util.ArrayList;
 import java.util.Vector;
 
 import gov.nasa.jpl.mbee.util.Debug;
-
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -234,7 +224,8 @@ public class KtoJava {
 
             typeChecker = new TypeChecker( this.model );
         } catch ( Throwable e ) {
-            System.err.println( "Input did not Type Check " + e );
+            System.err.println( "Input did not Type Check");
+            e.printStackTrace();
         }
         this.topLevelClasses = getTopLevelClasses();
         this.allClasses = getAllClasses();
@@ -1511,7 +1502,7 @@ public class KtoJava {
                 "        json.put(\"result\", solution);\n" +
                 "\n" +
                 "        if ( c.baosErr.toString().length() > 3 ) {\n" +
-                "            JSONArray jarr = json.getJSONArray(\"Solver Errors\");\n" +
+                "            JSONArray jarr = json.has(\"solverErrors\") ? json.getJSONArray(\"solverErrors\") : null;\n" +
                 "            if (jarr == null) jarr = new JSONArray();\n" +
                 "            jarr.put(c.baosErr);\n" +
                 "            json.put(\"Solver Errors\", jarr);\n" +
@@ -1795,6 +1786,10 @@ public class KtoJava {
                 JavaConversions.mapAsJavaMap( Frontend.getDeclDict( k ) );
         JSONObject tree = new JSONObject();
         JSONArray topDecls = new JSONArray();
+        if ( m == null ) {
+            tree.put( "tree", topDecls );
+            return tree;
+        }
         List< EntityDecl > entities =
                 new ArrayList< EntityDecl >( JavaConversions.asJavaCollection( Frontend.getEntitiesFromModel( m ) ) );
         List< PropertyDecl > properties =
@@ -1830,58 +1825,6 @@ public class KtoJava {
     }
 
 
-    protected abstract static class CaptureStdoutStderr {
-        public abstract Object run();
-
-        public Object result = null;
-
-        PrintStream outPrintStream = null;
-        PrintStream errPrintStream = null;
-
-        public ByteArrayOutputStream baosOut = null;
-        public ByteArrayOutputStream baosErr = null;
-
-        public CaptureStdoutStderr() {
-            baosOut = new ByteArrayOutputStream();
-            baosErr = new ByteArrayOutputStream();
-            outPrintStream = new PrintStream(baosOut);
-            errPrintStream = new PrintStream(baosErr);
-            captureRun();
-        }
-
-        protected void captureRun() {
-            PrintStream oldOut = System.out;
-            PrintStream oldErr = System.err;
-            System.out.flush();
-            System.err.flush();
-            System.setOut(outPrintStream);
-            System.setErr(errPrintStream);
-            result = run();
-            System.out.flush();
-            System.err.flush();
-            System.setOut( oldOut );
-            System.setErr( oldErr );
-        }
-
-        public CaptureStdoutStderr(String outFileName, String errFileName) {
-            try {
-                outPrintStream = new PrintStream( outFileName );
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-                baosOut = new ByteArrayOutputStream();
-                outPrintStream = new PrintStream(baosOut);
-            }
-            try {
-                errPrintStream = new PrintStream(errFileName);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-                baosErr = new ByteArrayOutputStream();
-                errPrintStream = new PrintStream(baosErr);
-            }
-            captureRun();
-        }
-
-    }
 
     public static void main( String[] args ) {
 
@@ -1954,27 +1897,14 @@ public class KtoJava {
             translate = true;
             errorInfo = true;
         }
-
-        if ( containmentTree ) {
-            //System.out.println( "===TREE===" );
-            JSONObject tree = kToContainmentTree( kToExecute );
-            //System.out.println( tree.toString(4) );
-            JSONArray jarr = tree.getJSONArray("tree");
-            if ( jarr != null ) {
-                json.put("tree", jarr);
-            } else {
-                json.put("tree", tree);
-            }
-        }
+        KtoJava kToJava = null;
+        String targetDirectory = "src" + File.separator + packageName;
 
         if ( errorInfo ) {
             //KtoJava kToJava = new KtoJava( kToExecute, packageName, translate );
-            KtoJava kToJava = null;
             final String kToExecuteC = kToExecute;
             final String packageNameC = packageName;
             final boolean translateC = translate;
-//            String kToJavaErr = "kToJavaErr.log";
-//            CaptureStdoutStderr c = new CaptureStdoutStderr(kToJavaOut, kToJavaErr) {
             CaptureStdoutStderr c = new CaptureStdoutStderr() {
                 @Override
                 public Object run() {
@@ -1982,69 +1912,92 @@ public class KtoJava {
                 }
             };
             kToJava = (KtoJava)c.result;
+            targetDirectory = kToJava.getPackageSourcePath(null);
+            File d = new File(targetDirectory);
+            d.mkdirs();
             String out = c.baosOut.toString();
-            FileUtils.stringToFile(out, kToJavaOutLog);
+            FileUtils.stringToFile(out, targetDirectory + File.separator + kToJavaOutLog);
 
             Boolean typeCheckCompleted =
                     !c.baosErr.toString().contains( "Type Check" );
             // Add errors to JSON
-            if ( !typeCheckCompleted ) {
+//            if ( !typeCheckCompleted ) {
                 JSONArray jarr = new JSONArray();
                 jarr.put(c.baosErr.toString());
                 json.put("errors", jarr);
-            }
+//            }
 
-            // Syntax errors not working?
-            List<String> syntaxErrorList = syntaxErrors(c.baosErr);
-            String syntaxErrors = String.join( ",", syntaxErrorList );
-            //System.out.println( "===ERRORS===" );
+            // Syntax errors not working?  Just gives line:col.
+            if ( false ) {
+                List<String> syntaxErrorList = syntaxErrors(c.baosErr);
+                String syntaxErrors = String.join(",", syntaxErrorList);
+                //System.out.println( "===ERRORS===" );
 
-            StringBuffer sb = new StringBuffer();
+                StringBuffer sb = new StringBuffer();
 
-            sb.append( "Syntax Errors: "
-                       + ( syntaxErrors.isEmpty() ? "None" : syntaxErrors )
-                       + "\n" );
-            // Add syntax errors to JSON
-            if ( !syntaxErrorList.isEmpty() ) {
-                JSONArray jarr = new JSONArray();
+                sb.append("Syntax Errors: "
+                        + (syntaxErrors.isEmpty() ? "None" : syntaxErrors)
+                        + "\n");
+                // Add syntax errors to JSON
+//              if ( !syntaxErrorList.isEmpty() ) {
+                jarr = new JSONArray();
                 for (String se : syntaxErrorList) {
                     jarr.put(se);
                 }
-                json.put("Syntax Errors", jarr);
-            }
-
-            if ( !typeCheckCompleted ) {
-                sb.append( "Input k did not type check\n" );
-            }
-//            System.out.flush();
-//            System.setOut( oldOut );
-//            System.setErr( oldErr );
-            //System.out.println( sb );
-
-            if ( translate ) {
-                //kToJava.writeFiles( kToJava, "/Users/bclement/git/kservices" );
-                final KtoJava k2j = kToJava;
-                c = new CaptureStdoutStderr() {
-                    @Override
-                    public Object run() {
-                        k2j.writeFiles( k2j, "/Users/bclement/git/kservices" );
-                        return null;
-                    }
-                };
-                if ( c.baosErr.toString().length() > 3 ) {
-                    JSONArray jarr = json.getJSONArray("errors");
-                    if (jarr == null) jarr = new JSONArray();
-                    jarr.put(c.baosErr);
-                    json.put("errors", jarr);
+                json.put("syntaxErrors", jarr);
+//              }
+                if ( !typeCheckCompleted ) {
+                    sb.append( "Input k did not type check\n" );
                 }
-                String outWrite = c.baosOut.toString();
-                FileUtils.stringToFile(outWrite, writeJavaOutLog);
             }
 
         }
+        if ( translate ) {
+            final KtoJava k2j = kToJava;
+            CaptureStdoutStderr c = new CaptureStdoutStderr() {
+                @Override
+                public Object run() {
+                    k2j.writeFiles( k2j, null );
+                    return null;
+                }
+            };
+            JSONArray jarr = json.has("errors") ? json.getJSONArray("errors") : null;
+            if (jarr == null) jarr = new JSONArray();
+            jarr.put(c.baosErr);
+            json.put("errors", jarr);
+            String outWrite = c.baosOut.toString();
+            FileUtils.stringToFile(outWrite, targetDirectory + File.separator + writeJavaOutLog);
+        }
+        if ( containmentTree ) {
+            //System.out.println( "===TREE===" );
+            JSONObject tree = new JSONObject();
+            try {
+                tree = kToContainmentTree(kToExecute);
+            } catch (Throwable t) {
+                if (!errorInfo) {
+                    JSONArray jarr = json.has("errors") ? json.getJSONArray("errors") : null;
+                    if (jarr == null) jarr = new JSONArray();
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    PrintWriter pw = new PrintWriter(baos);
+                    t.printStackTrace(pw);
+                    jarr.put(baos.toString());
+                    json.put("errors", jarr);
+                }
+            }
+            //System.out.println( tree.toString(4) );
+            JSONArray jarr = json.has("tree") ? tree.getJSONArray("tree") : null;
+            if ( jarr != null ) {
+                json.put("tree", jarr);
+            } else {
+                json.put("tree", tree);
+            }
+
+        }
+
         System.out.println(json.toString(4));
     }
 
+    // Syntax errors not working?  Just gives line:col.
     public static List< String > syntaxErrors( ByteArrayOutputStream baos ) {
         return syntaxErrors(baos.toString() );
     }
