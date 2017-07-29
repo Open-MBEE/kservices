@@ -57,9 +57,10 @@ else
       solveOutput='{}'
       jsonOut=$kToJavaOutput
     else
-      jsonOut="{\n  ${kToJavaOutput:1: ${#kToJavaOutput}-2},\n  ${solveOutput:1: ${#solveOutput}-2}\n}"
+      jsonOut="{  ${kToJavaOutput:1: ${#kToJavaOutput}-2},  ${solveOutput:1: ${#solveOutput}-2}}"
     fi
 fi
 
-echo $jsonOut
+echo '**************'
+printf "%s" "$jsonOut"
 
