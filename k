@@ -26,73 +26,40 @@ done
    
 
 
-javac -classpath ${HOME}/git/kservices/target/classes:${HOME}/git/Klang/target/classes:${HOME}/git/Klang/src/antlr-4.4-complete.jar:${m2}/org/antlr/antlr4/4.5/antlr4-4.5.jar:${m2}/org/antlr/antlr4-runtime/4.5/antlr4-runtime-4.5.jar:${m2}/org/abego/treelayout/org.abego.treelayout.core/1.0.1/org.abego.treelayout.core-1.0.1.jar:${m2}/org/antlr/antlr-runtime/3.5.2/antlr-runtime-3.5.2.jar:${m2}/org/antlr/ST4/4.0.8/ST4-4.0.8.jar:${m2}/log4j/log4j/1.2.16/log4j-1.2.16.jar:${HOME}/git/Klang/lib/com.microsoft.z3.jar:${m2}/javax/servlet/servlet-api/2.4/servlet-api-2.4.jar:${m2}/org/eclipse/jetty/jetty-server/9.2.12.v20150709/jetty-server-9.2.12.v20150709.jar:${m2}/javax/servlet/javax.servlet-api/3.1.0/javax.servlet-api-3.1.0.jar:${m2}/org/eclipse/jetty/jetty-http/9.2.12.v20150709/jetty-http-9.2.12.v20150709.jar:${m2}/org/eclipse/jetty/jetty-util/9.2.12.v20150709/jetty-util-9.2.12.v20150709.jar:${m2}/org/eclipse/jetty/jetty-io/9.2.12.v20150709/jetty-io-9.2.12.v20150709.jar:${m2}/org/scala-lang/scala-library/2.11.8/scala-library-2.11.8.jar:${m2}/org/scala-lang/scala-actors/2.11.8/scala-actors-2.11.8.jar:${m2}/org/scala-lang/modules/scala-xml_2.11/1.0.3/scala-xml_2.11-1.0.3.jar:${m2}/org/scala-lang/modules/scala-parser-combinators_2.11/1.0.3/scala-parser-combinators_2.11-1.0.3.jar:${m2}/org/scala-lang/modules/scala-swing_2.11/1.0.1/scala-swing_2.11-1.0.1.jar:${HOME}/git/bae/target/classes:/private/var/folders/bx/c5nzpxn14fqdplw7hbznyx0xgnhpqy/T/AppTranslocation/E7A90B53-9C5E-48BD-909F-383F1A03D8AC/d/Eclipse.app/Contents/Eclipse/plugins/org.junit_4.12.0.v201504281640/junit.jar:/private/var/folders/bx/c5nzpxn14fqdplw7hbznyx0xgnhpqy/T/AppTranslocation/E7A90B53-9C5E-48BD-909F-383F1A03D8AC/d/Eclipse.app/Contents/Eclipse/plugins/org.hamcrest.core_1.3.0.v201303031735.jar:${m2}/gov/nasa/jpl/mbee/util/mbee_util/2.3.4-SNAPSHOT/mbee_util-2.3.4-SNAPSHOT.jar:${m2}/org/json/json/20140107/json-20140107.jar${m2}/org/json/json/20140107/json-20140107.jar:${m2}/org/apache/commons/commons-lang3/3.0/commons-lang3-3.0.jar:${HOME}/git/sysml/target/classes:${HOME}/git/util/bin:${m2}/junit/junit/4.8.1/junit-4.8.1.jar:${m2}/org/apache/commons/commons-collections4/4.0/commons-collections4-4.0.jar:${m2}/org/eclipse/emf/org.eclipse.emf.ecore/2.9.1-v20130827-0309/org.eclipse.emf.ecore-2.9.1-v20130827-0309.jar:${m2}/concurrent/concurrent/1.3.3/concurrent-1.3.3.jar:${m2}/org/scijava/jython-shaded/2.5.3/jython-shaded-2.5.3.jar:${m2}/log4j/log4j/1.2.17/log4j-1.2.17.jar:${m2}/gov/nasa/jpl/mbee/sysml/sysml/2.3.4-SNAPSHOT/sysml-2.3.4-SNAPSHOT.jar:${m2}/gov/nasa/jpl/mbee/bae/bae/2.3.4-SNAPSHOT/bae-2.3.4-SNAPSHOT.jar ${HOME}/git/kservices/src/gov/nasa/jpl/kservices/*.java &&
+javac -nowarn -classpath ${HOME}/git/kservices/target/classes:${HOME}/git/Klang/target/classes:${HOME}/git/Klang/src/antlr-4.4-complete.jar:${m2}/org/antlr/antlr4/4.5/antlr4-4.5.jar:${m2}/org/antlr/antlr4-runtime/4.5/antlr4-runtime-4.5.jar:${m2}/org/abego/treelayout/org.abego.treelayout.core/1.0.1/org.abego.treelayout.core-1.0.1.jar:${m2}/org/antlr/antlr-runtime/3.5.2/antlr-runtime-3.5.2.jar:${m2}/org/antlr/ST4/4.0.8/ST4-4.0.8.jar:${m2}/log4j/log4j/1.2.16/log4j-1.2.16.jar:${HOME}/git/Klang/lib/com.microsoft.z3.jar:${m2}/javax/servlet/servlet-api/2.4/servlet-api-2.4.jar:${m2}/org/eclipse/jetty/jetty-server/9.2.12.v20150709/jetty-server-9.2.12.v20150709.jar:${m2}/javax/servlet/javax.servlet-api/3.1.0/javax.servlet-api-3.1.0.jar:${m2}/org/eclipse/jetty/jetty-http/9.2.12.v20150709/jetty-http-9.2.12.v20150709.jar:${m2}/org/eclipse/jetty/jetty-util/9.2.12.v20150709/jetty-util-9.2.12.v20150709.jar:${m2}/org/eclipse/jetty/jetty-io/9.2.12.v20150709/jetty-io-9.2.12.v20150709.jar:${m2}/org/scala-lang/scala-library/2.11.8/scala-library-2.11.8.jar:${m2}/org/scala-lang/scala-actors/2.11.8/scala-actors-2.11.8.jar:${m2}/org/scala-lang/modules/scala-xml_2.11/1.0.3/scala-xml_2.11-1.0.3.jar:${m2}/org/scala-lang/modules/scala-parser-combinators_2.11/1.0.3/scala-parser-combinators_2.11-1.0.3.jar:${m2}/org/scala-lang/modules/scala-swing_2.11/1.0.1/scala-swing_2.11-1.0.1.jar:${HOME}/git/bae/target/classes:/private/var/folders/bx/c5nzpxn14fqdplw7hbznyx0xgnhpqy/T/AppTranslocation/E7A90B53-9C5E-48BD-909F-383F1A03D8AC/d/Eclipse.app/Contents/Eclipse/plugins/org.junit_4.12.0.v201504281640/junit.jar:/private/var/folders/bx/c5nzpxn14fqdplw7hbznyx0xgnhpqy/T/AppTranslocation/E7A90B53-9C5E-48BD-909F-383F1A03D8AC/d/Eclipse.app/Contents/Eclipse/plugins/org.hamcrest.core_1.3.0.v201303031735.jar:${m2}/gov/nasa/jpl/mbee/util/mbee_util/2.3.4-SNAPSHOT/mbee_util-2.3.4-SNAPSHOT.jar:${m2}/org/json/json/20140107/json-20140107.jar${m2}/org/json/json/20140107/json-20140107.jar:${m2}/org/apache/commons/commons-lang3/3.0/commons-lang3-3.0.jar:${HOME}/git/sysml/target/classes:${HOME}/git/util/bin:${m2}/junit/junit/4.8.1/junit-4.8.1.jar:${m2}/org/apache/commons/commons-collections4/4.0/commons-collections4-4.0.jar:${m2}/org/eclipse/emf/org.eclipse.emf.ecore/2.9.1-v20130827-0309/org.eclipse.emf.ecore-2.9.1-v20130827-0309.jar:${m2}/concurrent/concurrent/1.3.3/concurrent-1.3.3.jar:${m2}/org/scijava/jython-shaded/2.5.3/jython-shaded-2.5.3.jar:${m2}/log4j/log4j/1.2.17/log4j-1.2.17.jar:${m2}/gov/nasa/jpl/mbee/sysml/sysml/2.3.4-SNAPSHOT/sysml-2.3.4-SNAPSHOT.jar:${m2}/gov/nasa/jpl/mbee/bae/bae/2.3.4-SNAPSHOT/bae-2.3.4-SNAPSHOT.jar ${HOME}/git/kservices/src/gov/nasa/jpl/kservices/*.java &&
 
 kToJavaOutput=`java -Dfile.encoding=UTF-8 -classpath ${HOME}/git/kservices/target/classes:${HOME}/git/Klang/target/classes:${HOME}/git/Klang/src/antlr-4.4-complete.jar:${m2}/log4j/log4j/1.2.17/log4j-1.2.17.jar:${m2}/gov/nasa/jpl/mbee/sysml/sysml/2.3.4-SNAPSHOT/sysml-2.3.4-SNAPSHOT.jar:${m2}/gov/nasa/jpl/mbee/bae/bae/2.3.4-SNAPSHOT/bae-2.3.4-SNAPSHOT.jar:${m2}/org/antlr/antlr4/4.5/antlr4-4.5.jar:${m2}/org/antlr/antlr4-runtime/4.5/antlr4-runtime-4.5.jar:${m2}/org/abego/treelayout/org.abego.treelayout.core/1.0.1/org.abego.treelayout.core-1.0.1.jar:${m2}/org/antlr/antlr-runtime/3.5.2/antlr-runtime-3.5.2.jar:${m2}/org/antlr/ST4/4.0.8/ST4-4.0.8.jar:${m2}/log4j/log4j/1.2.16/log4j-1.2.16.jar:${HOME}/git/Klang/lib/com.microsoft.z3.jar:${m2}/javax/servlet/servlet-api/2.4/servlet-api-2.4.jar:${m2}/org/eclipse/jetty/jetty-server/9.2.12.v20150709/jetty-server-9.2.12.v20150709.jar:${m2}/javax/servlet/javax.servlet-api/3.1.0/javax.servlet-api-3.1.0.jar:${m2}/org/eclipse/jetty/jetty-http/9.2.12.v20150709/jetty-http-9.2.12.v20150709.jar:${m2}/org/eclipse/jetty/jetty-util/9.2.12.v20150709/jetty-util-9.2.12.v20150709.jar:${m2}/org/eclipse/jetty/jetty-io/9.2.12.v20150709/jetty-io-9.2.12.v20150709.jar:${m2}/org/scala-lang/scala-library/2.11.8/scala-library-2.11.8.jar:${m2}/org/scala-lang/scala-actors/2.11.8/scala-actors-2.11.8.jar:${m2}/org/scala-lang/modules/scala-xml_2.11/1.0.3/scala-xml_2.11-1.0.3.jar:${m2}/org/scala-lang/modules/scala-parser-combinators_2.11/1.0.3/scala-parser-combinators_2.11-1.0.3.jar:${m2}/org/scala-lang/modules/scala-swing_2.11/1.0.1/scala-swing_2.11-1.0.1.jar:${HOME}/git/bae/target/classes:/private/var/folders/bx/c5nzpxn14fqdplw7hbznyx0xgnhpqy/T/AppTranslocation/E7A90B53-9C5E-48BD-909F-383F1A03D8AC/d/Eclipse.app/Contents/Eclipse/plugins/org.junit_4.12.0.v201504281640/junit.jar:/private/var/folders/bx/c5nzpxn14fqdplw7hbznyx0xgnhpqy/T/AppTranslocation/E7A90B53-9C5E-48BD-909F-383F1A03D8AC/d/Eclipse.app/Contents/Eclipse/plugins/org.hamcrest.core_1.3.0.v201303031735.jar:${m2}/gov/nasa/jpl/mbee/util/mbee_util/2.3.4-SNAPSHOT/mbee_util-2.3.4-SNAPSHOT.jar:${m2}/org/json/json/20140107/json-20140107.jar:${m2}/org/apache/commons/commons-lang3/3.0/commons-lang3-3.0.jar:${HOME}/git/sysml/target/classes:${HOME}/git/util/bin:${m2}/junit/junit/4.8.1/junit-4.8.1.jar:${m2}/org/apache/commons/commons-collections4/4.0/commons-collections4-4.0.jar:${m2}/org/eclipse/emf/org.eclipse.emf.ecore/2.9.1-v20130827-0309/org.eclipse.emf.ecore-2.9.1-v20130827-0309.jar:${m2}/concurrent/concurrent/1.3.3/concurrent-1.3.3.jar:${m2}/org/scijava/jython-shaded/2.5.3/jython-shaded-2.5.3.jar:${HOME}/git/kservices/src gov.nasa.jpl.kservices.KtoJava "$@"`
 
 solveOutput=
 if [ "$solve" = true ] ; then 
 
-	javac -classpath ${HOME}/git/kservices/target/classes:${HOME}/git/Klang/target/classes:${HOME}/git/Klang/src/antlr-4.4-complete.jar:${m2}/org/antlr/antlr4/4.5/antlr4-4.5.jar:${m2}/org/antlr/antlr4-runtime/4.5/antlr4-runtime-4.5.jar:${m2}/org/abego/treelayout/org.abego.treelayout.core/1.0.1/org.abego.treelayout.core-1.0.1.jar:${m2}/org/antlr/antlr-runtime/3.5.2/antlr-runtime-3.5.2.jar:${m2}/org/antlr/ST4/4.0.8/ST4-4.0.8.jar:${m2}/log4j/log4j/1.2.16/log4j-1.2.16.jar:${HOME}/git/Klang/lib/com.microsoft.z3.jar:${m2}/javax/servlet/servlet-api/2.4/servlet-api-2.4.jar:${m2}/org/eclipse/jetty/jetty-server/9.2.12.v20150709/jetty-server-9.2.12.v20150709.jar:${m2}/javax/servlet/javax.servlet-api/3.1.0/javax.servlet-api-3.1.0.jar:${m2}/org/eclipse/jetty/jetty-http/9.2.12.v20150709/jetty-http-9.2.12.v20150709.jar:${m2}/org/eclipse/jetty/jetty-util/9.2.12.v20150709/jetty-util-9.2.12.v20150709.jar:${m2}/org/eclipse/jetty/jetty-io/9.2.12.v20150709/jetty-io-9.2.12.v20150709.jar:${m2}/org/scala-lang/scala-library/2.11.8/scala-library-2.11.8.jar:${m2}/org/scala-lang/scala-actors/2.11.8/scala-actors-2.11.8.jar:${m2}/org/scala-lang/modules/scala-xml_2.11/1.0.3/scala-xml_2.11-1.0.3.jar:${m2}/org/scala-lang/modules/scala-parser-combinators_2.11/1.0.3/scala-parser-combinators_2.11-1.0.3.jar:${m2}/org/scala-lang/modules/scala-swing_2.11/1.0.1/scala-swing_2.11-1.0.1.jar:${HOME}/git/bae/target/classes:/private/var/folders/bx/c5nzpxn14fqdplw7hbznyx0xgnhpqy/T/AppTranslocation/E7A90B53-9C5E-48BD-909F-383F1A03D8AC/d/Eclipse.app/Contents/Eclipse/plugins/org.junit_4.12.0.v201504281640/junit.jar:/private/var/folders/bx/c5nzpxn14fqdplw7hbznyx0xgnhpqy/T/AppTranslocation/E7A90B53-9C5E-48BD-909F-383F1A03D8AC/d/Eclipse.app/Contents/Eclipse/plugins/org.hamcrest.core_1.3.0.v201303031735.jar:${m2}/gov/nasa/jpl/mbee/util/mbee_util/2.3.4-SNAPSHOT/mbee_util-2.3.4-SNAPSHOT.jar:${m2}/org/json/json/20140107/json-20140107.jar:${m2}/org/apache/commons/commons-lang3/3.0/commons-lang3-3.0.jar:${HOME}/git/sysml/target/classes:${HOME}/git/util/bin:${m2}/junit/junit/4.8.1/junit-4.8.1.jar:${m2}/org/apache/commons/commons-collections4/4.0/commons-collections4-4.0.jar:${m2}/org/eclipse/emf/org.eclipse.emf.ecore/2.9.1-v20130827-0309/org.eclipse.emf.ecore-2.9.1-v20130827-0309.jar:${m2}/concurrent/concurrent/1.3.3/concurrent-1.3.3.jar:${m2}/org/scijava/jython-shaded/2.5.3/jython-shaded-2.5.3.jar:${m2}/log4j/log4j/1.2.17/log4j-1.2.17.jar:${m2}/gov/nasa/jpl/mbee/sysml/sysml/2.3.4-SNAPSHOT/sysml-2.3.4-SNAPSHOT.jar:${m2}/gov/nasa/jpl/mbee/bae/bae/2.3.4-SNAPSHOT/bae-2.3.4-SNAPSHOT.jar ${HOME}/git/kservices/src/${pkg}/*.java
+	javac -nowarn -classpath ${HOME}/git/kservices/target/classes:${HOME}/git/Klang/target/classes:${HOME}/git/Klang/src/antlr-4.4-complete.jar:${m2}/org/antlr/antlr4/4.5/antlr4-4.5.jar:${m2}/org/antlr/antlr4-runtime/4.5/antlr4-runtime-4.5.jar:${m2}/org/abego/treelayout/org.abego.treelayout.core/1.0.1/org.abego.treelayout.core-1.0.1.jar:${m2}/org/antlr/antlr-runtime/3.5.2/antlr-runtime-3.5.2.jar:${m2}/org/antlr/ST4/4.0.8/ST4-4.0.8.jar:${m2}/log4j/log4j/1.2.16/log4j-1.2.16.jar:${HOME}/git/Klang/lib/com.microsoft.z3.jar:${m2}/javax/servlet/servlet-api/2.4/servlet-api-2.4.jar:${m2}/org/eclipse/jetty/jetty-server/9.2.12.v20150709/jetty-server-9.2.12.v20150709.jar:${m2}/javax/servlet/javax.servlet-api/3.1.0/javax.servlet-api-3.1.0.jar:${m2}/org/eclipse/jetty/jetty-http/9.2.12.v20150709/jetty-http-9.2.12.v20150709.jar:${m2}/org/eclipse/jetty/jetty-util/9.2.12.v20150709/jetty-util-9.2.12.v20150709.jar:${m2}/org/eclipse/jetty/jetty-io/9.2.12.v20150709/jetty-io-9.2.12.v20150709.jar:${m2}/org/scala-lang/scala-library/2.11.8/scala-library-2.11.8.jar:${m2}/org/scala-lang/scala-actors/2.11.8/scala-actors-2.11.8.jar:${m2}/org/scala-lang/modules/scala-xml_2.11/1.0.3/scala-xml_2.11-1.0.3.jar:${m2}/org/scala-lang/modules/scala-parser-combinators_2.11/1.0.3/scala-parser-combinators_2.11-1.0.3.jar:${m2}/org/scala-lang/modules/scala-swing_2.11/1.0.1/scala-swing_2.11-1.0.1.jar:${HOME}/git/bae/target/classes:/private/var/folders/bx/c5nzpxn14fqdplw7hbznyx0xgnhpqy/T/AppTranslocation/E7A90B53-9C5E-48BD-909F-383F1A03D8AC/d/Eclipse.app/Contents/Eclipse/plugins/org.junit_4.12.0.v201504281640/junit.jar:/private/var/folders/bx/c5nzpxn14fqdplw7hbznyx0xgnhpqy/T/AppTranslocation/E7A90B53-9C5E-48BD-909F-383F1A03D8AC/d/Eclipse.app/Contents/Eclipse/plugins/org.hamcrest.core_1.3.0.v201303031735.jar:${m2}/gov/nasa/jpl/mbee/util/mbee_util/2.3.4-SNAPSHOT/mbee_util-2.3.4-SNAPSHOT.jar:${m2}/org/json/json/20140107/json-20140107.jar:${m2}/org/apache/commons/commons-lang3/3.0/commons-lang3-3.0.jar:${HOME}/git/sysml/target/classes:${HOME}/git/util/bin:${m2}/junit/junit/4.8.1/junit-4.8.1.jar:${m2}/org/apache/commons/commons-collections4/4.0/commons-collections4-4.0.jar:${m2}/org/eclipse/emf/org.eclipse.emf.ecore/2.9.1-v20130827-0309/org.eclipse.emf.ecore-2.9.1-v20130827-0309.jar:${m2}/concurrent/concurrent/1.3.3/concurrent-1.3.3.jar:${m2}/org/scijava/jython-shaded/2.5.3/jython-shaded-2.5.3.jar:${m2}/log4j/log4j/1.2.17/log4j-1.2.17.jar:${m2}/gov/nasa/jpl/mbee/sysml/sysml/2.3.4-SNAPSHOT/sysml-2.3.4-SNAPSHOT.jar:${m2}/gov/nasa/jpl/mbee/bae/bae/2.3.4-SNAPSHOT/bae-2.3.4-SNAPSHOT.jar ${HOME}/git/kservices/src/${pkg}/*.java
 
 	solveOutput=`java -classpath ${HOME}/git/kservices/target/classes:${HOME}/git/Klang/target/classes:${HOME}/git/Klang/src/antlr-4.4-complete.jar:${m2}/org/antlr/antlr4/4.5/antlr4-4.5.jar:${m2}/org/antlr/antlr4-runtime/4.5/antlr4-runtime-4.5.jar:${m2}/org/abego/treelayout/org.abego.treelayout.core/1.0.1/org.abego.treelayout.core-1.0.1.jar:${m2}/org/antlr/antlr-runtime/3.5.2/antlr-runtime-3.5.2.jar:${m2}/org/antlr/ST4/4.0.8/ST4-4.0.8.jar:${m2}/log4j/log4j/1.2.16/log4j-1.2.16.jar:${HOME}/git/Klang/lib/com.microsoft.z3.jar:${m2}/javax/servlet/servlet-api/2.4/servlet-api-2.4.jar:${m2}/org/eclipse/jetty/jetty-server/9.2.12.v20150709/jetty-server-9.2.12.v20150709.jar:${m2}/javax/servlet/javax.servlet-api/3.1.0/javax.servlet-api-3.1.0.jar:${m2}/org/eclipse/jetty/jetty-http/9.2.12.v20150709/jetty-http-9.2.12.v20150709.jar:${m2}/org/eclipse/jetty/jetty-util/9.2.12.v20150709/jetty-util-9.2.12.v20150709.jar:${m2}/org/eclipse/jetty/jetty-io/9.2.12.v20150709/jetty-io-9.2.12.v20150709.jar:${m2}/org/scala-lang/scala-library/2.11.8/scala-library-2.11.8.jar:${m2}/org/scala-lang/scala-actors/2.11.8/scala-actors-2.11.8.jar:${m2}/org/scala-lang/modules/scala-xml_2.11/1.0.3/scala-xml_2.11-1.0.3.jar:${m2}/org/scala-lang/modules/scala-parser-combinators_2.11/1.0.3/scala-parser-combinators_2.11-1.0.3.jar:${m2}/org/scala-lang/modules/scala-swing_2.11/1.0.1/scala-swing_2.11-1.0.1.jar:${HOME}/git/bae/target/classes:/private/var/folders/bx/c5nzpxn14fqdplw7hbznyx0xgnhpqy/T/AppTranslocation/E7A90B53-9C5E-48BD-909F-383F1A03D8AC/d/Eclipse.app/Contents/Eclipse/plugins/org.junit_4.12.0.v201504281640/junit.jar:/private/var/folders/bx/c5nzpxn14fqdplw7hbznyx0xgnhpqy/T/AppTranslocation/E7A90B53-9C5E-48BD-909F-383F1A03D8AC/d/Eclipse.app/Contents/Eclipse/plugins/org.hamcrest.core_1.3.0.v201303031735.jar:${m2}/gov/nasa/jpl/mbee/util/mbee_util/2.3.4-SNAPSHOT/mbee_util-2.3.4-SNAPSHOT.jar:${m2}/org/json/json/20140107/json-20140107.jar:${m2}/org/apache/commons/commons-lang3/3.0/commons-lang3-3.0.jar:${HOME}/git/sysml/target/classes:${HOME}/git/util/bin:${m2}/junit/junit/4.8.1/junit-4.8.1.jar:${m2}/org/apache/commons/commons-collections4/4.0/commons-collections4-4.0.jar:${m2}/org/eclipse/emf/org.eclipse.emf.ecore/2.9.1-v20130827-0309/org.eclipse.emf.ecore-2.9.1-v20130827-0309.jar:${m2}/concurrent/concurrent/1.3.3/concurrent-1.3.3.jar:${m2}/org/scijava/jython-shaded/2.5.3/jython-shaded-2.5.3.jar:${m2}/log4j/log4j/1.2.17/log4j-1.2.17.jar:${m2}/gov/nasa/jpl/mbee/sysml/sysml/2.3.4-SNAPSHOT/sysml-2.3.4-SNAPSHOT.jar:${m2}/gov/nasa/jpl/mbee/bae/bae/2.3.4-SNAPSHOT/bae-2.3.4-SNAPSHOT.jar:${HOME}/git/kservices/src ${pkg}.Main`
 
 
-        rm ${HOME}/git/kservices/target/classes/${pkg}/* || true
+    rm -f ${HOME}/git/kservices/target/classes/${pkg}/* || true
 
-	#rm ${HOME}/git/kservices/src/${pkg}/* || true
+	#rm -f ${HOME}/git/kservices/src/${pkg}/* || true
 
-	rm ${HOME}/git/kservices/src/gov/nasa/jpl/kservices/*.class || true
+	rm -f ${HOME}/git/kservices/src/gov/nasa/jpl/kservices/*.class || true
 fi
 
-
-#echo kToJavaOutput = $kToJavaOutput
-#echo solveOutput = $solveOutput
-#
-##kToJavaOutput=`echo $kToJavaOutput | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\\\\\n/g'`
-##solveOutput=`echo $solveOutput | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\\\\\n/g'`
-#
-#kToJavaOutput=`echo "$kToJavaOutput" | tr '\n' '?'`
-#solveOutput=`echo "$solveOutput" | tr '\n' '?'`
-
-echo "kToJavaOutput = $kToJavaOutput"
-echo "solveOutput = $solveOutput"
 #set -x
-jsonOut=$solverOutput
+#echo "kToJavaOutput = $kToJavaOutput"
+#echo "solveOutput = $solveOutput"
+
+jsonOut=$solveOutput
 if [ -z "$kToJavaOutput" ] || [ "$kToJavaOutput" = "?" ]; then
-  kToJavaOutput='{}'
+    kToJavaOutput='{}'
 else
-
-if [ -z "$solveOutput" ]; then
-  solveOutput='{}'
-  jsonOut=$kToJavaOutput
-else
-  jsonOut="\{\n  ${kToJavaOutput:1: ${#kToJavaOutput}-2},\n  ${solveOutput:1: ${#solveOutput}-2}\n\}"
-
-
-##echo "kToJavaOutPut = $kToJavaOutPut"
-##echo "solveOutput = $solveOutput"
-#
-##echo "import json" > my.py
-##echo "m1 = json.loads('$kToJavaOutPut')" >> my.py
-#echo "m1 = '$kToJavaOutput'" > my.py
-##echo "m2 = json.loads('$solveOutput')" >> my.py
-#echo "m2 = '$solveOutput'" >> my.py
-#
-#echo "m3 = \'\{\n  \' + m1[1,-1] + \',\n  \' + m2[1:-1] + \'\n\}\'" >> my.py
-#echo 'print(m3)' >> my.py
-#jsonOut=`python my.py`
-#
-## echo 'm1.update(m2)' >> my.py
-## echo 'print json.dumps(m1)' >> my.py
-### echo "pp = $pp"
-### echo $pp > my.py
-#
-## allOutput=`printf $pp | python`
-## allOutput=`python my.py`
-
-fi
+    if [ -z "$solveOutput" ]; then
+      solveOutput='{}'
+      jsonOut=$kToJavaOutput
+    else
+      jsonOut="{\n  ${kToJavaOutput:1: ${#kToJavaOutput}-2},\n  ${solveOutput:1: ${#solveOutput}-2}\n}"
+    fi
 fi
 
-echo "jsonOut = $jsonOut"
+echo $jsonOut
 

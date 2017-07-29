@@ -1959,8 +1959,12 @@ public class KtoJava {
             //System.out.println( "===TREE===" );
             JSONObject tree = kToContainmentTree( kToExecute );
             //System.out.println( tree.toString(4) );
-            json.put("tree", tree );
-
+            JSONArray jarr = tree.getJSONArray("tree");
+            if ( jarr != null ) {
+                json.put("tree", jarr);
+            } else {
+                json.put("tree", tree);
+            }
         }
 
         if ( errorInfo ) {
@@ -2038,7 +2042,7 @@ public class KtoJava {
             }
 
         }
-
+        System.out.println(json.toString(4));
     }
 
     public static List< String > syntaxErrors( ByteArrayOutputStream baos ) {
