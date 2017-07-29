@@ -1487,6 +1487,7 @@ public class KtoJava {
 //        stmtsMain.append( "scenario.satisfy( true, null );" );
 //        stmtsMain.append( "System.out.println(\"===RESULTS===\" );" );
 //        stmtsMain.append( "System.out.println(scenario.kSolutionString());" );
+        String targetDirectory = getPackageSourcePath( null );
         String y = "CaptureStdoutStderr c = new CaptureStdoutStderr() {\n" +
                 "            @Override\n" +
                 "            public Object run() {\n" +
@@ -1502,7 +1503,7 @@ public class KtoJava {
                 "        Main s = (Main) c.result;\n" +
                 "\n" +
                 "        String out = c.baosOut.toString();\n" +
-                "        FileUtils.stringToFile(out, \"" + packageName + "solverOutput.log\");\n" +
+                "        FileUtils.stringToFile(out, \"" + targetDirectory + File.separator + "solverOutput.log\");\n" +
                 "\n" +
                 "        JSONObject json = new JSONObject();\n" +
                 "\n" +

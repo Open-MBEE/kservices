@@ -45,25 +45,38 @@ if [ "$solve" = true ] ; then
 	rm ${HOME}/git/kservices/src/gov/nasa/jpl/kservices/*.class || true
 fi
 
-if [ -z "$kToJavaOutPut" ]; then
+
+#echo kToJavaOutPut = $kToJavaOutPut
+#echo solveOutput = $solveOutput
+#
+##kToJavaOutPut=`echo $kToJavaOutPut | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\\\\\n/g'`
+##solveOutput=`echo $solveOutput | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\\\\\n/g'`
+#
+#kToJavaOutPut=`echo "$kToJavaOutPut" | tr '\n' '?'`
+#solveOutput=`echo "$solveOutput" | tr '\n' '?'`
+
+echo "kToJavaOutPut = $kToJavaOutPut"
+echo "solveOutput = $solveOutput"
+
+if [ -z "$kToJavaOutPut" ] || [ "$kToJavaOutPut" = "?" ]; then
   kToJavaOutPut="{}"
 fi
 if [ -z "$solveOutput" ]; then
   solveOutput="{}"
 fi
 
-kToJavaOutPut=`echo $kToJavaOutPut | sed 's/\n//'`
-solveOutput=`echo $solveOutput | sed 's/\n//'`
+echo "kToJavaOutPut = $kToJavaOutPut"
+echo "solveOutput = $solveOutput"
 
-pp="
-import json\n\
-m1 = json.loads('$kToJavaOutPut')\n\
-m2 = json.loads('$solveOutput')\n\
-m1.update(m2)\n\
-print json.dumps(m1)
-"
-echo "pp = $pp"
+echo "import json" > my.py
+echo "m1 = json.loads('$kToJavaOutPut')" >> my.py
+echo "m2 = json.loads('$solveOutput')" >> my.py
+echo "m1.update(m2)" >> my.py
+echo "print json.dumps(m1)" >> my.py
+#echo "pp = $pp"
+#echo $pp > my.py
 
-allOutput=`echo $pp | python`
+#allOutput=`printf $pp | python`
+allOutput=`python my.py`
 
 echo $allOutput
