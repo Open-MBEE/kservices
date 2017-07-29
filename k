@@ -45,10 +45,25 @@ if [ "$solve" = true ] ; then
 	rm ${HOME}/git/kservices/src/gov/nasa/jpl/kservices/*.class || true
 fi
 
-allOutput=`echo "
-m1 = $kToJavaOutPut
-m1.update($solveOutput)
-print(m1)
-" | python`
+if [ -z "$kToJavaOutPut" ]; then
+  kToJavaOutPut="{}"
+fi
+if [ -z "$solveOutput" ]; then
+  solveOutput="{}"
+fi
+
+kToJavaOutPut=`echo $kToJavaOutPut | sed 's/\n//'`
+solveOutput=`echo $solveOutput | sed 's/\n//'`
+
+pp="
+import json\n\
+m1 = json.loads('$kToJavaOutPut')\n\
+m2 = json.loads('$solveOutput')\n\
+m1.update(m2)\n\
+print json.dumps(m1)
+"
+echo "pp = $pp"
+
+allOutput=`echo $pp | python`
 
 echo $allOutput

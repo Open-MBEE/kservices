@@ -1527,6 +1527,11 @@ public class KtoJava {
                                                                   args ) );
 
         addImport( "gov.nasa.jpl.ae.event.Expression" );
+        addImport("gov.nasa.jpl.ae.util.CaptureStdoutStderr");
+        addImport("gov.nasa.jpl.mbee.util.FileUtils");
+        addImport("org.json.JSONArray");
+        addImport("org.json.JSONObject");
+
 
         addStatements( mainBody, stmtsMain.toString() );
     }
