@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # flags: --tree to get containment tree, --error to get syntax/type errors, --solve to get syntax/type errors and solve
 
@@ -46,37 +46,53 @@ if [ "$solve" = true ] ; then
 fi
 
 
-#echo kToJavaOutPut = $kToJavaOutPut
+#echo kToJavaOutput = $kToJavaOutput
 #echo solveOutput = $solveOutput
 #
-##kToJavaOutPut=`echo $kToJavaOutPut | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\\\\\n/g'`
+##kToJavaOutput=`echo $kToJavaOutput | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\\\\\n/g'`
 ##solveOutput=`echo $solveOutput | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\\\\\n/g'`
 #
-#kToJavaOutPut=`echo "$kToJavaOutPut" | tr '\n' '?'`
+#kToJavaOutput=`echo "$kToJavaOutput" | tr '\n' '?'`
 #solveOutput=`echo "$solveOutput" | tr '\n' '?'`
 
-echo "kToJavaOutPut = $kToJavaOutPut"
+echo "kToJavaOutput = $kToJavaOutput"
 echo "solveOutput = $solveOutput"
+#set -x
+jsonOut=$solverOutput
+if [ -z "$kToJavaOutput" ] || [ "$kToJavaOutput" = "?" ]; then
+  kToJavaOutput='{}'
+else
 
-if [ -z "$kToJavaOutPut" ] || [ "$kToJavaOutPut" = "?" ]; then
-  kToJavaOutPut="{}"
-fi
 if [ -z "$solveOutput" ]; then
-  solveOutput="{}"
+  solveOutput='{}'
+  jsonOut=$kToJavaOutput
+else
+  jsonOut="\{\n  ${kToJavaOutput:1: ${#kToJavaOutput}-2},\n  ${solveOutput:1: ${#solveOutput}-2}\n\}"
+
+
+##echo "kToJavaOutPut = $kToJavaOutPut"
+##echo "solveOutput = $solveOutput"
+#
+##echo "import json" > my.py
+##echo "m1 = json.loads('$kToJavaOutPut')" >> my.py
+#echo "m1 = '$kToJavaOutput'" > my.py
+##echo "m2 = json.loads('$solveOutput')" >> my.py
+#echo "m2 = '$solveOutput'" >> my.py
+#
+#echo "m3 = \'\{\n  \' + m1[1,-1] + \',\n  \' + m2[1:-1] + \'\n\}\'" >> my.py
+#echo 'print(m3)' >> my.py
+#jsonOut=`python my.py`
+#
+## echo 'm1.update(m2)' >> my.py
+## echo 'print json.dumps(m1)' >> my.py
+### echo "pp = $pp"
+### echo $pp > my.py
+#
+## allOutput=`printf $pp | python`
+## allOutput=`python my.py`
+
+fi
 fi
 
-echo "kToJavaOutPut = $kToJavaOutPut"
-echo "solveOutput = $solveOutput"
+echo "jsonOut = $jsonOut"
 
-echo "import json" > my.py
-echo "m1 = json.loads('$kToJavaOutPut')" >> my.py
-echo "m2 = json.loads('$solveOutput')" >> my.py
-echo "m1.update(m2)" >> my.py
-echo "print json.dumps(m1)" >> my.py
-#echo "pp = $pp"
-#echo $pp > my.py
-
-#allOutput=`printf $pp | python`
-allOutput=`python my.py`
-
-echo $allOutput

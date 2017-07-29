@@ -1956,9 +1956,9 @@ public class KtoJava {
         }
 
         if ( containmentTree ) {
-            System.out.println( "===TREE===" );
+            //System.out.println( "===TREE===" );
             JSONObject tree = kToContainmentTree( kToExecute );
-            System.out.println( tree.toString(4) );
+            //System.out.println( tree.toString(4) );
             json.put("tree", tree );
 
         }
@@ -1993,7 +1993,7 @@ public class KtoJava {
             // Syntax errors not working?
             List<String> syntaxErrorList = syntaxErrors(c.baosErr);
             String syntaxErrors = String.join( ",", syntaxErrorList );
-            System.out.println( "===ERRORS===" );
+            //System.out.println( "===ERRORS===" );
 
             StringBuffer sb = new StringBuffer();
 
@@ -2015,7 +2015,7 @@ public class KtoJava {
 //            System.out.flush();
 //            System.setOut( oldOut );
 //            System.setErr( oldErr );
-            System.out.println( sb );
+            //System.out.println( sb );
 
             if ( translate ) {
                 //kToJava.writeFiles( kToJava, "/Users/bclement/git/kservices" );
