@@ -1516,10 +1516,13 @@ public class KtoJava {
                 "        Main s = (Main) c.result;\n" +
                 "\n" +
                 "        String out = c.baosOut.toString();\n" +
-                "        FileUtils.stringToFile(out, \"" + targetDirectory + File.separator + "solverOutput.log\");\n" +
+                "        String path = " + targetDirectory + File.separator + "solverOutput.log\";\n" +
+                "        FileUtils.stringToFile(out, path);\n" +
                 "\n" +
                 "        JSONObject json = new JSONObject();\n" +
                 "\n" +
+                "        File f = new File(path);\n" +
+                "        json.put(\"solverOutFile\",f.getAbsolutePath());\n" +
                 "        JSONObject solution = s.kSolutionJson();\n" +
                 "        json.put(\"result\", solution);\n" +
                 "\n" +
@@ -1532,7 +1535,6 @@ public class KtoJava {
                 "\n" +
                 "        System.out.println(json.toString(4));";
         stmtsMain.append(y);
-
 
         List< Expression > args = new ArrayList< Expression >();
 
@@ -1864,6 +1866,7 @@ public class KtoJava {
         Boolean containmentTree = false;
         Boolean errorInfo = false;
         Boolean translate = false;
+        Boolean verbose = false;
 
         JSONObject json = new JSONObject();
 
@@ -1908,6 +1911,9 @@ public class KtoJava {
                 if ( arg.contains( "error" ) ) {
                     errorInfo = true;
                 }
+                if ( arg.contains( "verbose" ) ) {
+                    verbose = true;
+                }
                 if ( arg.contains( "package" ) ) {
                     packageName = args[ ++i ];
                 }
@@ -1930,24 +1936,42 @@ public class KtoJava {
             CaptureStdoutStderr c = new CaptureStdoutStderr() {
                 @Override
                 public Object run() {
-                    return new KtoJava( kToExecuteC, packageNameC, translateC );
+                    try {
+                        return new KtoJava(kToExecuteC, packageNameC, translateC);
+                    } catch( Throwable t) {
+                        t.printStackTrace();
+                    }
+                    return null;
                 }
             };
+            String out = c.baosOut.toString();
+            String err = c.baosErr.toString();
+            if ( verbose ) {
+                System.err.println(err);
+                System.out.println(out);
+            }
             kToJava = (KtoJava)c.result;
-            targetDirectory = kToJava.getPackageSourcePath(null);
+            if ( kToJava == null ) {
+                targetDirectory = "src" + File.separator + packageName;
+            } else {
+                targetDirectory = kToJava.getPackageSourcePath(null);
+            }
             File d = new File(targetDirectory);
             d.mkdirs();
-            String out = c.baosOut.toString();
-            FileUtils.stringToFile(out, targetDirectory + File.separator + kToJavaOutLog);
+            String path = targetDirectory + File.separator + kToJavaOutLog;
+            FileUtils.stringToFile(out, path);
+            File f = new File(path);
+            json.put("kToJavaOutFile", f.getAbsolutePath());
 
             Boolean typeCheckCompleted =
-                    !c.baosErr.toString().contains( "Type Check" );
+                    !err.contains( "Type Check" );
             // Add errors to JSON
 //            if ( !typeCheckCompleted ) {
                 JSONArray jarr = new JSONArray();
-                jarr.put(c.baosErr.toString());
+                jarr.put(err);
                 json.put("errors", jarr);
 //            }
+
 
             // Syntax errors not working?  Just gives line:col.
             if ( false ) {
@@ -1974,7 +1998,7 @@ public class KtoJava {
             }
 
         }
-        if ( translate ) {
+        if ( translate && kToJava != null ) {
             final KtoJava k2j = kToJava;
             CaptureStdoutStderr c = new CaptureStdoutStderr() {
                 @Override
@@ -1985,10 +2009,17 @@ public class KtoJava {
             };
             JSONArray jarr = json.has("errors") ? json.getJSONArray("errors") : null;
             if (jarr == null) jarr = new JSONArray();
-            jarr.put(c.baosErr);
+            if ( verbose ) {
+                System.err.println(c.baosErr.toString());
+                System.out.println(c.baosErr.toString());
+            }
+            jarr.put(c.baosErr.toString());
             json.put("errors", jarr);
             String outWrite = c.baosOut.toString();
-            FileUtils.stringToFile(outWrite, targetDirectory + File.separator + writeJavaOutLog);
+            String path = targetDirectory + File.separator + writeJavaOutLog;
+            FileUtils.stringToFile(outWrite, path);
+            File f = new File(path);
+            json.put("writeJavaOutFile", f.getAbsolutePath());
         }
         if ( containmentTree ) {
             //System.out.println( "===TREE===" );
@@ -1996,6 +2027,9 @@ public class KtoJava {
             try {
                 tree = kToContainmentTree(kToExecute);
             } catch (Throwable t) {
+                if ( verbose ) {
+                    t.printStackTrace();
+                }
                 if (!errorInfo) {
                     JSONArray jarr = json.has("errors") ? json.getJSONArray("errors") : null;
                     if (jarr == null) jarr = new JSONArray();
@@ -2016,6 +2050,9 @@ public class KtoJava {
 
         }
 
+        if ( verbose ) {
+            System.out.println("JSON output:");
+        }
         System.out.println(json.toString(4));
     }
 
