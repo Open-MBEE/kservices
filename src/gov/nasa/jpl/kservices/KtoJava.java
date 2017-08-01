@@ -512,6 +512,16 @@ public class KtoJava {
                || typeString.equals( "Real" ) || typeString.equals( "String" );
     }
 
+    public boolean isConstructorDecl( PropertyDecl p ) {
+        String type =
+                JavaToConstraintExpression.typeToClass( p.ty().toString() );
+        String value = p.expr().get().toJavaString();
+        if ( value.startsWith( type + "(" ) ) {
+            return true;
+        }
+        return false;
+    }
+
     public ClassData.Param makeParam( PropertyDecl p, EntityDecl e ) {
         String name = p.name();
         String typeOld =
@@ -535,6 +545,9 @@ public class KtoJava {
             }
         } else {
             value = p.expr().get().toJavaString();
+            if (isConstructorDecl(p)) {
+                value = "new " + value;
+            } 
         }
         return new ClassData.Param( name, type, value );
     }
@@ -973,7 +986,7 @@ public class KtoJava {
         }
 
         for ( PropertyDecl property : propertyList ) {
-            ClassData.Param p = makeParam( property, entity, true );
+            ClassData.Param p = makeParam( property, entity );
             f = createParameterField( p, initMembers );
             if ( f != null ) {
                 parameters.add( f );
@@ -1324,7 +1337,6 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.ae.event.DurativeEvent" );
         addImport( "gov.nasa.jpl.ae.event.ParameterListenerImpl" );
         addImport( "gov.nasa.jpl.ae.event.TimeVarying" );
-        addImport( "gov.nasa.jpl.ae.event.TimeVaryingMap" );
         addImport( "gov.nasa.jpl.ae.event.Timeline" );
         addImport( "gov.nasa.jpl.ae.event.Event" );
         addImport( "gov.nasa.jpl.ae.solver.ObjectDomain" );
