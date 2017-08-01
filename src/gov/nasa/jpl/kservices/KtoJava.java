@@ -280,10 +280,17 @@ public class KtoJava {
 
     public void getAllSuperClassNames( String entityName ) {
         Set< String > extendingList = classToParentNames.get( entityName );
-        for ( String e : extendingList ) {
-            getAllSuperClassNames( e );
-            extendingList.addAll( classToParentNames.get( e ) );
+        if (extendingList != null) {
+            for ( String e : extendingList ) {
+                getAllSuperClassNames( e );
+                Set<String> toAdd = classToParentNames.get( e );
+                if (toAdd != null) {
+                    extendingList.addAll( toAdd );
+                }
+                
+            }
         }
+        
     }
 
     public void buildNestingTable( Map< String, String > nestingTable ) {
@@ -346,7 +353,10 @@ public class KtoJava {
             for ( String e : extendingList ) {
                 Map< String, ClassData.Param > otherParams =
                         paramTable.get( getClassName( e ) );
-                params.putAll( otherParams );
+                if (otherParams != null) {
+                    params.putAll( otherParams );
+                }
+                
             }
 
         }
@@ -1339,7 +1349,7 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.ae.event.DurativeEvent" );
         addImport( "gov.nasa.jpl.ae.event.ParameterListenerImpl" );
         addImport( "gov.nasa.jpl.ae.event.TimeVarying" );
-        addImport( "gov.nasa.jpl.ae.event.Timeline" );
+        addImport( "gov.nasa.jpl.ae.event.TimeVaryingMap" );
         addImport( "gov.nasa.jpl.ae.event.Event" );
         addImport( "gov.nasa.jpl.ae.solver.ObjectDomain" );
         addImport( "gov.nasa.jpl.mbee.util.Utils" );
