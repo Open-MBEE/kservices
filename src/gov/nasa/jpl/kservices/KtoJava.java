@@ -1350,6 +1350,8 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.ae.event.ParameterListenerImpl" );
         addImport( "gov.nasa.jpl.ae.event.TimeVarying" );
         addImport( "gov.nasa.jpl.ae.event.TimeVaryingMap" );
+        addImport( "gov.nasa.jpl.ae.event.Timeline" );
+        addImport( "gov.nasa.jpl.ae.event.TimeVaryingFunctionCall" );
         addImport( "gov.nasa.jpl.ae.event.Event" );
         addImport( "gov.nasa.jpl.ae.solver.ObjectDomain" );
         addImport( "gov.nasa.jpl.mbee.util.Utils" );
@@ -1504,6 +1506,9 @@ public class KtoJava {
 //        stmtsMain.append( "System.out.println(scenario.kSolutionString());" );
         String targetDirectory = getPackageSourcePath( null );
         String y = "      JSONObject json = new JSONObject();\n";
+        y += "Timepoint.setUnits(\"milliseconds\");\n" +
+                "Timepoint.setEpoch(\"Mon Mar 10 03:00:00 PDT 2025\");\n" +
+                "Timepoint.setHorizonDuration(109281180000L);\n";
         if ( !processStdoutAndStdError ) {
             y += "\n" +
                     "      Main s = new Main();\n" +
