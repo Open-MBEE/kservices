@@ -271,7 +271,7 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
                     String kToAdd = line.trim().substring( 4 );
                     k.append( "\n" + kToAdd );
 
-                    KtoJava kToJava = new KtoJava( k.toString(), "generatedCode" );
+                    KtoJava kToJava = new KtoJava( k.toString(), "generatedCode", false );
                     kToJava.writeFiles( kToJava, "/Users/ayelaman/git/kservices" );
                 }
                 if ( line.trim().startsWith( "solve" ) ) {

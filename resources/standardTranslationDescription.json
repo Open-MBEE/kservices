@@ -1,0 +1,75 @@
+{
+  "Nullary Function": {
+    "template": "Nullary Function\nfun %!name$s : %returnType$s {\n%body$s\n}",
+    "fields": [
+      "%!&name",
+      "%returnType",
+      "%+body"
+    ],
+    "templateDataSource": {}
+  },
+  "Requirement": {
+    "template": "Requirement\nreq ( %!expr$s )",
+    "fields": [
+      "%!&main",
+      "%+&expr"
+    ],
+    "templateDataSource": {
+      "PARENT_REFERENCE": "$.elements[*]?(.id=^.ownerId).name",
+      "main": "$.elements[*]?(.type=\"Constraint\").id",
+      "expr": "^.specification.body[*]"
+    }
+  },
+  "Variable": {
+    "template": "Variable\nvar %!name$s : %type$s",
+    "fields": [
+      "%!&name",
+      "%&type"
+    ],
+    "templateDataSource": {
+      "PARENT_REFERENCE": "$.elements[*]?(.id=^.ownerId).name",
+      "name": "$.elements[*][?(.type=\"Property\"),?(.type=\"Port\")]?(![.upperValue,.lowerValue].*).name",
+      "type": "$[^.defaultValue.type,[LIB:,$].elements[*]?(.id=^[.typeId,.defaultValue.typeId]).name]"
+    }
+  },
+  "Generalized Class": {
+    "template": "Generalized Class\nclass %!name$s extends %superClass$s {\n  %@content$s\n}",
+    "fields": [
+      "%!&name",
+      "%&superClass",
+      "%+@content"
+    ],
+    "templateDataSource": {
+      "PARENT_REFERENCE": "$.elements[*]?(.id=^.ownerId).name",
+      "superClass": "$.elements[*]?(.type=\"Class\")?(.id=$.elements[*]?(.type=\"Generalization\")?(.specificId=^.id).generalId).name",
+      "name": "$.elements[*][?(.type=\"Class\"),?(.type=\"Diagram\")].name"
+    }
+  },
+  "Set Variable": {
+    "template": "Set Variable\n-- var %!name$s : Set[%type$s]\n-- req %name$s.size() >= %minSize$s && %name$s.size() <= %maxSize$s",
+    "fields": [
+      "%!&name",
+      "%&type",
+      "%&minSize",
+      "%&maxSize"
+    ],
+    "templateDataSource": {
+      "PARENT_REFERENCE": "$.elements[*]?(.id=^.ownerId).name",
+      "name": "$.elements[*][?(.type=\"Property\"),?(.type=\"Port\")].name",
+      "minSize": "^.lowerValue.value",
+      "maxSize": "^.upperValue.value",
+      "type": "$[^.defaultValue.type,[LIB:,$].elements[*]?(.id=^[.typeId,.defaultValue.typeId]).name]"
+    }
+  },
+  "Class": {
+    "template": "Class\nclass %!name$s {\n  %@content$s\n}",
+    "fields": [
+      "%!&name",
+      "%+@content"
+    ],
+    "templateDataSource": {
+      "PARENT_REFERENCE": "$.elements[*]?(.id=^.ownerId).name",
+      "name": "$.elements[*][?(.type=\"Class\"),?(.type=\"Package\")]?(!.generalizationIds[*]).name"
+    }
+  }
+}
