@@ -1455,8 +1455,8 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.ae.event.EventInvocation" );
         addImport( "gov.nasa.jpl.ae.event.DurativeEvent" );
         addImport( "gov.nasa.jpl.ae.event.ParameterListenerImpl" );
-        addImport( "gov.nasa.jpl.ae.event.TimeVarying" );
         addImport( "gov.nasa.jpl.ae.event.TimeVaryingMap" );
+        addImport( "gov.nasa.jpl.ae.event.Consumable" );
         addImport( "gov.nasa.jpl.ae.event.Timeline" );
         addImport( "gov.nasa.jpl.ae.event.TimeVaryingFunctionCall" );
         addImport( "gov.nasa.jpl.ae.event.Event" );
