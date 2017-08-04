@@ -5,7 +5,7 @@ class ReasonData extends DurativeEvent {
     var EncounterPhase : TimeVaryingMap = TimeVaryingMap("","/Users/ayelaman/git/baeModels/europa/data/resources/EncounterPhase.csv", null, String.class)
     var flyby : TimeVaryingMap = !EncounterPhase.contains("Playback")
     var h : TimeVaryingMap = TimeVaryingMap("", "/Users/ayelaman/git/baeModels/europa/data/resources/SpacecraftEuropaAltitude.csv", null, Double.class)
-    var altIndex : TimeVaryingMap = TimeVaryingMap("altIndex", null, 0, Integer.class, false)
+    var altIndex : TimeVaryingMap = TimeVaryingMap("altIndex", null, 0, Integer.class, TimeVaryingMap.LINEAR)
 }
 
 

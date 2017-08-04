@@ -1624,7 +1624,7 @@ public class KtoJava {
                     "      Main s = new Main();\n" +
                     "      s.amTopEventToSimulate = true;\n" +
                     "      System.out.println(\"===FULLOUTPUT===\" );\n" +
-                    "      s.satisfy(true, null);\n" +
+                    "      s.executeAndSimulate();\n" +
                     "      System.out.println(\"===RESULTS===\" );\n" +
                     "      System.out.println(s.kSolutionString());\n" +
                     "\n";
@@ -1642,7 +1642,7 @@ public class KtoJava {
                     "                    scenario.amTopEventToSimulate = true;\n" +
                     (verbose ?
                             "                System.out.println(\"===FULLOUTPUT===\" );\n" : "") +
-                    "                    scenario.satisfy(true, null);\n" +
+                    "                    scenario.executeAndSimulate();\n" +
                     "                } catch( Throwable t ) {\n" +
                     "                    t.printStackTrace();\n" +
                     "                }\n" +
