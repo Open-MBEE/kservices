@@ -15,8 +15,19 @@ class Evt {
   }  
 
   fun contains (e : Evt) : Bool {
-    t1 <= e.t1 && e.t2 <= t2
+    t1 < e.t1 && e.t2 < t2
   }
+  
+  fun starts(e : Evt) : Bool {
+    t1 = e.t1
+  }
+  
+  fun finishes(e : Evt) : Bool {
+    t2 = e.t2
+  }
+  
+   
+  
 }
 
 class Schedule {
@@ -24,7 +35,7 @@ class Schedule {
   b : Evt
   c : Evt
 
-req a.meets(b)
+req a.meets(b) && b.contains(c)
 
 
 }

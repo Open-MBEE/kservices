@@ -205,6 +205,7 @@ public class KtoJava {
     Set< String > instantiatedClassNames;
     Map< String, Set< String > > classToParentNames;
 
+
     JSONObject json = new JSONObject();
 
     //boolean containmentTree = false;
@@ -227,6 +228,7 @@ public class KtoJava {
         this.expressionCounter = 0;
         this.expressionTranslator =
                 new JavaToConstraintExpression( packageName );
+
         if ( verbose ) {
             System.out.println();
         }
@@ -262,6 +264,7 @@ public class KtoJava {
 
         // Translate to Java
         if ( translate ) {
+
             translateClasses();
         }
 
@@ -359,17 +362,17 @@ public class KtoJava {
 
     public void getAllSuperClassNames( String entityName ) {
         Set< String > extendingList = classToParentNames.get( entityName );
-        if (extendingList != null) {
+        if ( extendingList != null ) {
             for ( String e : extendingList ) {
                 getAllSuperClassNames( e );
-                Set<String> toAdd = classToParentNames.get( e );
-                if (toAdd != null) {
+                Set< String > toAdd = classToParentNames.get( e );
+                if ( toAdd != null ) {
                     extendingList.addAll( toAdd );
                 }
-                
+
             }
         }
-        
+
     }
 
     public void buildNestingTable( Map< String, String > nestingTable ) {
@@ -432,10 +435,10 @@ public class KtoJava {
             for ( String e : extendingList ) {
                 Map< String, ClassData.Param > otherParams =
                         paramTable.get( getClassName( e ) );
-                if (otherParams != null) {
+                if ( otherParams != null ) {
                     params.putAll( otherParams );
                 }
-                
+
             }
 
         }
@@ -636,9 +639,9 @@ public class KtoJava {
             }
         } else {
             value = p.expr().get().toJavaString();
-            if (isConstructorDecl(p)) {
+            if ( isConstructorDecl( p ) ) {
                 value = "new " + value;
-            } 
+            }
         }
         return new ClassData.Param( name, type, value );
     }
@@ -747,6 +750,7 @@ public class KtoJava {
         mainMethodDecl.setBody( newBody );
 
     }
+
 
     public void translateClasses() {
         // TODO
@@ -1027,12 +1031,14 @@ public class KtoJava {
                 getParameters( entity, initMembers );
         Collection< FieldDeclaration > constraints =
                 getConstraints( entity, initMembers );
+        createEnclosingInstanceStatment( entity,initMembers );
 
         parameters.addAll( getExpressions( entity, initMembers ) );
 
         members.addAll( parameters );
         members.addAll( constraints );
         addTryCatchToInitMembers( initMembers );
+        
 
         MethodDeclaration initCollections =
                 createInitCollectionsMethod( "init" + newClassDecl.getName()
@@ -1239,6 +1245,29 @@ public class KtoJava {
         return f;
     }
 
+    public void
+           createEnclosingInstanceStatment( EntityDecl entity,
+                                            MethodDeclaration initMembers ) {
+        String entityName = null;
+        if (entity != null) {
+            entityName = entity.ident();
+        }
+        String enclosing = getClassData().getEnclosingClassName( entityName);
+        if (enclosing != null) {
+            String stmtString = "enclosingInstance = " + enclosing + ".this;";
+            ASTParser parser = new ASTParser( new StringReader( stmtString ) );
+            Statement stmt = null;
+            try {
+                stmt = parser.BlockStatement();
+            } catch ( ParseException e ) {
+                e.printStackTrace();
+            }
+            ASTHelper.addStmt( initMembers.getBody(), stmt );
+        }
+        
+
+    }
+
     public static FieldDeclaration
            createFieldOfGenericType( String name, String typeName,
                                      String parameterTypeName,
@@ -1373,7 +1402,7 @@ public class KtoJava {
         try {
             stmtList = parser.Statements();
         } catch ( Throwable e ) {
-            System.err.println("\nError parsing Java: \"" + s + "\"");
+            System.err.println( "\nError parsing Java: \"" + s + "\"" );
             e.printStackTrace();
         }
         return stmtList;
@@ -1427,8 +1456,8 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.ae.event.EventInvocation" );
         addImport( "gov.nasa.jpl.ae.event.DurativeEvent" );
         addImport( "gov.nasa.jpl.ae.event.ParameterListenerImpl" );
-        addImport( "gov.nasa.jpl.ae.event.TimeVarying" );
         addImport( "gov.nasa.jpl.ae.event.TimeVaryingMap" );
+        addImport( "gov.nasa.jpl.ae.event.Consumable" );
         addImport( "gov.nasa.jpl.ae.event.Timeline" );
         addImport( "gov.nasa.jpl.ae.event.TimeVaryingFunctionCall" );
         addImport( "gov.nasa.jpl.ae.event.Event" );
@@ -1530,7 +1559,8 @@ public class KtoJava {
         return stringToStatementList( sb.toString() );
     }
 
-    protected void processExecutionEvent() { // change this to something
+
+    protected void processExecutionEvent() { 
 
         getClassData().setCurrentClass( "Main" );
         initClassCompilationUnit( getClassData().getCurrentClass() );
@@ -1577,12 +1607,13 @@ public class KtoJava {
 
         StringBuffer stmtsMain = new StringBuffer();
 
-//        stmtsMain.append( "Main scenario = new Main();" );
-//        stmtsMain.append( "scenario.amTopEventToSimulate = true;" );
-//        stmtsMain.append( "System.out.println(\"===FULLOUTPUT===\" );" );
-//        stmtsMain.append( "scenario.satisfy( true, null );" );
-//        stmtsMain.append( "System.out.println(\"===RESULTS===\" );" );
-//        stmtsMain.append( "System.out.println(scenario.kSolutionString());" );
+        // stmtsMain.append( "Main scenario = new Main();" );
+        // stmtsMain.append( "scenario.amTopEventToSimulate = true;" );
+        // stmtsMain.append( "System.out.println(\"===FULLOUTPUT===\" );" );
+        // stmtsMain.append( "scenario.satisfy( true, null );" );
+        // stmtsMain.append( "System.out.println(\"===RESULTS===\" );" );
+        // stmtsMain.append( "System.out.println(scenario.kSolutionString());"
+        // );
         String targetDirectory = getPackageSourcePath( null );
         String y = "      JSONObject json = new JSONObject();\n";
         if ( !this.processStdoutAndStderr ) {
@@ -1593,7 +1624,7 @@ public class KtoJava {
                     "      Main s = new Main();\n" +
                     "      s.amTopEventToSimulate = true;\n" +
                     "      System.out.println(\"===FULLOUTPUT===\" );\n" +
-                    "      s.satisfy(true, null);\n" +
+                    "      s.executeAndSimulate();\n" +
                     "      System.out.println(\"===RESULTS===\" );\n" +
                     "      System.out.println(s.kSolutionString());\n" +
                     "\n";
@@ -1614,7 +1645,7 @@ public class KtoJava {
                     "                    scenario.amTopEventToSimulate = true;\n" +
                     (verbose ?
                             "                System.out.println(\"===FULLOUTPUT===\" );\n" : "") +
-                    "                    scenario.satisfy(true, null);\n" +
+                    "                    scenario.executeAndSimulate();\n" +
                     "                } catch( Throwable t ) {\n" +
                     "                    t.printStackTrace();\n" +
                     "                }\n" +
@@ -1648,6 +1679,7 @@ public class KtoJava {
         }
         stmtsMain.append(y);
 
+
         List< Expression > args = new ArrayList< Expression >();
 
         ASTHelper.addStmt( ctorBody,
@@ -1655,12 +1687,11 @@ public class KtoJava {
                                                                   args ) );
 
         addImport( "gov.nasa.jpl.ae.event.Expression" );
-        addImport("gov.nasa.jpl.ae.util.CaptureStdoutStderr");
-        addImport("gov.nasa.jpl.mbee.util.FileUtils");
-        addImport("java.io.File");
-        addImport("org.json.JSONArray");
-        addImport("org.json.JSONObject");
-
+        addImport( "gov.nasa.jpl.ae.util.CaptureStdoutStderr" );
+        addImport( "gov.nasa.jpl.mbee.util.FileUtils" );
+        addImport( "java.io.File" );
+        addImport( "org.json.JSONArray" );
+        addImport( "org.json.JSONObject" );
 
         addStatements( mainBody, stmtsMain.toString() );
     }
@@ -1961,20 +1992,13 @@ public class KtoJava {
         return tree;
     }
 
-
-
     public static void main( String[] args ) {
-    Debug.turnOn();
-//        PrintStream oldOut = System.out;
-//        PrintStream oldErr = System.err;
-//        ByteArrayOutputStream baosOut = new ByteArrayOutputStream();
-//        ByteArrayOutputStream baosErr = new ByteArrayOutputStream();
         String packageName = "generatedCode";
         String kToJavaOutLog = "kToJavaOut.log";
         String writeJavaOutLog = "writeJavaOut.log";
 
-//        System.setOut(new PrintStream(baosOut));
-//        System.setErr(new PrintStream(baosErr));
+        // System.setOut(new PrintStream(baosOut));
+        // System.setErr(new PrintStream(baosErr));
 
         boolean containmentTree = false;
         boolean errorInfo = false;
@@ -1983,7 +2007,6 @@ public class KtoJava {
         boolean processStdoutAndStderr = true;
 
         JSONObject json = new JSONObject();  // This is now a member of KtoJava, so sync up with it!
-
 
         String kToExecute = "";
         Boolean areFiles = args.length > 0;
@@ -2017,32 +2040,32 @@ public class KtoJava {
                 String a = arg.toLowerCase();
                 if ( a.contains( "tree" ) ) {
                     containmentTree = true;
-                }
-                else if ( a.contains( "solve" ) ) {
+                } else if ( a.contains( "solve" ) ) {
                     errorInfo = true;
                     translate = true;
                     containmentTree = true;
-                }
-                else if ( a.contains( "error" ) ) {
+                } else if ( a.contains( "error" ) ) {
                     errorInfo = true;
-                }
-                else if ( a.contains( "verbose" ) ) {
+                } else if ( a.contains( "verbose" ) ) {
                     verbose = true;
                 }
-                // look for any of these:  '--captureOff' '--noCapture' '--capture off' '--capture=off' '--processOff' '--noProcess' '--process off' '--process=off'
-                else if (a.contains("capture") || a.contains("process")) {
-                    if (a.contains("no") || a.contains("off")) {
+                // look for any of these: '--captureOff' '--noCapture'
+                // '--capture off' '--capture=off' '--processOff' '--noProcess'
+                // '--process off' '--process=off'
+                else if ( a.contains( "capture" ) || a.contains( "process" ) ) {
+                    if ( a.contains( "no" ) || a.contains( "off" ) ) {
                         processStdoutAndStderr = false;
-                    } else if (i < args.length - 1) {
-                        a = args[i + 1].toLowerCase();
-                        if (!a.startsWith("-") &&
-                                (a.contains("no") || a.contains("off"))) {
+                    } else if ( i < args.length - 1 ) {
+                        a = args[ i + 1 ].toLowerCase();
+                        if ( !a.startsWith( "-" )
+                             && ( a.contains( "no" )
+                                  || a.contains( "off" ) ) ) {
                             processStdoutAndStderr = false;
                             ++i;
                         }
                     }
-                } else if (a.contains("package")) {
-                    packageName = args[++i];
+                } else if ( a.contains( "package" ) ) {
+                    packageName = args[ ++i ];
                 }
             }
         }
@@ -2056,12 +2079,14 @@ public class KtoJava {
         String targetDirectory = "src" + File.separator + packageName;
 
         if ( errorInfo ) {
-            //KtoJava kToJava = new KtoJava( kToExecute, packageName, translate );
+            // KtoJava kToJava = new KtoJava( kToExecute, packageName, translate
+            // );
             final String kToExecuteC = kToExecute;
             final String packageNameC = packageName;
             final boolean translateC = translate;
-            if (!processStdoutAndStderr) {
+            if ( !processStdoutAndStderr ) {
                 try {
+
                     kToJava = new KtoJava(kToExecuteC, packageNameC, translateC, processStdoutAndStderr);
                     json = kToJava.json;
                 } catch( Throwable t) {
@@ -2072,8 +2097,9 @@ public class KtoJava {
                     @Override
                     public Object run() {
                         try {
-                            return new KtoJava(kToExecuteC, packageNameC, translateC, true);
-                        } catch (Throwable t) {
+                            return new KtoJava( kToExecuteC, packageNameC,
+                                                translateC, true );
+                        } catch ( Throwable t ) {
                             t.printStackTrace();
                         }
                         return null;
@@ -2081,48 +2107,50 @@ public class KtoJava {
                 };
                 String out = c.baosOut.toString();
                 String err = c.baosErr.toString();
-                if (verbose) {
-                    System.err.println(err);
-                    System.out.println(out);
+                if ( verbose ) {
+                    System.err.println( err );
+                    System.out.println( out );
                 }
-                kToJava = (KtoJava) c.result;
-                if (kToJava == null) {
+                kToJava = (KtoJava)c.result;
+                if ( kToJava == null ) {
                     targetDirectory = "src" + File.separator + packageName;
                 } else {
+
                     json = kToJava.json;
                     targetDirectory = kToJava.getPackageSourcePath(null);
                 }
-                File d = new File(targetDirectory);
+                File d = new File( targetDirectory );
                 d.mkdirs();
                 String path = targetDirectory + File.separator + kToJavaOutLog;
-                FileUtils.stringToFile(out, path);
-                File f = new File(path);
-                json.put("kToJavaOutFile", f.getAbsolutePath());
+                FileUtils.stringToFile( out, path );
+                File f = new File( path );
+                json.put( "kToJavaOutFile", f.getAbsolutePath() );
 
                 // Add errors to JSON
                 JSONArray jarr = new JSONArray();
-                jarr.put(err);
-                json.put("errors", jarr);
+                jarr.put( err );
+                json.put( "errors", jarr );
 
-                // Syntax errors not working?  Just gives line:col.
+                // Syntax errors not working? Just gives line:col.
                 if ( false ) {
-                    List<String> syntaxErrorList = syntaxErrors(c.baosErr);
-                    String syntaxErrors = String.join(",", syntaxErrorList);
-                    //System.out.println( "===ERRORS===" );
+                    List< String > syntaxErrorList = syntaxErrors( c.baosErr );
+                    String syntaxErrors = String.join( ",", syntaxErrorList );
+                    // System.out.println( "===ERRORS===" );
 
                     StringBuffer sb = new StringBuffer();
 
-                    sb.append("Syntax Errors: "
-                            + (syntaxErrors.isEmpty() ? "None" : syntaxErrors)
-                            + "\n");
+                    sb.append( "Syntax Errors: "
+                               + ( syntaxErrors.isEmpty() ? "None"
+                                                          : syntaxErrors )
+                               + "\n" );
                     // Add syntax errors to JSON
-    //              if ( !syntaxErrorList.isEmpty() ) {
+                    // if ( !syntaxErrorList.isEmpty() ) {
                     jarr = new JSONArray();
-                    for (String se : syntaxErrorList) {
-                        jarr.put(se);
+                    for ( String se : syntaxErrorList ) {
+                        jarr.put( se );
                     }
-                    json.put("syntaxErrors", jarr);
-    //              }
+                    json.put( "syntaxErrors", jarr );
+                    // }
                     if ( !kToJava.typeCheckSucceeded ) {
                         sb.append( "Input k did not type check\n" );
                     }
@@ -2141,50 +2169,56 @@ public class KtoJava {
                 CaptureStdoutStderr c = new CaptureStdoutStderr() {
                     @Override
                     public Object run() {
-                        k2j.writeFiles(k2j, null);
+                        k2j.writeFiles( k2j, null );
                         return null;
                     }
                 };
-                JSONArray jarr = json.has("errors") ? json.getJSONArray("errors") : null;
-                if (jarr == null) jarr = new JSONArray();
-                if (verbose) {
-                    System.err.println(c.baosErr.toString());
-                    System.out.println(c.baosErr.toString());
+                JSONArray jarr =
+                        json.has( "errors" ) ? json.getJSONArray( "errors" )
+                                             : null;
+                if ( jarr == null ) jarr = new JSONArray();
+                if ( verbose ) {
+                    System.err.println( c.baosErr.toString() );
+                    System.out.println( c.baosErr.toString() );
                 }
-                jarr.put(c.baosErr.toString());
-                json.put("errors", jarr);
+                jarr.put( c.baosErr.toString() );
+                json.put( "errors", jarr );
                 String outWrite = c.baosOut.toString();
-                String path = targetDirectory + File.separator + writeJavaOutLog;
-                FileUtils.stringToFile(outWrite, path);
-                File f = new File(path);
-                json.put("writeJavaOutFile", f.getAbsolutePath());
+                String path =
+                        targetDirectory + File.separator + writeJavaOutLog;
+                FileUtils.stringToFile( outWrite, path );
+                File f = new File( path );
+                json.put( "writeJavaOutFile", f.getAbsolutePath() );
             }
         }
         if ( containmentTree ) {
-            //System.out.println( "===TREE===" );
+            // System.out.println( "===TREE===" );
             JSONObject tree = new JSONObject();
             try {
-                tree = kToContainmentTree(kToExecute);
-            } catch (Throwable t) {
+                tree = kToContainmentTree( kToExecute );
+            } catch ( Throwable t ) {
                 if ( verbose ) {
                     t.printStackTrace();
                 }
-                if (!errorInfo) {
-                    JSONArray jarr = json.has("errors") ? json.getJSONArray("errors") : null;
-                    if (jarr == null) jarr = new JSONArray();
+                if ( !errorInfo ) {
+                    JSONArray jarr =
+                            json.has( "errors" ) ? json.getJSONArray( "errors" )
+                                                 : null;
+                    if ( jarr == null ) jarr = new JSONArray();
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    PrintWriter pw = new PrintWriter(baos);
-                    t.printStackTrace(pw);
-                    jarr.put(baos.toString());
-                    json.put("errors", jarr);
+                    PrintWriter pw = new PrintWriter( baos );
+                    t.printStackTrace( pw );
+                    jarr.put( baos.toString() );
+                    json.put( "errors", jarr );
                 }
             }
-            //System.out.println( tree.toString(4) );
-            JSONArray jarr = json.has("tree") ? tree.getJSONArray("tree") : null;
+            // System.out.println( tree.toString(4) );
+            JSONArray jarr =
+                    json.has( "tree" ) ? tree.getJSONArray( "tree" ) : null;
             if ( jarr != null ) {
-                json.put("tree", jarr);
+                json.put( "tree", jarr );
             } else {
-                json.put("tree", tree);
+                json.put( "tree", tree );
             }
 
         }
@@ -2195,15 +2229,16 @@ public class KtoJava {
         }
 
         if ( verbose ) {
-            System.out.println("JSON output:");
+            System.out.println( "JSON output:" );
         }
-        System.out.println(json.toString(4));
+        System.out.println( json.toString( 4 ) );
     }
 
-    // Syntax errors not working?  Just gives line:col.
+    // Syntax errors not working? Just gives line:col.
     public static List< String > syntaxErrors( ByteArrayOutputStream baos ) {
-        return syntaxErrors(baos.toString() );
+        return syntaxErrors( baos.toString() );
     }
+
     public static List< String > syntaxErrors( String baosString ) {
         List< String > errors = new ArrayList< String >();
         Pattern errorPattern = Pattern.compile( "[0-9]+:[0-9]+" );
