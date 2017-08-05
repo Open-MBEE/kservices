@@ -7,7 +7,6 @@ import japa.parser.ParseException;
 import japa.parser.ast.CompilationUnit;
 import japa.parser.ast.ImportDeclaration;
 import japa.parser.ast.PackageDeclaration;
-import japa.parser.ast.body.BodyDeclaration;
 import japa.parser.ast.body.ClassOrInterfaceDeclaration;
 import japa.parser.ast.body.ConstructorDeclaration;
 import japa.parser.ast.body.FieldDeclaration;
@@ -17,10 +16,8 @@ import japa.parser.ast.body.TypeDeclaration;
 import japa.parser.ast.body.VariableDeclarator;
 import japa.parser.ast.body.VariableDeclaratorId;
 import japa.parser.ast.expr.Expression;
-import japa.parser.ast.expr.FieldAccessExpr;
 import japa.parser.ast.expr.MethodCallExpr;
 import japa.parser.ast.expr.NameExpr;
-import japa.parser.ast.expr.ObjectCreationExpr;
 import japa.parser.ast.stmt.BlockStmt;
 import japa.parser.ast.stmt.ExplicitConstructorInvocationStmt;
 import japa.parser.ast.stmt.Statement;
@@ -34,7 +31,6 @@ import scala.Tuple2;
 import scala.collection.JavaConversions;
 
 import java.io.*;
-import java.lang.Math;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,144 +38,43 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.jar.JarEntry;
-import java.util.jar.JarInputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.tools.JavaCompiler;
-import javax.tools.JavaCompiler.CompilationTask;
-import javax.tools.JavaFileObject;
-import javax.tools.StandardJavaFileManager;
-import javax.tools.ToolProvider;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-import junit.framework.Assert;
 // import javax.xml.xpath.XPathExpression;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
 // Keep these for resolving class references.
-import gov.nasa.jpl.ae.event.*;
 import gov.nasa.jpl.ae.xml.EventXmlToJava;
-import gov.nasa.jpl.ae.xml.XmlUtils;
 import gov.nasa.jpl.mbee.util.Pair;
-import gov.nasa.jpl.ae.fuml.*;
 import gov.nasa.jpl.mbee.util.ClassUtils;
 import gov.nasa.jpl.mbee.util.CompareUtils;
 import gov.nasa.jpl.mbee.util.Debug;
 import gov.nasa.jpl.mbee.util.FileUtils;
-import gov.nasa.jpl.mbee.util.NameTranslator;
-import gov.nasa.jpl.mbee.util.TimeUtils;
-import gov.nasa.jpl.mbee.util.Timer;
 import gov.nasa.jpl.mbee.util.Utils;
-import demandResponse.*;
-
-import gov.nasa.jpl.mbee.util.Random;
 
 import k.frontend.Frontend;
 import k.frontend.Model;
-import k.frontend.PackageDecl;
-import k.frontend.AnnotationDecl;
-import k.frontend.Argument;
-
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Vector;
-
-import gov.nasa.jpl.mbee.util.Debug;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 // import gov.nasa.jpl.kservices.scala.AeKUtil;
 
-import gov.nasa.jpl.ae.solver.*;
-import gov.nasa.jpl.ae.sysml.SystemModelSolver;
-import gov.nasa.jpl.ae.sysml.TranslatedCall;
-import gov.nasa.jpl.ae.sysml.TranslatedConstructorCall;
-import gov.nasa.jpl.ae.sysml.TranslatedFunctionCall;
-import gov.nasa.jpl.ae.event.*;
-import gov.nasa.jpl.ae.event.Functions.Binary;
-import gov.nasa.jpl.ae.event.Functions.Unary;
-import gov.nasa.jpl.ae.fuml.*;
 import gov.nasa.jpl.ae.util.JavaToConstraintExpression;
-import k.frontend.ADD;
-import k.frontend.Annotation;
-import k.frontend.QualifiedName;
 import k.frontend.ImportDecl;
 import k.frontend.EntityDecl;
 import k.frontend.Exp;
-import k.frontend.IdentifierToken;
-import k.frontend.TypeParam;
-import k.frontend.TypeBound;
-import k.frontend.TypeDecl;
 import k.frontend.PropertyDecl;
-import k.frontend.FunSpec;
 import k.frontend.Param;
 import k.frontend.FunDecl;
 import k.frontend.ConstraintDecl;
 import k.frontend.ExpressionDecl;
-import k.frontend.ParenExp;
-import k.frontend.IdentExp;
-import k.frontend.DotExp;
-import k.frontend.FunApplExp;
-import k.frontend.IfExp;
-import k.frontend.MatchExp;
 import k.frontend.MemberDecl;
-import k.frontend.MatchCase;
-import k.frontend.BlockExp;
-import k.frontend.WhileExp;
-import k.frontend.ForExp;
-import k.frontend.Frontend;
-import k.frontend.BinExp;
-import k.frontend.BinaryOp;
-import k.frontend.UnaryExp;
-import k.frontend.UnaryOp;
-import k.frontend.QuantifiedExp;
-import k.frontend.TupleExp;
-import k.frontend.CollectionEnumExp;
-import k.frontend.CollectionRangeExp;
-import k.frontend.CollectionComprExp;
-import k.frontend.LambdaExp;
-import k.frontend.AssertExp;
-import k.frontend.TypeCastCheckExp;
-import k.frontend.ReturnExp;
-import k.frontend.PositionalArgument;
-import k.frontend.NamedArgument;
-import k.frontend.IntegerLiteral;
-import k.frontend.RealLiteral;
-import k.frontend.CharacterLiteral;
-import k.frontend.StringLiteral;
-import k.frontend.BooleanLiteral;
-import k.frontend.CollectType;
-import k.frontend.SumType;
-import k.frontend.ClassType;
-import k.frontend.IdentType;
-import k.frontend.CartesianType;
-import k.frontend.FunctionType;
-import k.frontend.ParenType;
-import k.frontend.SubType;
-import k.frontend.LiteralPattern;
-import k.frontend.IdentPattern;
-import k.frontend.ProductPattern;
-import k.frontend.TypedPattern;
-import k.frontend.RngBinding;
-import k.frontend.ExpCollection;
-import k.frontend.TypeCollection;
-import k.frontend.Multiplicity;
-import k.frontend.Frontend;
 import k.frontend.TypeChecker;
 
 /*
@@ -717,7 +612,7 @@ public class KtoJava {
         List< Expression > args = new ArrayList< Expression >();
         Expression expr = expressionTranslator.parseExpression( this.k );
         String aeString = expressionTranslator.astToAeExpr( expr, null, true,
-                                                            true, true, true );
+                                                            true, false, true, true );
         stmtsMain.append( "Object value = " + aeString + ";" );
         stmtsMain.append( "System.out.println( value );" );
         ASTHelper.addStmt( ctorBody,
@@ -906,6 +801,7 @@ public class KtoJava {
                                 expressionTranslator.astToAeExpr( expr,
                                                                   typeString,
                                                                   true, true,
+                                                                  false,
                                                                   true, false );
                         addStatements( body, "return " + aeString + ";" );
 
@@ -1033,6 +929,15 @@ public class KtoJava {
                 getConstraints( entity, initMembers );
         createEnclosingInstanceStatment( entity,initMembers );
 
+        ArrayList<FieldDeclaration> effects = null;
+          effects = getEffects( entity,
+                                initMembers );
+        Collection< FieldDeclaration > elaborations = null;
+          elaborations =
+              getElaborations( entity,
+                               initElaborations );
+
+        
         parameters.addAll( getExpressions( entity, initMembers ) );
 
         members.addAll( parameters );
@@ -1175,6 +1080,61 @@ public class KtoJava {
 
     }
 
+    public ArrayList<FieldDeclaration>
+    getEffects(EntityDecl entity, MethodDeclaration initMembers) {
+        ArrayList<FieldDeclaration> effects =
+                new ArrayList<FieldDeclaration>();
+        //FieldDeclaration f;
+
+        return effects;
+    }
+
+    public ArrayList< FieldDeclaration >
+           getElaborations( EntityDecl entity, MethodDeclaration initMembers ) {
+        ArrayList< FieldDeclaration > elaborations =
+                new ArrayList< FieldDeclaration >();
+        //FieldDeclaration f;
+
+        
+        return elaborations;
+    }
+
+    // Add constructors for invocations.
+    private void addConstructors() {
+      Collection< ConstructorDeclaration > constructors = getConstructorDeclarations(this.model);
+      constructors.addAll( createConstructors( this.model, constructors ) );
+      EventXmlToJava.addConstructors( constructors, getClassData() );
+    }
+    
+    private Collection< ? extends ConstructorDeclaration >
+            createConstructors( Model model2,
+                                Collection< ConstructorDeclaration > constructors ) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    private Collection< ConstructorDeclaration >
+            getConstructorDeclarations( Model model2 ) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    protected ConstructorDeclaration getConstructorDeclaration(String eventType,
+                                                               String fromTimeVarying,
+                                                               List< ClassData.Param > arguments ) {
+        ConstructorDeclaration ctor =
+                new ConstructorDeclaration( ModifierSet.PUBLIC,
+                                            ClassUtils.simpleName(eventType) );
+        if ( Debug.isOn() ) Debug.outln("ctor ctord as " + ctor.getName() );
+        if ( !Utils.isNullOrEmpty( fromTimeVarying ) ) {
+            ClassData.Param p = new ClassData.Param("startTime", "Long", null);
+            arguments.add(p);
+            p = new ClassData.Param("duration", "Long", null);
+            arguments.add(p);
+        }
+        return ctor;
+    }
+
     public FieldDeclaration createConstraintField( String name,
                                                    String expression ) {
 
@@ -1217,7 +1177,11 @@ public class KtoJava {
                                                      constructorArgs );
         ASTHelper.addStmt( initMembers.getBody(), s );
 
-        return createFieldOfGenericType( name, constraintType, null, null );
+        FieldDeclaration f =  createFieldOfGenericType( name, constraintType, null, null );
+        
+        // deal with elaboration here?
+        
+        return f;
     }
 
     public FieldDeclaration createParameterField( ClassData.Param p ) {
