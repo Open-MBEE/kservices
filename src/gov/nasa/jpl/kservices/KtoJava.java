@@ -212,6 +212,7 @@ public class KtoJava {
     //boolean translate = false;
     boolean verbose = false;
     boolean processStdoutAndStderr = true;
+    private boolean allInitsAreConstraints = true;
 
     public KtoJava( String k, String pkgName, boolean translate, boolean processStdoutAndStderr ) {
         this.globalName = "Global";
@@ -1152,7 +1153,7 @@ public class KtoJava {
         for ( PropertyDecl property : propertyList ) {
 
             if ( !property.expr().isEmpty()
-                 && isPrimitive( property.ty().toString() ) ) {
+                 && (allInitsAreConstraints || isPrimitive( property.ty().toString() )) ) {
                 f = createConstraintField( null,
                                            property.name() + " == "
                                                  + property.expr().get()
@@ -1584,10 +1585,10 @@ public class KtoJava {
 //        stmtsMain.append( "System.out.println(scenario.kSolutionString());" );
         String targetDirectory = getPackageSourcePath( null );
         String y = "      JSONObject json = new JSONObject();\n";
-        y += "Timepoint.setUnits(\"milliseconds\");\n" +
-                "Timepoint.setEpoch(\"Mon Mar 10 03:00:00 PDT 2025\");\n" +
-                "Timepoint.setHorizonDuration(109281180000L);\n";
         if ( !this.processStdoutAndStderr ) {
+            y += "Timepoint.setUnits(\"milliseconds\");\n" +
+                 "Timepoint.setEpoch(\"Mon Mar 10 03:00:00 PDT 2025\");\n" +
+                 "Timepoint.setHorizonDuration(109281180000L);\n";
             y +=    "\n" +
                     "      Main s = new Main();\n" +
                     "      s.amTopEventToSimulate = true;\n" +
@@ -1604,6 +1605,9 @@ public class KtoJava {
             y +=    "        CaptureStdoutStderr c = new CaptureStdoutStderr() {\n" +
                     "            @Override\n" +
                     "            public Object run() {\n" +
+                    "                Timepoint.setUnits(\"milliseconds\");\n" +
+                    "                Timepoint.setEpoch(\"Mon Mar 10 03:00:00 PDT 2025\");\n" +
+                    "                Timepoint.setHorizonDuration(109281180000L);\n" +
                     "                Main scenario = null;\n" +
                     "                try {\n" +
                     "                    scenario = new Main();\n" +
@@ -1960,7 +1964,7 @@ public class KtoJava {
 
 
     public static void main( String[] args ) {
-
+    Debug.turnOn();
 //        PrintStream oldOut = System.out;
 //        PrintStream oldErr = System.err;
 //        ByteArrayOutputStream baosOut = new ByteArrayOutputStream();
