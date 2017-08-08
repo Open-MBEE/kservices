@@ -9,7 +9,9 @@ class ReasonData extends DurativeEvent {
 }
 
 
+class Encounter extends DurativeEvent {
 
+}
 
 var r : ReasonData
 
