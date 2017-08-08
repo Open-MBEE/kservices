@@ -1164,6 +1164,10 @@ public class KtoJava {
                 } else {
                     Debug.error("Unrecognized argument: " + arg);
                 }
+                if ( exp instanceof DotExp ) {
+                    DotExp de = (DotExp)exp;
+                    name = de.toString();
+                } else
                 if ( exp instanceof ClassExp ) {
                     k.frontend.Type type = ((ClassExp)exp).ty();
                     if ( type instanceof ClassType ) {
@@ -1175,9 +1179,11 @@ public class KtoJava {
                     } else {
                         // shouldn't be possible
                     }
-                }
+                } else
                 if ( exp instanceof IdentExp ) {
                     name = ((IdentExp) exp).ident();
+                } else {
+                    Debug.error("BAD");
                 }
 //                    } else if ( exp instanceof ) {
 //                        makeParam()
