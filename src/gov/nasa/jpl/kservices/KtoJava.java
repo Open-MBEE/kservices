@@ -1122,7 +1122,7 @@ public class KtoJava {
         if ( elem instanceof FunApplExp )  {
             FunApplExp fae = (FunApplExp) elem;
             if ( fae.name().equals("elaborates") ) {
-                if ( fae.args() != null && fae.args().size() >= 2 ) {
+                if ( fae.args() != null && JavaConversions.asJavaCollection(fae.args()).size() >= 2 ) {
                     elaborations.add(fae);
                 }
             }
@@ -1183,7 +1183,11 @@ public class KtoJava {
                 if ( exp instanceof IdentExp ) {
                     name = ((IdentExp) exp).ident();
                 } else {
-                    Debug.error("BAD");
+                    Debug.error("Unexpected k expression type: " + exp.getClass().getCanonicalName() );
+                    name = null;
+//                    if (!( exp instanceof NullLiteral )) {
+//                        name = exp.toString();
+//                    }
                 }
 //                    } else if ( exp instanceof ) {
 //                        makeParam()
@@ -1201,7 +1205,7 @@ public class KtoJava {
                     // Make sure that both the name of the Parameter and the Expression are together.
                     if ( iter.hasNext() ) {
                         Argument arg2 = (Argument)iter.next();
-                        ClassData.Param param = new ClassData.Param("" + arg, (String)null, "" + arg2);
+                        ClassData.Param param = new ClassData.Param(("" + arg2).replaceAll("\"", ""), (String)null, "" + arg);
                         arguments.add(param);
                     }
                 }
