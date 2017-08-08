@@ -9,12 +9,12 @@ class ReasonData extends DurativeEvent {
 }
 
 class Encounter extends DurativeEvent {
---    var h : TimeVaryingMap
---    var altIndex : TimeVaryingMap
+    var h : TimeVaryingMap
+    var altIndex : TimeVaryingMap
 }
 
 var r : ReasonData
 req startTime = 0
 req endTime = Timepoint.getHorizonDuration()
 
--- req r.elaborates(null, Encounter.class, r.flyby, "h", r.h, "altIndex", r.altIndex)
+ req r.elaborates(null, Encounter.class, r.flyby, "h", r.h, "altIndex", r.altIndex)

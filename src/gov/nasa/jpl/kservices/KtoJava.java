@@ -1122,7 +1122,7 @@ public class KtoJava {
         if ( elem instanceof FunApplExp )  {
             FunApplExp fae = (FunApplExp) elem;
             if ( fae.name().equals("elaborates") ) {
-                if ( fae.args() != null && ((LinearSeq<Argument>)fae.args()).size() >= 2 ) {
+                if ( fae.args() != null && JavaConversions.asJavaCollection(fae.args()).size() >= 2 ) {
                     elaborations.add(fae);
                 }
             }
