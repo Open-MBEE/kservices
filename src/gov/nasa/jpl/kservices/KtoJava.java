@@ -1122,7 +1122,7 @@ public class KtoJava {
         if ( elem instanceof FunApplExp )  {
             FunApplExp fae = (FunApplExp) elem;
             if ( fae.name().equals("elaborates") ) {
-                if ( fae.args() != null && ((LinearSeq<Argument>)fae.args()).size() >= 2 ) {
+                if ( fae.args() != null && fae.args().size() >= 2 ) {
                     elaborations.add(fae);
                 }
             }
@@ -1164,6 +1164,10 @@ public class KtoJava {
                 } else {
                     Debug.error("Unrecognized argument: " + arg);
                 }
+                if ( exp instanceof DotExp ) {
+                    DotExp de = (DotExp)exp;
+                    name = de.toString();
+                } else
                 if ( exp instanceof ClassExp ) {
                     k.frontend.Type type = ((ClassExp)exp).ty();
                     if ( type instanceof ClassType ) {
@@ -1175,9 +1179,11 @@ public class KtoJava {
                     } else {
                         // shouldn't be possible
                     }
-                }
+                } else
                 if ( exp instanceof IdentExp ) {
                     name = ((IdentExp) exp).ident();
+                } else {
+                    Debug.error("BAD");
                 }
 //                    } else if ( exp instanceof ) {
 //                        makeParam()
