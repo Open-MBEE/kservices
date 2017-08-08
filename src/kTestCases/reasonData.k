@@ -13,7 +13,6 @@ class Encounter extends DurativeEvent {
 --    var altIndex : TimeVaryingMap
 }
 
-
 var r : ReasonData
 req startTime = 0
 req endTime = Timepoint.getHorizonDuration()
