@@ -8,7 +8,6 @@ import japa.parser.ParseException;
 import japa.parser.ast.CompilationUnit;
 import japa.parser.ast.ImportDeclaration;
 import japa.parser.ast.PackageDeclaration;
-import japa.parser.ast.body.BodyDeclaration;
 import japa.parser.ast.body.ClassOrInterfaceDeclaration;
 import japa.parser.ast.body.ConstructorDeclaration;
 import japa.parser.ast.body.FieldDeclaration;
@@ -18,10 +17,8 @@ import japa.parser.ast.body.TypeDeclaration;
 import japa.parser.ast.body.VariableDeclarator;
 import japa.parser.ast.body.VariableDeclaratorId;
 import japa.parser.ast.expr.Expression;
-import japa.parser.ast.expr.FieldAccessExpr;
 import japa.parser.ast.expr.MethodCallExpr;
 import japa.parser.ast.expr.NameExpr;
-import japa.parser.ast.expr.ObjectCreationExpr;
 import japa.parser.ast.stmt.BlockStmt;
 import japa.parser.ast.stmt.ExplicitConstructorInvocationStmt;
 import japa.parser.ast.stmt.Statement;
@@ -35,7 +32,6 @@ import scala.Tuple2;
 import scala.collection.JavaConversions;
 
 import java.io.*;
-import java.lang.Math;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,144 +39,43 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.jar.JarEntry;
-import java.util.jar.JarInputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.tools.JavaCompiler;
-import javax.tools.JavaCompiler.CompilationTask;
-import javax.tools.JavaFileObject;
-import javax.tools.StandardJavaFileManager;
-import javax.tools.ToolProvider;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-import junit.framework.Assert;
 // import javax.xml.xpath.XPathExpression;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
 // Keep these for resolving class references.
-import gov.nasa.jpl.ae.event.*;
 import gov.nasa.jpl.ae.xml.EventXmlToJava;
-import gov.nasa.jpl.ae.xml.XmlUtils;
 import gov.nasa.jpl.mbee.util.Pair;
-import gov.nasa.jpl.ae.fuml.*;
 import gov.nasa.jpl.mbee.util.ClassUtils;
 import gov.nasa.jpl.mbee.util.CompareUtils;
 import gov.nasa.jpl.mbee.util.Debug;
 import gov.nasa.jpl.mbee.util.FileUtils;
-import gov.nasa.jpl.mbee.util.NameTranslator;
-import gov.nasa.jpl.mbee.util.TimeUtils;
-import gov.nasa.jpl.mbee.util.Timer;
 import gov.nasa.jpl.mbee.util.Utils;
-import demandResponse.*;
-
-import gov.nasa.jpl.mbee.util.Random;
 
 import k.frontend.Frontend;
 import k.frontend.Model;
-import k.frontend.PackageDecl;
-import k.frontend.AnnotationDecl;
-import k.frontend.Argument;
-
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Vector;
-
-import gov.nasa.jpl.mbee.util.Debug;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 // import gov.nasa.jpl.kservices.scala.AeKUtil;
 
-import gov.nasa.jpl.ae.solver.*;
-import gov.nasa.jpl.ae.sysml.SystemModelSolver;
-import gov.nasa.jpl.ae.sysml.TranslatedCall;
-import gov.nasa.jpl.ae.sysml.TranslatedConstructorCall;
-import gov.nasa.jpl.ae.sysml.TranslatedFunctionCall;
-import gov.nasa.jpl.ae.event.*;
-import gov.nasa.jpl.ae.event.Functions.Binary;
-import gov.nasa.jpl.ae.event.Functions.Unary;
-import gov.nasa.jpl.ae.fuml.*;
 import gov.nasa.jpl.ae.util.JavaToConstraintExpression;
-import k.frontend.ADD;
-import k.frontend.Annotation;
-import k.frontend.QualifiedName;
 import k.frontend.ImportDecl;
 import k.frontend.EntityDecl;
 import k.frontend.Exp;
-import k.frontend.IdentifierToken;
-import k.frontend.TypeParam;
-import k.frontend.TypeBound;
-import k.frontend.TypeDecl;
 import k.frontend.PropertyDecl;
-import k.frontend.FunSpec;
 import k.frontend.Param;
 import k.frontend.FunDecl;
 import k.frontend.ConstraintDecl;
 import k.frontend.ExpressionDecl;
-import k.frontend.ParenExp;
-import k.frontend.IdentExp;
-import k.frontend.DotExp;
-import k.frontend.FunApplExp;
-import k.frontend.IfExp;
-import k.frontend.MatchExp;
 import k.frontend.MemberDecl;
-import k.frontend.MatchCase;
-import k.frontend.BlockExp;
-import k.frontend.WhileExp;
-import k.frontend.ForExp;
-import k.frontend.Frontend;
-import k.frontend.BinExp;
-import k.frontend.BinaryOp;
-import k.frontend.UnaryExp;
-import k.frontend.UnaryOp;
-import k.frontend.QuantifiedExp;
-import k.frontend.TupleExp;
-import k.frontend.CollectionEnumExp;
-import k.frontend.CollectionRangeExp;
-import k.frontend.CollectionComprExp;
-import k.frontend.LambdaExp;
-import k.frontend.AssertExp;
-import k.frontend.TypeCastCheckExp;
-import k.frontend.ReturnExp;
-import k.frontend.PositionalArgument;
-import k.frontend.NamedArgument;
-import k.frontend.IntegerLiteral;
-import k.frontend.RealLiteral;
-import k.frontend.CharacterLiteral;
-import k.frontend.StringLiteral;
-import k.frontend.BooleanLiteral;
-import k.frontend.CollectType;
-import k.frontend.SumType;
-import k.frontend.ClassType;
-import k.frontend.IdentType;
-import k.frontend.CartesianType;
-import k.frontend.FunctionType;
-import k.frontend.ParenType;
-import k.frontend.SubType;
-import k.frontend.LiteralPattern;
-import k.frontend.IdentPattern;
-import k.frontend.ProductPattern;
-import k.frontend.TypedPattern;
-import k.frontend.RngBinding;
-import k.frontend.ExpCollection;
-import k.frontend.TypeCollection;
-import k.frontend.Multiplicity;
-import k.frontend.Frontend;
 import k.frontend.TypeChecker;
 
 /*
@@ -207,6 +102,7 @@ public class KtoJava {
     Map< String, Set< String > > classToParentNames;
     static private DistributionHelper dh = new DistributionHelper();
 
+
     JSONObject json = new JSONObject();
 
     //boolean containmentTree = false;
@@ -214,6 +110,7 @@ public class KtoJava {
     //boolean translate = false;
     boolean verbose = false;
     boolean processStdoutAndStderr = true;
+    private boolean allInitsAreConstraints = true;
 
     public KtoJava( String k, String pkgName, boolean translate, boolean processStdoutAndStderr ) {
         this.globalName = "Global";
@@ -228,6 +125,7 @@ public class KtoJava {
         this.expressionCounter = 0;
         this.expressionTranslator =
                 new JavaToConstraintExpression( packageName );
+
         if ( verbose ) {
             System.out.println();
         }
@@ -263,6 +161,7 @@ public class KtoJava {
 
         // Translate to Java
         if ( translate ) {
+
             translateClasses();
         }
 
@@ -360,17 +259,17 @@ public class KtoJava {
 
     public void getAllSuperClassNames( String entityName ) {
         Set< String > extendingList = classToParentNames.get( entityName );
-        if (extendingList != null) {
+        if ( extendingList != null ) {
             for ( String e : extendingList ) {
                 getAllSuperClassNames( e );
-                Set<String> toAdd = classToParentNames.get( e );
-                if (toAdd != null) {
+                Set< String > toAdd = classToParentNames.get( e );
+                if ( toAdd != null ) {
                     extendingList.addAll( toAdd );
                 }
-                
+
             }
         }
-        
+
     }
 
     public void buildNestingTable( Map< String, String > nestingTable ) {
@@ -433,10 +332,10 @@ public class KtoJava {
             for ( String e : extendingList ) {
                 Map< String, ClassData.Param > otherParams =
                         paramTable.get( getClassName( e ) );
-                if (otherParams != null) {
+                if ( otherParams != null ) {
                     params.putAll( otherParams );
                 }
-                
+
             }
 
         }
@@ -637,9 +536,9 @@ public class KtoJava {
             }
         } else {
             value = p.expr().get().toJavaString();
-            if (isConstructorDecl(p)) {
+            if ( isConstructorDecl( p ) ) {
                 value = "new " + value;
-            } 
+            }
         }
         return new ClassData.Param( name, type, value );
     }
@@ -715,7 +614,7 @@ public class KtoJava {
         List< Expression > args = new ArrayList< Expression >();
         Expression expr = expressionTranslator.parseExpression( this.k );
         String aeString = expressionTranslator.astToAeExpr( expr, null, true,
-                                                            true, true, true );
+                                                            true, false, true, true );
         stmtsMain.append( "Object value = " + aeString + ";" );
         stmtsMain.append( "System.out.println( value );" );
         ASTHelper.addStmt( ctorBody,
@@ -748,6 +647,7 @@ public class KtoJava {
         mainMethodDecl.setBody( newBody );
 
     }
+
 
     public void translateClasses() {
         // TODO
@@ -903,6 +803,7 @@ public class KtoJava {
                                 expressionTranslator.astToAeExpr( expr,
                                                                   typeString,
                                                                   true, true,
+                                                                  false,
                                                                   true, false );
                         addStatements( body, "return " + aeString + ";" );
 
@@ -1028,12 +929,23 @@ public class KtoJava {
                 getParameters( entity, initMembers );
         Collection< FieldDeclaration > constraints =
                 getConstraints( entity, initMembers );
+        createEnclosingInstanceStatment( entity,initMembers );
 
+        ArrayList<FieldDeclaration> effects = null;
+          effects = getEffects( entity,
+                                initMembers );
+        Collection< FieldDeclaration > elaborations = null;
+          elaborations =
+              getElaborations( entity,
+                               initElaborations );
+
+        
         parameters.addAll( getExpressions( entity, initMembers ) );
 
         members.addAll( parameters );
         members.addAll( constraints );
         addTryCatchToInitMembers( initMembers );
+        
 
         MethodDeclaration initCollections =
                 createInitCollectionsMethod( "init" + newClassDecl.getName()
@@ -1154,7 +1066,7 @@ public class KtoJava {
         for ( PropertyDecl property : propertyList ) {
 
             if ( !property.expr().isEmpty()
-                 && isPrimitive( property.ty().toString() ) ) {
+                 && (allInitsAreConstraints || isPrimitive( property.ty().toString() )) ) {
                 f = createConstraintField( null,
                                            property.name() + " == "
                                                  + property.expr().get()
@@ -1168,6 +1080,61 @@ public class KtoJava {
 
         return constraints;
 
+    }
+
+    public ArrayList<FieldDeclaration>
+    getEffects(EntityDecl entity, MethodDeclaration initMembers) {
+        ArrayList<FieldDeclaration> effects =
+                new ArrayList<FieldDeclaration>();
+        //FieldDeclaration f;
+
+        return effects;
+    }
+
+    public ArrayList< FieldDeclaration >
+           getElaborations( EntityDecl entity, MethodDeclaration initMembers ) {
+        ArrayList< FieldDeclaration > elaborations =
+                new ArrayList< FieldDeclaration >();
+        //FieldDeclaration f;
+
+        
+        return elaborations;
+    }
+
+    // Add constructors for invocations.
+    private void addConstructors() {
+      Collection< ConstructorDeclaration > constructors = getConstructorDeclarations(this.model);
+      constructors.addAll( createConstructors( this.model, constructors ) );
+      //EventXmlToJava.addConstructors( constructors, getClassData() );
+    }
+    
+    private Collection< ? extends ConstructorDeclaration >
+            createConstructors( Model model2,
+                                Collection< ConstructorDeclaration > constructors ) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    private Collection< ConstructorDeclaration >
+            getConstructorDeclarations( Model model2 ) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    protected ConstructorDeclaration getConstructorDeclaration(String eventType,
+                                                               String fromTimeVarying,
+                                                               List< ClassData.Param > arguments ) {
+        ConstructorDeclaration ctor =
+                new ConstructorDeclaration( ModifierSet.PUBLIC,
+                                            ClassUtils.simpleName(eventType) );
+        if ( Debug.isOn() ) Debug.outln("ctor ctord as " + ctor.getName() );
+        if ( !Utils.isNullOrEmpty( fromTimeVarying ) ) {
+            ClassData.Param p = new ClassData.Param("startTime", "Long", null);
+            arguments.add(p);
+            p = new ClassData.Param("duration", "Long", null);
+            arguments.add(p);
+        }
+        return ctor;
     }
 
     public FieldDeclaration createConstraintField( String name,
@@ -1212,7 +1179,11 @@ public class KtoJava {
                                                      constructorArgs );
         ASTHelper.addStmt( initMembers.getBody(), s );
 
-        return createFieldOfGenericType( name, constraintType, null, null );
+        FieldDeclaration f =  createFieldOfGenericType( name, constraintType, null, null );
+        
+        // deal with elaboration here?
+        
+        return f;
     }
 
     public FieldDeclaration createParameterField( ClassData.Param p ) {
@@ -1238,6 +1209,29 @@ public class KtoJava {
                 createFieldOfGenericType( p.name, args[ 0 ], args[ 1 ], null );
 
         return f;
+    }
+
+    public void
+           createEnclosingInstanceStatment( EntityDecl entity,
+                                            MethodDeclaration initMembers ) {
+        String entityName = null;
+        if (entity != null) {
+            entityName = entity.ident();
+        }
+        String enclosing = getClassData().getEnclosingClassName( entityName);
+        if (enclosing != null) {
+            String stmtString = "enclosingInstance = " + enclosing + ".this;";
+            ASTParser parser = new ASTParser( new StringReader( stmtString ) );
+            Statement stmt = null;
+            try {
+                stmt = parser.BlockStatement();
+            } catch ( ParseException e ) {
+                e.printStackTrace();
+            }
+            ASTHelper.addStmt( initMembers.getBody(), stmt );
+        }
+        
+
     }
 
     public static FieldDeclaration
@@ -1374,7 +1368,7 @@ public class KtoJava {
         try {
             stmtList = parser.Statements();
         } catch ( Throwable e ) {
-            System.err.println("\nError parsing Java: \"" + s + "\"");
+            System.err.println( "\nError parsing Java: \"" + s + "\"" );
             e.printStackTrace();
         }
         return stmtList;
@@ -1428,8 +1422,8 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.ae.event.EventInvocation" );
         addImport( "gov.nasa.jpl.ae.event.DurativeEvent" );
         addImport( "gov.nasa.jpl.ae.event.ParameterListenerImpl" );
-        addImport( "gov.nasa.jpl.ae.event.TimeVarying" );
         addImport( "gov.nasa.jpl.ae.event.TimeVaryingMap" );
+        addImport( "gov.nasa.jpl.ae.event.Consumable" );
         addImport( "gov.nasa.jpl.ae.event.Timeline" );
         addImport( "gov.nasa.jpl.ae.event.TimeVaryingFunctionCall" );
         addImport( "gov.nasa.jpl.ae.event.Event" );
@@ -1531,7 +1525,8 @@ public class KtoJava {
         return stringToStatementList( sb.toString() );
     }
 
-    protected void processExecutionEvent() { // change this to something
+
+    protected void processExecutionEvent() { 
 
         getClassData().setCurrentClass( "Main" );
         initClassCompilationUnit( getClassData().getCurrentClass() );
@@ -1578,23 +1573,24 @@ public class KtoJava {
 
         StringBuffer stmtsMain = new StringBuffer();
 
-//        stmtsMain.append( "Main scenario = new Main();" );
-//        stmtsMain.append( "scenario.amTopEventToSimulate = true;" );
-//        stmtsMain.append( "System.out.println(\"===FULLOUTPUT===\" );" );
-//        stmtsMain.append( "scenario.satisfy( true, null );" );
-//        stmtsMain.append( "System.out.println(\"===RESULTS===\" );" );
-//        stmtsMain.append( "System.out.println(scenario.kSolutionString());" );
+        // stmtsMain.append( "Main scenario = new Main();" );
+        // stmtsMain.append( "scenario.amTopEventToSimulate = true;" );
+        // stmtsMain.append( "System.out.println(\"===FULLOUTPUT===\" );" );
+        // stmtsMain.append( "scenario.satisfy( true, null );" );
+        // stmtsMain.append( "System.out.println(\"===RESULTS===\" );" );
+        // stmtsMain.append( "System.out.println(scenario.kSolutionString());"
+        // );
         String targetDirectory = getPackageSourcePath( null );
         String y = "      JSONObject json = new JSONObject();\n";
-        y += "Timepoint.setUnits(\"milliseconds\");\n" +
-                "Timepoint.setEpoch(\"Mon Mar 10 03:00:00 PDT 2025\");\n" +
-                "Timepoint.setHorizonDuration(109281180000L);\n";
         if ( !this.processStdoutAndStderr ) {
+            y += "Timepoint.setUnits(\"milliseconds\");\n" +
+                 "Timepoint.setEpoch(\"Mon Mar 10 03:00:00 PDT 2028\");\n" +
+                 "Timepoint.setHorizonDuration(10928118000L);\n";
             y +=    "\n" +
                     "      Main s = new Main();\n" +
                     "      s.amTopEventToSimulate = true;\n" +
                     "      System.out.println(\"===FULLOUTPUT===\" );\n" +
-                    "      s.satisfy(true, null);\n" +
+                    "      s.executeAndSimulate();\n" +
                     "      System.out.println(\"===RESULTS===\" );\n" +
                     "      System.out.println(s.kSolutionString());\n" +
                     "\n";
@@ -1606,13 +1602,16 @@ public class KtoJava {
             y +=    "        CaptureStdoutStderr c = new CaptureStdoutStderr() {\n" +
                     "            @Override\n" +
                     "            public Object run() {\n" +
+                    "                Timepoint.setUnits(\"milliseconds\");\n" +
+                    "                Timepoint.setEpoch(\"Mon Mar 10 03:00:00 PDT 2025\");\n" +
+                    "                Timepoint.setHorizonDuration(109281180000L);\n" +
                     "                Main scenario = null;\n" +
                     "                try {\n" +
                     "                    scenario = new Main();\n" +
                     "                    scenario.amTopEventToSimulate = true;\n" +
                     (verbose ?
                             "                System.out.println(\"===FULLOUTPUT===\" );\n" : "") +
-                    "                    scenario.satisfy(true, null);\n" +
+                    "                    scenario.executeAndSimulate();\n" +
                     "                } catch( Throwable t ) {\n" +
                     "                    t.printStackTrace();\n" +
                     "                }\n" +
@@ -1646,6 +1645,7 @@ public class KtoJava {
         }
         stmtsMain.append(y);
 
+
         List< Expression > args = new ArrayList< Expression >();
 
         ASTHelper.addStmt( ctorBody,
@@ -1653,12 +1653,11 @@ public class KtoJava {
                                                                   args ) );
 
         addImport( "gov.nasa.jpl.ae.event.Expression" );
-        addImport("gov.nasa.jpl.ae.util.CaptureStdoutStderr");
-        addImport("gov.nasa.jpl.mbee.util.FileUtils");
-        addImport("java.io.File");
-        addImport("org.json.JSONArray");
-        addImport("org.json.JSONObject");
-
+        addImport( "gov.nasa.jpl.ae.util.CaptureStdoutStderr" );
+        addImport( "gov.nasa.jpl.mbee.util.FileUtils" );
+        addImport( "java.io.File" );
+        addImport( "org.json.JSONArray" );
+        addImport( "org.json.JSONObject" );
 
         addStatements( mainBody, stmtsMain.toString() );
     }
@@ -1959,20 +1958,13 @@ public class KtoJava {
         return tree;
     }
 
-
-
     public static void main( String[] args ) {
-
-//        PrintStream oldOut = System.out;
-//        PrintStream oldErr = System.err;
-//        ByteArrayOutputStream baosOut = new ByteArrayOutputStream();
-//        ByteArrayOutputStream baosErr = new ByteArrayOutputStream();
         String packageName = "generatedCode";
         String kToJavaOutLog = "kToJavaOut.log";
         String writeJavaOutLog = "writeJavaOut.log";
 
-//        System.setOut(new PrintStream(baosOut));
-//        System.setErr(new PrintStream(baosErr));
+        // System.setOut(new PrintStream(baosOut));
+        // System.setErr(new PrintStream(baosErr));
 
         boolean containmentTree = false;
         boolean errorInfo = false;
@@ -1981,7 +1973,6 @@ public class KtoJava {
         boolean processStdoutAndStderr = true;
 
         JSONObject json = new JSONObject();  // This is now a member of KtoJava, so sync up with it!
-
 
         String kToExecute = "";
         Boolean areFiles = args.length > 0;
@@ -2015,32 +2006,32 @@ public class KtoJava {
                 String a = arg.toLowerCase();
                 if ( a.contains( "tree" ) ) {
                     containmentTree = true;
-                }
-                else if ( a.contains( "solve" ) ) {
+                } else if ( a.contains( "solve" ) ) {
                     errorInfo = true;
                     translate = true;
                     containmentTree = true;
-                }
-                else if ( a.contains( "error" ) ) {
+                } else if ( a.contains( "error" ) ) {
                     errorInfo = true;
-                }
-                else if ( a.contains( "verbose" ) ) {
+                } else if ( a.contains( "verbose" ) ) {
                     verbose = true;
                 }
-                // look for any of these:  '--captureOff' '--noCapture' '--capture off' '--capture=off' '--processOff' '--noProcess' '--process off' '--process=off'
-                else if (a.contains("capture") || a.contains("process")) {
-                    if (a.contains("no") || a.contains("off")) {
+                // look for any of these: '--captureOff' '--noCapture'
+                // '--capture off' '--capture=off' '--processOff' '--noProcess'
+                // '--process off' '--process=off'
+                else if ( a.contains( "capture" ) || a.contains( "process" ) ) {
+                    if ( a.contains( "no" ) || a.contains( "off" ) ) {
                         processStdoutAndStderr = false;
-                    } else if (i < args.length - 1) {
-                        a = args[i + 1].toLowerCase();
-                        if (!a.startsWith("-") &&
-                                (a.contains("no") || a.contains("off"))) {
+                    } else if ( i < args.length - 1 ) {
+                        a = args[ i + 1 ].toLowerCase();
+                        if ( !a.startsWith( "-" )
+                             && ( a.contains( "no" )
+                                  || a.contains( "off" ) ) ) {
                             processStdoutAndStderr = false;
                             ++i;
                         }
                     }
-                } else if (a.contains("package")) {
-                    packageName = args[++i];
+                } else if ( a.contains( "package" ) ) {
+                    packageName = args[ ++i ];
                 }
             }
         }
@@ -2054,12 +2045,14 @@ public class KtoJava {
         String targetDirectory = "src" + File.separator + packageName;
 
         if ( errorInfo ) {
-            //KtoJava kToJava = new KtoJava( kToExecute, packageName, translate );
+            // KtoJava kToJava = new KtoJava( kToExecute, packageName, translate
+            // );
             final String kToExecuteC = kToExecute;
             final String packageNameC = packageName;
             final boolean translateC = translate;
-            if (!processStdoutAndStderr) {
+            if ( !processStdoutAndStderr ) {
                 try {
+
                     kToJava = new KtoJava(kToExecuteC, packageNameC, translateC, processStdoutAndStderr);
                     json = kToJava.json;
                 } catch( Throwable t) {
@@ -2070,8 +2063,9 @@ public class KtoJava {
                     @Override
                     public Object run() {
                         try {
-                            return new KtoJava(kToExecuteC, packageNameC, translateC, true);
-                        } catch (Throwable t) {
+                            return new KtoJava( kToExecuteC, packageNameC,
+                                                translateC, true );
+                        } catch ( Throwable t ) {
                             t.printStackTrace();
                         }
                         return null;
@@ -2079,48 +2073,50 @@ public class KtoJava {
                 };
                 String out = c.baosOut.toString();
                 String err = c.baosErr.toString();
-                if (verbose) {
-                    System.err.println(err);
-                    System.out.println(out);
+                if ( verbose ) {
+                    System.err.println( err );
+                    System.out.println( out );
                 }
-                kToJava = (KtoJava) c.result;
-                if (kToJava == null) {
+                kToJava = (KtoJava)c.result;
+                if ( kToJava == null ) {
                     targetDirectory = "src" + File.separator + packageName;
                 } else {
+
                     json = kToJava.json;
                     targetDirectory = kToJava.getPackageSourcePath(null);
                 }
-                File d = new File(targetDirectory);
+                File d = new File( targetDirectory );
                 d.mkdirs();
                 String path = targetDirectory + File.separator + kToJavaOutLog;
-                FileUtils.stringToFile(out, path);
-                File f = new File(path);
-                json.put("kToJavaOutFile", f.getAbsolutePath());
+                FileUtils.stringToFile( out, path );
+                File f = new File( path );
+                json.put( "kToJavaOutFile", f.getAbsolutePath() );
 
                 // Add errors to JSON
                 JSONArray jarr = new JSONArray();
-                jarr.put(err);
-                json.put("errors", jarr);
+                jarr.put( err );
+                json.put( "errors", jarr );
 
-                // Syntax errors not working?  Just gives line:col.
+                // Syntax errors not working? Just gives line:col.
                 if ( false ) {
-                    List<String> syntaxErrorList = syntaxErrors(c.baosErr);
-                    String syntaxErrors = String.join(",", syntaxErrorList);
-                    //System.out.println( "===ERRORS===" );
+                    List< String > syntaxErrorList = syntaxErrors( c.baosErr );
+                    String syntaxErrors = String.join( ",", syntaxErrorList );
+                    // System.out.println( "===ERRORS===" );
 
                     StringBuffer sb = new StringBuffer();
 
-                    sb.append("Syntax Errors: "
-                            + (syntaxErrors.isEmpty() ? "None" : syntaxErrors)
-                            + "\n");
+                    sb.append( "Syntax Errors: "
+                               + ( syntaxErrors.isEmpty() ? "None"
+                                                          : syntaxErrors )
+                               + "\n" );
                     // Add syntax errors to JSON
-    //              if ( !syntaxErrorList.isEmpty() ) {
+                    // if ( !syntaxErrorList.isEmpty() ) {
                     jarr = new JSONArray();
-                    for (String se : syntaxErrorList) {
-                        jarr.put(se);
+                    for ( String se : syntaxErrorList ) {
+                        jarr.put( se );
                     }
-                    json.put("syntaxErrors", jarr);
-    //              }
+                    json.put( "syntaxErrors", jarr );
+                    // }
                     if ( !kToJava.typeCheckSucceeded ) {
                         sb.append( "Input k did not type check\n" );
                     }
@@ -2139,50 +2135,56 @@ public class KtoJava {
                 CaptureStdoutStderr c = new CaptureStdoutStderr() {
                     @Override
                     public Object run() {
-                        k2j.writeFiles(k2j, null);
+                        k2j.writeFiles( k2j, null );
                         return null;
                     }
                 };
-                JSONArray jarr = json.has("errors") ? json.getJSONArray("errors") : null;
-                if (jarr == null) jarr = new JSONArray();
-                if (verbose) {
-                    System.err.println(c.baosErr.toString());
-                    System.out.println(c.baosErr.toString());
+                JSONArray jarr =
+                        json.has( "errors" ) ? json.getJSONArray( "errors" )
+                                             : null;
+                if ( jarr == null ) jarr = new JSONArray();
+                if ( verbose ) {
+                    System.err.println( c.baosErr.toString() );
+                    System.out.println( c.baosErr.toString() );
                 }
-                jarr.put(c.baosErr.toString());
-                json.put("errors", jarr);
+                jarr.put( c.baosErr.toString() );
+                json.put( "errors", jarr );
                 String outWrite = c.baosOut.toString();
-                String path = targetDirectory + File.separator + writeJavaOutLog;
-                FileUtils.stringToFile(outWrite, path);
-                File f = new File(path);
-                json.put("writeJavaOutFile", f.getAbsolutePath());
+                String path =
+                        targetDirectory + File.separator + writeJavaOutLog;
+                FileUtils.stringToFile( outWrite, path );
+                File f = new File( path );
+                json.put( "writeJavaOutFile", f.getAbsolutePath() );
             }
         }
         if ( containmentTree ) {
-            //System.out.println( "===TREE===" );
+            // System.out.println( "===TREE===" );
             JSONObject tree = new JSONObject();
             try {
-                tree = kToContainmentTree(kToExecute);
-            } catch (Throwable t) {
+                tree = kToContainmentTree( kToExecute );
+            } catch ( Throwable t ) {
                 if ( verbose ) {
                     t.printStackTrace();
                 }
-                if (!errorInfo) {
-                    JSONArray jarr = json.has("errors") ? json.getJSONArray("errors") : null;
-                    if (jarr == null) jarr = new JSONArray();
+                if ( !errorInfo ) {
+                    JSONArray jarr =
+                            json.has( "errors" ) ? json.getJSONArray( "errors" )
+                                                 : null;
+                    if ( jarr == null ) jarr = new JSONArray();
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    PrintWriter pw = new PrintWriter(baos);
-                    t.printStackTrace(pw);
-                    jarr.put(baos.toString());
-                    json.put("errors", jarr);
+                    PrintWriter pw = new PrintWriter( baos );
+                    t.printStackTrace( pw );
+                    jarr.put( baos.toString() );
+                    json.put( "errors", jarr );
                 }
             }
-            //System.out.println( tree.toString(4) );
-            JSONArray jarr = json.has("tree") ? tree.getJSONArray("tree") : null;
+            // System.out.println( tree.toString(4) );
+            JSONArray jarr =
+                    json.has( "tree" ) ? tree.getJSONArray( "tree" ) : null;
             if ( jarr != null ) {
-                json.put("tree", jarr);
+                json.put( "tree", jarr );
             } else {
-                json.put("tree", tree);
+                json.put( "tree", tree );
             }
 
         }
@@ -2193,15 +2195,16 @@ public class KtoJava {
         }
 
         if ( verbose ) {
-            System.out.println("JSON output:");
+            System.out.println( "JSON output:" );
         }
-        System.out.println(json.toString(4));
+        System.out.println( json.toString( 4 ) );
     }
 
-    // Syntax errors not working?  Just gives line:col.
+    // Syntax errors not working? Just gives line:col.
     public static List< String > syntaxErrors( ByteArrayOutputStream baos ) {
-        return syntaxErrors(baos.toString() );
+        return syntaxErrors( baos.toString() );
     }
+
     public static List< String > syntaxErrors( String baosString ) {
         List< String > errors = new ArrayList< String >();
         Pattern errorPattern = Pattern.compile( "[0-9]+:[0-9]+" );
