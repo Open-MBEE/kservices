@@ -1104,6 +1104,7 @@ public class KtoJava {
       if ( moreConstructors != null ) {
           constructors.addAll(moreConstructors);
       }
+
       EventXmlToJava.addConstructors( constructors, getClassData() );
     }
     
@@ -1672,8 +1673,8 @@ public class KtoJava {
         String y = "      JSONObject json = new JSONObject();\n";
         if ( !this.processStdoutAndStderr ) {
             y += "Timepoint.setUnits(\"milliseconds\");\n" +
-                 "Timepoint.setEpoch(\"Mon Mar 10 03:00:00 PDT 2025\");\n" +
-                 "Timepoint.setHorizonDuration(109281180000L);\n";
+                 "Timepoint.setEpoch(\"Mon Mar 10 03:00:00 PDT 2028\");\n" +
+                 "Timepoint.setHorizonDuration(10928118000L);\n";
             y +=    "\n" +
                     "      Main s = new Main();\n" +
                     "      s.amTopEventToSimulate = true;\n" +
