@@ -1,6 +1,7 @@
 package gov.nasa.jpl.kservices;
 
 import gov.nasa.jpl.ae.util.*;
+import gov.nasa.jpl.ae.util.distributions.DistributionHelper;
 import japa.parser.ASTHelper;
 import japa.parser.ASTParser;
 import japa.parser.ParseException;
@@ -204,6 +205,7 @@ public class KtoJava {
     Set< String > topLevelClassNames;
     Set< String > instantiatedClassNames;
     Map< String, Set< String > > classToParentNames;
+    static private DistributionHelper dh = new DistributionHelper();
 
     JSONObject json = new JSONObject();
 
