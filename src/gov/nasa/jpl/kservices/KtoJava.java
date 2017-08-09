@@ -505,11 +505,27 @@ public class KtoJava {
         }
         return false;
     }
+    
+//    public String makeExpressionString(PropertyDecl p) {
+//        StringBuffer sb = new StringBuffer();
+//        if (p.expr().isEmpty()) {
+//            
+//        }
+//        sb.append(  )
+//        sb.append(((IdentType)p.ty()).toJavaString() );
+//        sb.append( "<" );
+//        sb.append( c )
+//        
+//        
+//        return sb.toString();
+//    }
 
     public ClassData.Param makeParam( PropertyDecl p, EntityDecl e ) {
         String name = p.name();
         String typeOld =
-                JavaToConstraintExpression.typeToClass( p.ty().toString() );
+                JavaToConstraintExpression.typeToClass(p.ty().toJavaString());
+        
+        System.out.println(typeOld);
         String type = typeOld;
         if ( e != null ) {
             // type = getClassName( type );
@@ -1532,6 +1548,7 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.mbee.util.ClassUtils" );
         addImport( "java.util.Vector" );
         addImport( "java.util.Map" );
+        addImport("java.util.ArrayList");
         getImports();
         return getClassData().getCurrentCompilationUnit();
     }
