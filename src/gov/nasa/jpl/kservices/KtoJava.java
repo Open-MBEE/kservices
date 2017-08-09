@@ -506,26 +506,44 @@ public class KtoJava {
         return false;
     }
     
-//    public String makeExpressionString(PropertyDecl p) {
-//        StringBuffer sb = new StringBuffer();
-//        if (p.expr().isEmpty()) {
-//            
-//        }
-//        sb.append(  )
-//        sb.append(((IdentType)p.ty()).toJavaString() );
-//        sb.append( "<" );
-//        sb.append( c )
-//        
-//        
-//        return sb.toString();
-//    }
+    public String makeExpressionString(Exp exp) {
+        if (exp instanceof CollectionEnumExp) {
+            CollectionEnumExp collExp = (CollectionEnumExp)exp;
+            StringBuffer sb = new StringBuffer();
+            sb.append("new ");
+            sb.append (collExp.kind().toJavaString());
+            sb.append( "(Arrays.asList( ");
+            ArrayList<Exp> args = new ArrayList<Exp>(JavaConversions.asJavaCollection( collExp.exps()));
+            boolean first = true;
+            for (Exp e : args) {
+                String arg = makeExpressionString(e);
+                if (!first) {
+                    sb.append( "," + arg );
+                } else {
+                    first = false;
+                    sb.append( arg );
+                }
+                
+            }
+            sb.append( " ))");
+            return sb.toString();
+            
+        } else {
+            if (exp == null) {
+                int x = 1;
+            }
+            return exp.toJavaString();
+        }
+        
+        
+       
+    }
 
     public ClassData.Param makeParam( PropertyDecl p, EntityDecl e ) {
         String name = p.name();
         String typeOld =
                 JavaToConstraintExpression.typeToClass(p.ty().toJavaString());
         
-        System.out.println(typeOld);
         String type = typeOld;
         if ( e != null ) {
             // type = getClassName( type );
@@ -544,7 +562,7 @@ public class KtoJava {
                 value = "new " + type + "()";
             }
         } else {
-            value = p.expr().get().toJavaString();
+            value = makeExpressionString(p.expr().get()); 
             if ( isConstructorDecl( p ) ) {
                 value = "new " + value;
             }
@@ -1065,7 +1083,7 @@ public class KtoJava {
 
             String name = constraint.name().isEmpty() ? null
                                                       : constraint.name().get();
-            expression = constraint.exp().toJavaString();
+            expression = makeExpressionString(constraint.exp());
 
             f = createConstraintField( name, expression, initMembers );
             if ( f != null ) {
@@ -1078,10 +1096,9 @@ public class KtoJava {
 
             if ( !property.expr().isEmpty()
                  && (allInitsAreConstraints || isPrimitive( property.ty().toString() )) ) {
+                expression = makeExpressionString(property.expr().get());
                 f = createConstraintField( null,
-                                           property.name() + " == "
-                                                 + property.expr().get()
-                                                           .toJavaString(),
+                                           property.name() + " == " + expression,
                                            initMembers );
                 if ( f != null ) {
                     constraints.add( f );
@@ -1549,7 +1566,7 @@ public class KtoJava {
         addImport( "java.util.Vector" );
         addImport( "java.util.Map" );
         addImport("java.util.ArrayList");
-        getImports();
+        addImport("java.util.Arrays");
         return getClassData().getCurrentCompilationUnit();
     }
 
