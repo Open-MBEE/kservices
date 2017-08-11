@@ -38,18 +38,9 @@ import scala.Tuple2;
 import scala.collection.JavaConversions;
 
 import java.io.*;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -82,6 +73,8 @@ public class KtoJava {
     String packageName;
     JavaToConstraintExpression expressionTranslator;
     String smtOutput = null;
+    HashMap<String, ArrayList<String>> smtTopObjects;
+    HashMap<String, ArrayList<String>> smtExtraObjects;
 
     int constraintCounter;
     int expressionCounter;
@@ -145,10 +138,9 @@ public class KtoJava {
                 };
 
                 this.smtOutput = stdoutStderr.baosOut.toString();
-//                System.out.println(z3Model.toString());
-
-
-
+////                System.out.println(z3Model.toString());
+                System.out.println(this.smtOutput);
+                this.json.put("solveOutput", this.smtOutput);
 
             } catch (Throwable e) {
               System.out.println(e.getMessage());
