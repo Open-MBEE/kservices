@@ -1,5 +1,6 @@
 package gov.nasa.jpl.kservices;
 
+import com.microsoft.z3.BoolExpr;
 import gov.nasa.jpl.ae.util.*;
 import gov.nasa.jpl.ae.util.distributions.DistributionHelper;
 import japa.parser.ASTHelper;
@@ -28,6 +29,9 @@ import japa.parser.ast.type.PrimitiveType;
 import japa.parser.ast.type.Type;
 // import japa.parser.ast.type.Type;
 import japa.parser.ast.type.VoidType;
+import k.frontend.*;
+import scala.Function0;
+import scala.Option;
 import scala.Tuple2;
 import scala.collection.JavaConversions;
 
@@ -58,25 +62,12 @@ import gov.nasa.jpl.mbee.util.Debug;
 import gov.nasa.jpl.mbee.util.FileUtils;
 import gov.nasa.jpl.mbee.util.Utils;
 
-import k.frontend.Frontend;
-import k.frontend.Model;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 // import gov.nasa.jpl.kservices.scala.AeKUtil;
 
 import gov.nasa.jpl.ae.util.JavaToConstraintExpression;
-import k.frontend.ImportDecl;
-import k.frontend.EntityDecl;
-import k.frontend.Exp;
-import k.frontend.PropertyDecl;
-import k.frontend.Param;
-import k.frontend.FunDecl;
-import k.frontend.ConstraintDecl;
-import k.frontend.ExpressionDecl;
-import k.frontend.MemberDecl;
-import k.frontend.TypeChecker;
 
 /*
  * Translates XML to executable Java classes for Analysis Engine behavior
@@ -87,6 +78,7 @@ public class KtoJava {
     String k;
     String packageName;
     JavaToConstraintExpression expressionTranslator;
+
     int constraintCounter;
     int expressionCounter;
     TypeChecker typeChecker;
@@ -135,6 +127,17 @@ public class KtoJava {
         // Type check!
         typeCheckSucceeded = typeCheck();
 
+        if(typeCheckSucceeded){
+            try {
+//                K2Z3.solveSMT(this.model, this.model.toSMT(), true);
+                BoolExpr boolExp = K2Z3.ctx().parseSMTLIB2String(this.model.toSMT(), null, null, null, null);
+                com.microsoft.z3.Model z3Model = K2Z3.SolveExp(boolExp, this.model.toSMT());
+                K2Z3.PrintModel(this.model);
+                System.out.println(z3Model.toString());
+            } catch (Throwable e) {
+              System.out.println(e.getMessage());
+            }
+        }
         // Collect declaration info
         this.topLevelClasses = getTopLevelClasses();
         this.allClasses = getAllClasses();

@@ -179,7 +179,33 @@
 			<artifactId>JRI</artifactId>
 			<version>0.9-9</version>
 		</dependency>
-		
+		<dependency>
+			<groupId>com.microsoft.z3</groupId>
+			<artifactId>com.microsoft.z3</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<type>jar</type>
+			<systemPath>${project.basedir}/../Klang/lib/com.microsoft.z3.jar</systemPath>
+		</dependency>
+
+		<dependency>
+			<groupId>com.microsoft.z3</groupId>
+			<artifactId>libz3java</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<type>so</type>
+			<systemPath>${project.basedir}/../Klang/lib/libz3java.so</systemPath>
+		</dependency>
+
+		<dependency>
+			<groupId>com.microsoft.z3</groupId>
+			<artifactId>libz3</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<type>so</type>
+			<systemPath>${project.basedir}/../Klang/lib/libz3.so</systemPath>
+		</dependency>
+
 	</dependencies>
 
 
