@@ -81,6 +81,7 @@ public class KtoJava {
     String k;
     String packageName;
     JavaToConstraintExpression expressionTranslator;
+    String smtOutput = null;
 
     int constraintCounter;
     int expressionCounter;
@@ -132,11 +133,23 @@ public class KtoJava {
 
         if(typeCheckSucceeded){
             try {
-//                K2Z3.solveSMT(this.model, this.model.toSMT(), true);
+                //             K2Z3.solveSMT(this.model, this.model.toSMT(), true);
                 BoolExpr boolExp = K2Z3.ctx().parseSMTLIB2String(this.model.toSMT(), null, null, null, null);
                 com.microsoft.z3.Model z3Model = K2Z3.SolveExp(boolExp, this.model.toSMT());
-                K2Z3.PrintModel(this.model);
-                System.out.println(z3Model.toString());
+
+                CaptureStdoutStderr stdoutStderr = new CaptureStdoutStderr() {
+                    @Override public Object run() {
+                        K2Z3.PrintModel(KtoJava.this.model);
+                        return null;
+                    }
+                };
+
+                this.smtOutput = stdoutStderr.baosOut.toString();
+//                System.out.println(z3Model.toString());
+
+
+
+
             } catch (Throwable e) {
               System.out.println(e.getMessage());
             }
