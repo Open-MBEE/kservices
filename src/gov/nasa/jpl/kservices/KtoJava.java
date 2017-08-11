@@ -1,8 +1,10 @@
 package gov.nasa.jpl.kservices;
 
 import com.microsoft.z3.BoolExpr;
+import gov.nasa.jpl.ae.event.HasParameters;
 import gov.nasa.jpl.ae.util.*;
 import gov.nasa.jpl.ae.util.distributions.DistributionHelper;
+import gov.nasa.jpl.mbee.util.*;
 import japa.parser.ASTHelper;
 import japa.parser.ASTParser;
 import japa.parser.ParseException;
@@ -68,6 +70,7 @@ import org.json.JSONObject;
 // import gov.nasa.jpl.kservices.scala.AeKUtil;
 
 import gov.nasa.jpl.ae.util.JavaToConstraintExpression;
+import scala.collection.LinearSeq;
 
 /*
  * Translates XML to executable Java classes for Analysis Engine behavior
@@ -430,6 +433,16 @@ public class KtoJava {
 
     }
 
+    // Delete this!  We're looking for a call not a declaration!
+//    public boolean isElaboratesMethod( MethodDeclaration m ) {
+//        if ( m == null ) return false;
+//        if ( !m.getName().equals("elaborates") ) return false;
+//        if ( m.getParameters() == null ) return false;
+//        if ( m.getParameters().size() < 2 ) return false;
+//        if ( m.)
+//        return true;
+//    }
+
     public Collection< MethodDeclaration > getMethods( EntityDecl entity ) {
         ArrayList< MethodDeclaration > methodDeclarations =
                 new ArrayList< MethodDeclaration >();
@@ -515,11 +528,45 @@ public class KtoJava {
         }
         return false;
     }
+    
+    public String makeExpressionString(Exp exp) {
+        if (exp instanceof CollectionEnumExp) {
+            CollectionEnumExp collExp = (CollectionEnumExp)exp;
+            StringBuffer sb = new StringBuffer();
+            sb.append("new ");
+            sb.append (collExp.kind().toJavaString());
+            sb.append( "(Arrays.asList( ");
+            ArrayList<Exp> args = new ArrayList<Exp>(JavaConversions.asJavaCollection( collExp.exps()));
+            boolean first = true;
+            for (Exp e : args) {
+                String arg = makeExpressionString(e);
+                if (!first) {
+                    sb.append( "," + arg );
+                } else {
+                    first = false;
+                    sb.append( arg );
+                }
+                
+            }
+            sb.append( " ))");
+            return sb.toString();
+            
+        } else {
+            if (exp == null) {
+                int x = 1;
+            }
+            return exp.toJavaString();
+        }
+        
+        
+       
+    }
 
     public ClassData.Param makeParam( PropertyDecl p, EntityDecl e ) {
         String name = p.name();
         String typeOld =
-                JavaToConstraintExpression.typeToClass( p.ty().toString() );
+                JavaToConstraintExpression.typeToClass(p.ty().toJavaString());
+        
         String type = typeOld;
         if ( e != null ) {
             // type = getClassName( type );
@@ -538,7 +585,7 @@ public class KtoJava {
                 value = "new " + type + "()";
             }
         } else {
-            value = p.expr().get().toJavaString();
+            value = makeExpressionString(p.expr().get()); 
             if ( isConstructorDecl( p ) ) {
                 value = "new " + value;
             }
@@ -580,6 +627,7 @@ public class KtoJava {
 
     }
 
+    // REVIEW -- Does anything call this?
     public void translateExpression() {
         getClassData().setCurrentClass( "Main" );
         initClassCompilationUnit( getClassData().getCurrentClass() );
@@ -656,6 +704,7 @@ public class KtoJava {
         // TODO
         processClassDeclarations( true );
         processClassDeclarations( false );
+        addConstructors();
         processExecutionEvent();
     }
 
@@ -1057,7 +1106,7 @@ public class KtoJava {
 
             String name = constraint.name().isEmpty() ? null
                                                       : constraint.name().get();
-            expression = constraint.exp().toJavaString();
+            expression = makeExpressionString(constraint.exp());
 
             f = createConstraintField( name, expression, initMembers );
             if ( f != null ) {
@@ -1070,10 +1119,9 @@ public class KtoJava {
 
             if ( !property.expr().isEmpty()
                  && (allInitsAreConstraints || isPrimitive( property.ty().toString() )) ) {
+                expression = makeExpressionString(property.expr().get());
                 f = createConstraintField( null,
-                                           property.name() + " == "
-                                                 + property.expr().get()
-                                                           .toJavaString(),
+                                           property.name() + " == " + expression,
                                            initMembers );
                 if ( f != null ) {
                     constraints.add( f );
@@ -1105,40 +1153,144 @@ public class KtoJava {
     }
 
     // Add constructors for invocations.
-    private void addConstructors() {
+    protected void addConstructors() {
       Collection< ConstructorDeclaration > constructors = getConstructorDeclarations(this.model);
-      constructors.addAll( createConstructors( this.model, constructors ) );
-      //EventXmlToJava.addConstructors( constructors, getClassData() );
+      Collection<? extends ConstructorDeclaration> moreConstructors =
+                createConstructors(this.model, constructors);
+      if ( moreConstructors != null ) {
+          constructors.addAll(moreConstructors);
+      }
+
+      EventXmlToJava.addConstructors( constructors, getClassData() );
     }
     
-    private Collection< ? extends ConstructorDeclaration >
+    protected Collection< ? extends ConstructorDeclaration >
             createConstructors( Model model2,
                                 Collection< ConstructorDeclaration > constructors ) {
         // TODO Auto-generated method stub
         return null;
     }
 
-    private Collection< ConstructorDeclaration >
-            getConstructorDeclarations( Model model2 ) {
-        // TODO Auto-generated method stub
-        return null;
+    protected static void findElaborationExpressions(HasChildren elem, ArrayList< FunApplExp > elaborations, Seen<HasChildren> seen) {
+        Pair< Boolean, Seen<HasChildren> > p = Utils.seen(elem, true, seen );
+        if ( p.first ) return;
+        seen = p.second;
+        if ( elem instanceof FunApplExp )  {
+            FunApplExp fae = (FunApplExp) elem;
+            if ( fae.name().equals("elaborates") ) {
+                if ( fae.args() != null && JavaConversions.asJavaCollection(fae.args()).size() >= 2 ) {
+                    elaborations.add(fae);
+                }
+            }
+        }
+        scala.collection.immutable.List<Object> children = elem.children();
+        scala.collection.Iterator iter = children.iterator();
+        while ( iter.hasNext() ) {
+            Object o = iter.next();
+            if ( o instanceof HasChildren ) {
+                findElaborationExpressions( (HasChildren)o, elaborations, seen);
+            }
+        }
     }
 
-    protected ConstructorDeclaration getConstructorDeclaration(String eventType,
-                                                               String fromTimeVarying,
-                                                               List< ClassData.Param > arguments ) {
-        ConstructorDeclaration ctor =
-                new ConstructorDeclaration( ModifierSet.PUBLIC,
-                                            ClassUtils.simpleName(eventType) );
-        if ( Debug.isOn() ) Debug.outln("ctor ctord as " + ctor.getName() );
-        if ( !Utils.isNullOrEmpty( fromTimeVarying ) ) {
-            ClassData.Param p = new ClassData.Param("startTime", "Long", null);
-            arguments.add(p);
-            p = new ClassData.Param("duration", "Long", null);
-            arguments.add(p);
+    protected Collection< ConstructorDeclaration >
+            getConstructorDeclarations( Model model ) {
+        ArrayList<ConstructorDeclaration> ctors = new ArrayList<ConstructorDeclaration>();
+        ArrayList<FunApplExp> elaborationCalls = new ArrayList<FunApplExp>();
+        findElaborationExpressions( model, elaborationCalls, null );
+        for ( FunApplExp fae : elaborationCalls ) {
+            String eventType = null;
+            String fromTimeVarying = null;
+            List< ClassData.Param > arguments = new ArrayList<ClassData.Param>();
+            scala.collection.Iterator iter = fae.args().iterator();
+            //for ( Argument arg : fae.args() ) {
+            int ct = 0;
+            while (iter.hasNext() ) {
+                Argument arg = (Argument)iter.next();
+                String name = null;
+                Exp exp = null;
+                String paramName = null;
+                if ( arg instanceof PositionalArgument) {
+                    PositionalArgument pa = (PositionalArgument)arg;
+                    exp = pa.exp();
+                } else if  (arg instanceof NamedArgument ) {
+                    NamedArgument na = (NamedArgument)arg;
+                    exp = na.exp();
+                    paramName = na.ident();
+                } else {
+                    Debug.error("Unrecognized argument: " + arg);
+                }
+                if ( exp instanceof DotExp ) {
+                    DotExp de = (DotExp)exp;
+                    name = de.toString();
+                } else
+                if ( exp instanceof ClassExp ) {
+                    k.frontend.Type type = ((ClassExp)exp).ty();
+                    if ( type instanceof ClassType ) {
+                        QualifiedName n = ((ClassType)type).ident();
+                        name = n.toString();
+                    } else if ( type instanceof IdentType ) {
+                        QualifiedName n = ((IdentType) type).ident();
+                        name = n.toString();
+                    } else {
+                        // shouldn't be possible
+                    }
+                } else
+                if ( exp instanceof IdentExp ) {
+                    name = ((IdentExp) exp).ident();
+                } else {
+                    Debug.error("Unexpected k expression type: " + exp.getClass().getCanonicalName() );
+                    name = null;
+//                    if (!( exp instanceof NullLiteral )) {
+//                        name = exp.toString();
+//                    }
+                }
+//                    } else if ( exp instanceof ) {
+//                        makeParam()
+//                    }
+                if (eventType == null &&
+                    (paramName == null || paramName.toLowerCase().contains("event"))) {
+                    eventType = name;
+                } else if ( fromTimeVarying == null  &&
+                            (paramName == null || paramName.toLowerCase().contains("timevarying"))) {
+                    fromTimeVarying = name;
+                }
+
+                // Handle arguments passed through to initialize the Event.
+                if ( eventType != null && ( fromTimeVarying != null || ct > 2 ) ) {
+                    // Make sure that both the name of the Parameter and the Expression are together.
+                    if ( iter.hasNext() ) {
+                        Argument arg2 = (Argument)iter.next();
+                        ClassData.Param param = new ClassData.Param(("" + arg2).replaceAll("\"", ""), (String)null, "" + arg);
+                        arguments.add(param);
+                    }
+                }
+
+                ++ct;
+            }
+            ConstructorDeclaration ctor =
+                    EventXmlToJava.getConstructorDeclaration(eventType, fromTimeVarying,
+                                              arguments, expressionTranslator);
+            ctors.add(ctor);
         }
-        return ctor;
+        return ctors;
     }
+
+//    protected ConstructorDeclaration getConstructorDeclaration(String eventType,
+//                                                               String fromTimeVarying,
+//                                                               List< ClassData.Param > arguments ) {
+//        ConstructorDeclaration ctor =
+//                new ConstructorDeclaration( ModifierSet.PUBLIC,
+//                                            ClassUtils.simpleName(eventType) );
+//        if ( Debug.isOn() ) Debug.outln("ctor ctord as " + ctor.getName() );
+//        if ( !Utils.isNullOrEmpty( fromTimeVarying ) ) {
+//            ClassData.Param p = new ClassData.Param("startTime", "Long", null);
+//            arguments.add(p);
+//            p = new ClassData.Param("duration", "Long", null);
+//            arguments.add(p);
+//        }
+//        return ctor;
+//    }
 
     public FieldDeclaration createConstraintField( String name,
                                                    String expression ) {
@@ -1436,7 +1588,8 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.mbee.util.ClassUtils" );
         addImport( "java.util.Vector" );
         addImport( "java.util.Map" );
-        getImports();
+        addImport("java.util.ArrayList");
+        addImport("java.util.Arrays");
         return getClassData().getCurrentCompilationUnit();
     }
 
