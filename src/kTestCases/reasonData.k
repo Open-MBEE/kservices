@@ -1,3 +1,4 @@
+
 class ReasonData extends DurativeEvent {
     req startTime = 0
     req endTime = Timepoint.getHorizonDuration()
@@ -5,12 +6,18 @@ class ReasonData extends DurativeEvent {
     var EncounterPhase : TimeVaryingMap = TimeVaryingMap("","../baeModels/europa/data/resources/EncounterPhase.csv", null, String.class)
     var flyby : TimeVaryingMap = !EncounterPhase.contains("Playback")
     var h : TimeVaryingMap = TimeVaryingMap("", "../baeModels/europa/data/resources/SpacecraftEuropaAltitude.csv", null, Double.class)
-    var altIndex : TimeVaryingMap = TimeVaryingMap("altIndex", null, 0, Integer.class, TimeVaryingMap.LINEAR)
+    -- var altIndex : TimeVaryingMap = TimeVaryingMap("altIndex", null, 0, Integer.class, TimeVaryingMap.LINEAR)
+    var altIndex : TimeVaryingMap
+    var zz : Int = 0
+    var z : Object = altIndex.setValue(zz, 0)
 }
 
 class Encounter extends DurativeEvent {
     var h : TimeVaryingMap
     var altIndex : TimeVaryingMap
+    var t : Int = (startTime / 10000).intValue()
+    var i : Int = floorMod(t, 3)
+    var z : Object = altIndex.setValue(startTime, i)
 }
 
 var r : ReasonData
