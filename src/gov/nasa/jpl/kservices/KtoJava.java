@@ -1243,12 +1243,14 @@ public class KtoJava {
                 } else
                 if ( exp instanceof IdentExp ) {
                     name = ((IdentExp) exp).ident();
-                } else {
-                    Debug.error("Unexpected k expression type: " + exp.getClass().getCanonicalName() );
+                } else if ( exp instanceof NullLiteral$ ){
                     name = null;
+                    Debug.error("Got NullLiteral: " + exp );
 //                    if (!( exp instanceof NullLiteral )) {
 //                        name = exp.toString();
 //                    }
+                } else {
+                    Debug.error("Unexpected k expression type: " + exp.getClass().getCanonicalName() );
                 }
 //                    } else if ( exp instanceof ) {
 //                        makeParam()
