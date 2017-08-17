@@ -1245,7 +1245,7 @@ public class KtoJava {
                     name = ((IdentExp) exp).ident();
                 } else if ( exp instanceof NullLiteral$ ){
                     name = null;
-                    Debug.error("Got NullLiteral: " + exp );
+                    //Debug.error("Got NullLiteral: " + exp );
 //                    if (!( exp instanceof NullLiteral )) {
 //                        name = exp.toString();
 //                    }
