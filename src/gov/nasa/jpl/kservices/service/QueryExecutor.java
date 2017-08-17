@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
 
-import generatedCode.Main;
+//import generatedCode.Main;
 //import generatedCode.Main;
 import gov.nasa.jpl.ae.event.Expression;
 import gov.nasa.jpl.kservices.KToAe;
@@ -275,11 +275,11 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
                     kToJava.writeFiles( kToJava, "/Users/ayelaman/git/kservices" );
                 }
                 if ( line.trim().startsWith( "solve" ) ) {
-                    Main scenario = new Main();
-                    scenario.satisfy(true, null);
-                    System.out.println( ( scenario.isSatisfied( true, null ) ? "Satisfied"
-                                                                             : "Not Satisfied" )
-                                        + "\n" + scenario.executionToString() );
+//                    Main scenario = new Main();
+//                    scenario.satisfy(true, null);
+//                    System.out.println( ( scenario.isSatisfied( true, null ) ? "Satisfied"
+//                                                                             : "Not Satisfied" )
+//                                        + "\n" + scenario.executionToString() );
                 }
                 
                 // output result
