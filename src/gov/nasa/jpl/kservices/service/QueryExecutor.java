@@ -18,8 +18,11 @@ import java.util.Set;
 //import generatedCode.Main;
 //import generatedCode.Main;
 import gov.nasa.jpl.ae.event.Expression;
+import gov.nasa.jpl.ae.util.ClassData;
+import gov.nasa.jpl.ae.xml.EventXmlToJava;
 import gov.nasa.jpl.kservices.KToAe;
 import gov.nasa.jpl.kservices.KtoJava;
+import gov.nasa.jpl.mbee.util.ClassUtils;
 import gov.nasa.jpl.mbee.util.Pair;
 import k.frontend.Exp;
 import k.frontend.Annotation;
@@ -32,6 +35,10 @@ import k.frontend.TypeParam;
 import scala.Option;
 import scala.collection.immutable.List;
 import sysml.SystemModel;
+
+import javax.tools.JavaCompiler;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
 
 
 public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > implements sysml.ProblemSolver<String,String,String,String,String,String,String,String,String,String,String>{
@@ -242,10 +249,12 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
             System.err.println("Error: Target File Cannot Be Read");
         }
     }
-    
+
     public static void main( String[] args ) {
+        String packageName = "generatedCode";
+
         StringBuffer k = new StringBuffer();
-        
+        KtoJava kToJava = null;
         // Connect to the named pipe
         RandomAccessFile pipe;
         try {
@@ -271,8 +280,13 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
                     String kToAdd = line.trim().substring( 4 );
                     k.append( "\n" + kToAdd );
 
-                    KtoJava kToJava = new KtoJava( k.toString(), "generatedCode", false );
-                    kToJava.writeFiles( kToJava, "/Users/ayelaman/git/kservices" );
+                    kToJava = new KtoJava( k.toString(), packageName, false );
+                    kToJava.translateOrRunSmt(true, true);
+                    if ( !kToJava.typeCheckSucceeded ) {
+                        kToJava.writeFiles(null);
+                    }
+
+                    kToJava.compileLoadAndRun();
                 }
                 if ( line.trim().startsWith( "solve" ) ) {
 //                    Main scenario = new Main();
