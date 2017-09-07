@@ -1,8 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="bae" />
+        <module name="baeModels" />
+        <module name="mbee_util" />
+        <module name="sysml" />
+      </profile>
+    </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="bae" target="1.8" />
+      <module name="baeModels" target="1.7" />
+      <module name="klang" target="1.6" />
       <module name="kservices" target="1.8" />
+      <module name="mbee_util" target="1.7" />
+      <module name="sysml" target="1.7" />
     </bytecodeTargetLevel>
   </component>
 </project>

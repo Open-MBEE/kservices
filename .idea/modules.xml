@@ -2,7 +2,12 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../bae/bae.iml" filepath="$PROJECT_DIR$/../bae/bae.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../baeModels/baeModels.iml" filepath="$PROJECT_DIR$/../baeModels/baeModels.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Klang/klang.iml" filepath="$PROJECT_DIR$/../Klang/klang.iml" />
       <module fileurl="file://$PROJECT_DIR$/kservices.iml" filepath="$PROJECT_DIR$/kservices.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../util/mbee_util.iml" filepath="$PROJECT_DIR$/../util/mbee_util.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../sysml/sysml.iml" filepath="$PROJECT_DIR$/../sysml/sysml.iml" />
     </modules>
   </component>
 </project>
