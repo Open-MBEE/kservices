@@ -70,6 +70,8 @@ import javax.tools.ToolProvider;
 
 public class KtoJava {
 
+    boolean tryingToCompileAndLoadInPlace = false;
+
     String k;
     String packageName;
     Map<String, JavaToConstraintExpression> expressionTranslators;
@@ -2547,7 +2549,7 @@ public class KtoJava {
             }
         }
 
-        if ( solve ) {
+        if ( kToJava.tryingToCompileAndLoadInPlace && solve ) {
             final KtoJava k2j = kToJava;
             if ( !processStdoutAndStderr ) {
                 k2j.compileLoadAndRun();
