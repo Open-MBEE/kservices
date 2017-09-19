@@ -15,11 +15,12 @@ var b : Seq[Int] = z[1]
 fun z1( i: Int ) : Seq[Int] {
     z[i]
 }
-fun z2( i1: Int, i2: Int ) : Int {
-    z1(i1)[i2]
+===
+
+fun z2( i2: Int ) : Int {
+    b[i2]
 }
 
-var cc : Int = z2(1, 1)
+var cc : Int = z2(1)
 
-var o : Object =
-===
+-- var o : Object =
