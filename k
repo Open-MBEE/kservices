@@ -2,7 +2,7 @@
 
 # flags: --tree to get containment tree, --error to get syntax/type errors, --solve to get syntax/type errors and solve
 
-#set -x
+set -x
 
 if [ -n "$M2_REPO" ]; then
     m2=$M2_REPO
