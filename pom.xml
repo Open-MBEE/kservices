@@ -40,50 +40,13 @@
 		<env>local</env>
 		<maven.test.skip>true</maven.test.skip>
 		<mbee.version>2.3.4-SNAPSHOT</mbee.version>
+		<scalaVersion>2.11.8</scalaVersion>
+		<!-- change to "2.11" once Scala 2.11.0 final is out -->
+		<scalaBinaryVersion>2.11</scalaBinaryVersion>
 	</properties>
 
 	<!-- profiles for specific dependencies for developers or users -->
 	<profiles>
-		<profile>
-			<id>mms-dev</id>
-			<dependencies>
-				<dependency>
-					<groupId>gov.nasa.jpl.ae</groupId>
-					<artifactId>AE</artifactId>
-					<version>1.0</version>
-					<scope>system</scope>
-					<type>jar</type>
-					<systemPath>${project.basedir}/lib/AE.jar</systemPath>
-				</dependency>
-				<dependency>
-					<groupId>sysml</groupId>
-					<artifactId>sysml</artifactId>
-					<version>1.0</version>
-					<scope>system</scope>
-					<type>jar</type>
-					<systemPath>${project.basedir}/lib/sysml.jar</systemPath>
-				</dependency>
-				<dependency>
-					<groupId>mbee_util</groupId>
-					<artifactId>mbee_util</artifactId>
-					<version>1.0</version>
-					<scope>system</scope>
-					<type>jar</type>
-					<systemPath>${project.basedir}/lib/mbee_util.jar</systemPath>
-				</dependency>
-				<dependency>
-					<groupId>klang</groupId>
-					<artifactId>klang</artifactId>
-					<version>1.0</version>
-					<scope>system</scope>
-					<type>jar</type>
-					<systemPath>${project.basedir}/lib/klang.jar</systemPath>
-				</dependency>
-			</dependencies>
-			<properties>
-				<env.BUILD_NUMBER>1</env.BUILD_NUMBER>
-			</properties>
-		</profile>
 		<profile>
 			<id>mbee-dev</id>
 			<dependencies>
@@ -122,7 +85,76 @@
 			</dependencies>
 			<properties>
 				<env.BUILD_NUMBER>1</env.BUILD_NUMBER>
+				<kPackageName>generated</kPackageName>
 			</properties>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>1.6.0</version>
+						<executions>
+							<execution>
+								<id>generate</id>
+								<!--<phase>test</phase>-->
+								<goals>
+									<goal>java</goal>
+								</goals>
+								<configuration>
+									<includePluginDependencies>true</includePluginDependencies>
+									<mainClass>gov.nasa.jpl.kservices.KtoJava</mainClass>
+									<arguments>
+										<!--<argument>&#45;&#45;captureOff</argument>-->
+										<argument>--package</argument>
+										<argument>${kPackageName}</argument>
+										<argument>src/kTestCases/abs.k</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
+								<id>solve</id>
+								<!--<phase>test</phase>-->
+								<goals>
+									<goal>java</goal>
+								</goals>
+								<configuration>
+									<includePluginDependencies>true</includePluginDependencies>
+									<mainClass>${kPackageName}.Main</mainClass>
+								</configuration>
+							</execution>
+						</executions>
+						<dependencies>
+							<dependency>
+								<groupId>gov.nasa.jpl.mbee.util</groupId>
+								<artifactId>mbee_util</artifactId>
+								<version>${mbee.version}</version>
+							</dependency>
+							<dependency>
+								<groupId>gov.nasa.jpl.mbee.sysml</groupId>
+								<artifactId>sysml</artifactId>
+								<version>${mbee.version}</version>
+							</dependency>
+							<dependency>
+								<groupId>gov.nasa.jpl.mbee.bae</groupId>
+								<artifactId>bae</artifactId>
+								<!--<version>${mbee.version}</version>-->
+								<version>1.0</version>
+								<scope>system</scope>
+								<type>jar</type>
+								<systemPath>${project.basedir}/../bae/target/bae-${mbee.version}.jar</systemPath>
+							</dependency>
+							<dependency>
+								<groupId>klang</groupId>
+								<artifactId>klang</artifactId>
+								<version>1.0</version>
+								<scope>system</scope>
+								<type>jar</type>
+								<systemPath>${project.basedir}/../Klang/target/klang-${mbee.version}.jar</systemPath>
+							</dependency>
+						</dependencies>
+					</plugin>
+				</plugins>
+			</build>
 		</profile>
 		<profile>
 			<id>jenkins</id>
@@ -185,8 +217,28 @@
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
-            <version>2.11.8</version>
+            <version>${scalaVersion}</version>
         </dependency>
+		<dependency>
+			<groupId>org.scala-lang</groupId>
+			<artifactId>scala-actors</artifactId>
+			<version>${scalaVersion}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.scala-lang.modules</groupId>
+			<artifactId>scala-xml_${scalaBinaryVersion}</artifactId>
+			<version>1.0.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.scala-lang.modules</groupId>
+			<artifactId>scala-parser-combinators_${scalaBinaryVersion}</artifactId>
+			<version>1.0.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.scala-lang.modules</groupId>
+			<artifactId>scala-swing_${scalaBinaryVersion}</artifactId>
+			<version>1.0.1</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.json</groupId>
@@ -194,16 +246,11 @@
 			<version>20140107</version>
 		</dependency>
 
+
  		<dependency>
 			<groupId>org.antlr</groupId>
 			<artifactId>antlr4</artifactId>
-			<version>4.5</version>
-		</dependency>
-		
- 		<dependency>
-			<groupId>org.antlr</groupId>
-			<artifactId>antlr4</artifactId>
-			<version>4.5</version>
+			<version>4.7</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-math3 -->
@@ -219,8 +266,59 @@
 			<artifactId>JRI</artifactId>
 			<version>0.9-9</version>
 		</dependency>
-		
-	</dependencies>
+		<dependency>
+			<groupId>com.microsoft.z3</groupId>
+			<artifactId>com.microsoft.z3</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<type>jar</type>
+			<systemPath>${project.basedir}/../Klang/lib/com.microsoft.z3.jar</systemPath>
+		</dependency>
+
+		<dependency>
+			<groupId>com.microsoft.z3</groupId>
+			<artifactId>libz3java</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<type>so</type>
+			<systemPath>${project.basedir}/../Klang/lib/libz3java.so</systemPath>
+		</dependency>
+
+		<dependency>
+			<groupId>com.microsoft.z3</groupId>
+			<artifactId>libz3</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<type>so</type>
+			<systemPath>${project.basedir}/../Klang/lib/libz3.so</systemPath>
+		</dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+            <version>2.4</version>
+        </dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-server</artifactId>
+			<version>9.2.12.v20150709</version>
+		</dependency>
+        <dependency>
+            <groupId>org.eclipse.emf</groupId>
+            <artifactId>org.eclipse.emf.ecore</artifactId>
+            <version>2.9.1-v20130827-0309</version>
+        </dependency>
+		<dependency>
+			<groupId>org.scijava</groupId>
+			<artifactId>jython-shaded</artifactId>
+			<version>2.5.3</version>
+		</dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>19.0</version>
+        </dependency>
+
+    </dependencies>
 
 
 	<!-- This repository is only needed to retrieve Alfresco parent POM. NOTE: 
@@ -309,6 +407,12 @@
           <include>**/*.*</include>
         </includes>
       </resource>
+		<resource>
+			<directory>export</directory>
+			<excludes>
+				<exclude>**/*</exclude>
+			</excludes>
+		</resource>
     </resources>
         <plugins>
             <plugin>
