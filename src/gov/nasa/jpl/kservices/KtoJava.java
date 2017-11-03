@@ -67,7 +67,7 @@ import javax.tools.ToolProvider;
 
 public class KtoJava {
 
-    protected boolean tryingToCompileAndLoadInPlace = false;
+    protected boolean tryingToCompileAndLoadInPlace = true;
 
     protected String k;
     protected String packageName;
@@ -1395,86 +1395,91 @@ public class KtoJava {
         }
     }
 
+    protected ConstructorDeclaration getConstructorDeclaration( FunApplExp fae ) {
+        String eventType = null;
+        String fromTimeVarying = null;
+        List< ClassData.Param > arguments = new ArrayList<ClassData.Param>();
+        scala.collection.Iterator iter = fae.args().iterator();
+        //for ( Argument arg : fae.args() ) {
+        int ct = 0;
+        while (iter.hasNext() ) {
+            Argument arg = (Argument)iter.next();
+            String name = null;
+            Exp exp = null;
+            String paramName = null;
+            if ( arg instanceof PositionalArgument) {
+                PositionalArgument pa = (PositionalArgument)arg;
+                exp = pa.exp();
+            } else if  (arg instanceof NamedArgument ) {
+                NamedArgument na = (NamedArgument)arg;
+                exp = na.exp();
+                paramName = na.ident();
+            } else {
+                Debug.error("Unrecognized argument: " + arg);
+            }
+            if ( exp instanceof DotExp ) {
+                DotExp de = (DotExp)exp;
+                name = de.toString();
+            } else
+            if ( exp instanceof ClassExp ) {
+                k.frontend.Type type = ((ClassExp)exp).ty();
+                if ( type instanceof ClassType ) {
+                    QualifiedName n = ((ClassType)type).ident();
+                    name = n.toString();
+                } else if ( type instanceof IdentType ) {
+                    QualifiedName n = ((IdentType) type).ident();
+                    name = n.toString();
+                } else {
+                    // shouldn't be possible
+                }
+            } else
+            if ( exp instanceof IdentExp ) {
+                name = ((IdentExp) exp).ident();
+            } else if ( exp instanceof NullLiteral$ ){
+                name = null;
+                //Debug.error("Got NullLiteral: " + exp );
+//                    if (!( exp instanceof NullLiteral )) {
+//                        name = exp.toString();
+//                    }
+            } else {
+                Debug.error("Unexpected k expression type: " + exp.getClass().getCanonicalName() );
+            }
+//                    } else if ( exp instanceof ) {
+//                        makeParam()
+//                    }
+            if (eventType == null &&
+                    (paramName == null || paramName.toLowerCase().contains("event"))) {
+                eventType = name;
+            } else if ( fromTimeVarying == null  &&
+                    (paramName == null || paramName.toLowerCase().contains("timevarying"))) {
+                fromTimeVarying = name;
+            }
+
+            // Handle arguments passed through to initialize the Event.
+            if ( eventType != null && ( fromTimeVarying != null || ct > 2 ) ) {
+                // Make sure that both the name of the Parameter and the Expression are together.
+                if ( iter.hasNext() ) {
+                    Argument arg2 = (Argument)iter.next();
+                    ClassData.Param param = new ClassData.Param(("" + arg2).replaceAll("\"", ""), (String)null, "" + arg);
+                    arguments.add(param);
+                }
+            }
+
+            ++ct;
+        }
+        ConstructorDeclaration ctor =
+                EventXmlToJava.getConstructorDeclaration(eventType, fromTimeVarying,
+                        arguments, expressionTranslator());
+        return ctor;
+    }
+
     protected Collection< ConstructorDeclaration >
             getConstructorDeclarations( Model model ) {
         ArrayList<ConstructorDeclaration> ctors = new ArrayList<ConstructorDeclaration>();
         ArrayList<FunApplExp> elaborationCalls = new ArrayList<FunApplExp>();
         findElaborationExpressions( model, elaborationCalls, null );
         for ( FunApplExp fae : elaborationCalls ) {
-            String eventType = null;
-            String fromTimeVarying = null;
-            List< ClassData.Param > arguments = new ArrayList<ClassData.Param>();
-            scala.collection.Iterator iter = fae.args().iterator();
-            //for ( Argument arg : fae.args() ) {
-            int ct = 0;
-            while (iter.hasNext() ) {
-                Argument arg = (Argument)iter.next();
-                String name = null;
-                Exp exp = null;
-                String paramName = null;
-                if ( arg instanceof PositionalArgument) {
-                    PositionalArgument pa = (PositionalArgument)arg;
-                    exp = pa.exp();
-                } else if  (arg instanceof NamedArgument ) {
-                    NamedArgument na = (NamedArgument)arg;
-                    exp = na.exp();
-                    paramName = na.ident();
-                } else {
-                    Debug.error("Unrecognized argument: " + arg);
-                }
-                if ( exp instanceof DotExp ) {
-                    DotExp de = (DotExp)exp;
-                    name = de.toString();
-                } else
-                if ( exp instanceof ClassExp ) {
-                    k.frontend.Type type = ((ClassExp)exp).ty();
-                    if ( type instanceof ClassType ) {
-                        QualifiedName n = ((ClassType)type).ident();
-                        name = n.toString();
-                    } else if ( type instanceof IdentType ) {
-                        QualifiedName n = ((IdentType) type).ident();
-                        name = n.toString();
-                    } else {
-                        // shouldn't be possible
-                    }
-                } else
-                if ( exp instanceof IdentExp ) {
-                    name = ((IdentExp) exp).ident();
-                } else if ( exp instanceof NullLiteral$ ){
-                    name = null;
-                    //Debug.error("Got NullLiteral: " + exp );
-//                    if (!( exp instanceof NullLiteral )) {
-//                        name = exp.toString();
-//                    }
-                } else {
-                    Debug.error("Unexpected k expression type: " + exp.getClass().getCanonicalName() );
-                }
-//                    } else if ( exp instanceof ) {
-//                        makeParam()
-//                    }
-                if (eventType == null &&
-                    (paramName == null || paramName.toLowerCase().contains("event"))) {
-                    eventType = name;
-                } else if ( fromTimeVarying == null  &&
-                            (paramName == null || paramName.toLowerCase().contains("timevarying"))) {
-                    fromTimeVarying = name;
-                }
-
-                // Handle arguments passed through to initialize the Event.
-                if ( eventType != null && ( fromTimeVarying != null || ct > 2 ) ) {
-                    // Make sure that both the name of the Parameter and the Expression are together.
-                    if ( iter.hasNext() ) {
-                        Argument arg2 = (Argument)iter.next();
-                        ClassData.Param param = new ClassData.Param(("" + arg2).replaceAll("\"", ""), (String)null, "" + arg);
-                        arguments.add(param);
-                    }
-                }
-
-                ++ct;
-            }
-            ConstructorDeclaration ctor =
-                    EventXmlToJava.getConstructorDeclaration(eventType, fromTimeVarying,
-                                              arguments, expressionTranslator());
+            ConstructorDeclaration ctor = getConstructorDeclaration(fae);
             ctors.add(ctor);
         }
         return ctors;
@@ -2436,6 +2441,9 @@ public class KtoJava {
             final String packageNameC = packageName;
             final boolean translateC = translate;
             final boolean solveC = solve;
+            final boolean errorInfoC = errorInfo;
+            final boolean containmentTreeC = containmentTree;
+            final boolean verboseC = verbose;
             final boolean runSmtC = runSMT;
 
             if ( !processStdoutAndStderr ) {
@@ -2450,6 +2458,14 @@ public class KtoJava {
                 CaptureStdoutStderr c = new CaptureStdoutStderr() {
                     @Override
                     public Object run() {
+                        System.out.println("packageName = " + packageNameC);
+                        System.out.println("runSMT = " + runSmtC);
+                        System.out.println("solve = " + solveC);
+                        System.out.println("errorInfo = " + errorInfoC);
+                        System.out.println("containmentTree = " + containmentTreeC);
+                        System.out.println("translate = " + translateC);
+                        System.out.println("verbose = " + verboseC);
+
                         try {
                             KtoJava kToJava = new KtoJava( kToExecuteC, packageNameC,
                                                 translateC, true );
@@ -2548,7 +2564,7 @@ public class KtoJava {
             }
         }
 
-        if ( kToJava.tryingToCompileAndLoadInPlace && solve ) {
+        if ( kToJava != null && kToJava.tryingToCompileAndLoadInPlace && solve ) {
             final KtoJava k2j = kToJava;
             if ( !processStdoutAndStderr ) {
                 k2j.compileLoadAndRun();
@@ -2650,7 +2666,15 @@ public class KtoJava {
 
     public void compileLoadAndRun() {
         String projectPath = null;
-        Class<?> mainClass = ClassUtils.getClassForName("Main", null, this.packageName, true);
+        String mainClassString = this.packageName + ".Main";
+        Class<?> mainClass = null;
+        try {
+            mainClass = ClassUtils.classForName(mainClassString);
+        } catch (ClassNotFoundException e) {
+        }
+        if ( mainClass == null ) {
+            mainClass = ClassUtils.getClassForName("Main", null, this.packageName, true);
+        }
         ClassData classData = this.getClassData();
         ClassLoader loader = this.getClass().getClassLoader();///kToJava
         JavaCompiler compiler =
