@@ -432,8 +432,8 @@
                     <compilerArgument>-proc:none</compilerArgument>
                     <excludes>
                         <exclude>**/*.scala</exclude>
-						<exclude>**/simpleSequence/**/*.java</exclude>
-						<exclude>**/simpleSequence/**/*.class</exclude>
+						<!--<exclude>**/simpleSequence/**/*.java</exclude>
+						<exclude>**/simpleSequence/**/*.class</exclude>-->
                     </excludes>
                 </configuration>
                 <executions>
