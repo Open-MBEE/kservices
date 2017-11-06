@@ -60,6 +60,13 @@
 					<artifactId>sysml</artifactId>
 					<version>${mbee.version}</version>
 				</dependency>
+				<!--<dependency>-->
+					<!--<groupId>qj</groupId>-->
+					<!--<artifactId>classreloading</artifactId>-->
+					<!--<scope>system</scope>-->
+					<!--<version>1.8.0</version>-->
+					<!--<systemPath>${project.basedir}/../classreloading/target/classreloading-1.0-SNAPSHOT.jar</systemPath>-->
+				<!--</dependency>-->
 			    <dependency>
 					<groupId>gov.nasa.jpl.mbee.bae</groupId>
 					<artifactId>bae</artifactId>
@@ -416,14 +423,17 @@
     </resources>
         <plugins>
             <plugin>
+				<groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.1</version>
                 <configuration>
-                    <source />
-                    <target />
+					<source>1.8</source>
+					<target>1.8</target>
                     <compilerArgument>-proc:none</compilerArgument>
                     <excludes>
                         <exclude>**/*.scala</exclude>
+						<!--<exclude>**/simpleSequence/**/*.java</exclude>
+						<exclude>**/simpleSequence/**/*.class</exclude>-->
                     </excludes>
                 </configuration>
                 <executions>
@@ -437,14 +447,14 @@
             </plugin>
 
 
-            <plugin>
+<!--            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
                 </configuration>
-            </plugin>
+            </plugin>-->
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
