@@ -325,6 +325,33 @@
             <version>19.0</version>
         </dependency>
 
+        <!--<dependency>
+            <groupId>com.microsoft.z3</groupId>
+            <artifactId>com.microsoft.z3</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <type>jar</type>
+            <systemPath>${project.basedir}/lib/com.microsoft.z3.jar</systemPath>
+        </dependency>
+
+        <dependency>
+            <groupId>com.microsoft.z3</groupId>
+            <artifactId>libz3java</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <type>so</type>
+            <systemPath>${project.basedir}/lib/libz3java.dylib</systemPath>
+        </dependency>
+
+        <dependency>
+            <groupId>com.microsoft.z3</groupId>
+            <artifactId>libz3</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <type>so</type>
+            <systemPath>${project.basedir}/lib/libz3.dylib</systemPath>
+        </dependency>-->
+
     </dependencies>
 
 
@@ -432,8 +459,8 @@
                     <compilerArgument>-proc:none</compilerArgument>
                     <excludes>
                         <exclude>**/*.scala</exclude>
-						<!--<exclude>**/simpleSequence/**/*.java</exclude>
-						<exclude>**/simpleSequence/**/*.class</exclude>-->
+						<exclude>generatedSrc/**/*.java</exclude>
+						<exclude>generatedSrc/**/*.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>
@@ -446,15 +473,6 @@
                 </executions>
             </plugin>
 
-
-<!--            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
-            </plugin>-->
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
