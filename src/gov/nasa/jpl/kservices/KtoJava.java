@@ -169,7 +169,8 @@ public class KtoJava {
         if ( !modelHasDeclsOutsidePackages( m ) ) {
             this.packageName = "";
         } else {
-            if ( m.packageName() != null && !Utils.isNullOrEmpty( m.packageName().get() ) ) {
+            scala.Option<String> x = scala.Option.apply(null);
+            if ( m.packageName() != x && !Utils.isNullOrEmpty( m.packageName().get() ) ) {
                 this.packageName =  m.packageName().get();
             } else if ( m.packages() != null && !m.packages().isEmpty() ) {
 //                this.packageName = m.packageName().get();
