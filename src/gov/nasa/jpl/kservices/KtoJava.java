@@ -743,6 +743,8 @@ public class KtoJava {
         } else {
             value = makeExpressionString(p.expr().get()); 
             if ( isConstructorDecl( p ) ) {
+                // TODO -- HERE! Need to remove names in named arguments, ex. new A(x :: 1, y :: 2);  "::" is not in Java!
+                //value.replaceAll("\\w+\\s*::\\s*", "");  // FIXME -- this seems dangerous!  It could accidentally change a string value!
                 value = "new " + value;
             }
         }
@@ -1372,6 +1374,34 @@ public class KtoJava {
         return null;
     }
 
+    protected static void findKConstructorCalls(HasChildren elem, ArrayList< FunApplExp > constructorCalls, Seen<HasChildren> seen) {
+        if ( elem == null ) return;
+        Pair< Boolean, Seen<HasChildren>> p = Utils.seen(elem, true, seen );
+        if ( p.first ) return;
+        seen = p.second;
+        if ( elem instanceof FunApplExp )  {
+            FunApplExp fae = (FunApplExp) elem;
+            scala.collection.immutable.List<Argument> args = fae.arguments();
+            scala.collection.Iterator iter = args.iterator();
+            while( iter.hasNext() ) {
+                Object a = iter.next();
+                if ( a instanceof NamedArgument ) {
+                    constructorCalls.add(fae);
+                    break;
+                }
+            }
+        }
+        scala.collection.immutable.List<Object> children = elem.children();
+        if (children == null) return;
+        scala.collection.Iterator iter = children.iterator();
+        while ( iter.hasNext() ) {
+            Object o = iter.next();
+            if ( o instanceof HasChildren ) {
+                findKConstructorCalls( (HasChildren)o, constructorCalls, seen);
+            }
+        }
+
+    }
     protected static void findElaborationExpressions(HasChildren elem, ArrayList< FunApplExp > elaborations, Seen<HasChildren> seen) {
         if ( elem == null ) return;
         Pair< Boolean, Seen<HasChildren>> p = Utils.seen(elem, true, seen );
@@ -1464,6 +1494,9 @@ public class KtoJava {
                     ClassData.Param param = new ClassData.Param(("" + arg2).replaceAll("\"", ""), (String)null, "" + arg);
                     arguments.add(param);
                 }
+            } else if ( paramName != null ) {
+                ClassData.Param param = new ClassData.Param((paramName).replaceAll("\"", ""), (String)null, "" + arg);
+                arguments.add(param);
             }
 
             ++ct;
@@ -1477,10 +1510,22 @@ public class KtoJava {
     protected Collection< ConstructorDeclaration >
             getConstructorDeclarations( Model model ) {
         ArrayList<ConstructorDeclaration> ctors = new ArrayList<ConstructorDeclaration>();
+
+        // Create constructors from constructor calls on k classes (which have named arguments).
+        ArrayList<FunApplExp> kConstructorCalls = new ArrayList<FunApplExp>();
+        findKConstructorCalls( model, kConstructorCalls, null );
+        for ( FunApplExp fae : kConstructorCalls ) {
+            ConstructorDeclaration ctor = getConstructorDeclaration(fae);
+            // TODO -- check if constructor is a duplicate of another, maybe just with the named arguments in a different order.
+            ctors.add(ctor);
+        }
+
+        // Create constructors from calls to elaborate().
         ArrayList<FunApplExp> elaborationCalls = new ArrayList<FunApplExp>();
         findElaborationExpressions( model, elaborationCalls, null );
         for ( FunApplExp fae : elaborationCalls ) {
             ConstructorDeclaration ctor = getConstructorDeclaration(fae);
+            // TODO -- don't add duplicates!
             ctors.add(ctor);
         }
         return ctors;
