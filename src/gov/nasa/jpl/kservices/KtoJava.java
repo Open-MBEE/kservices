@@ -129,6 +129,7 @@ public class KtoJava {
         }
         // Parse!
         Model m = getModelFromString();
+        Frontend.printStats(m);
         if ( m == null || m.decls() == null || m.decls().isEmpty() ) return;
 //        if ( !modelHasDeclsOutsidePackages( m ) ) {
 //            this.packageName = "";
@@ -460,7 +461,7 @@ public class KtoJava {
             String entityName = getClassName( entity );
             params = new TreeMap< String, ClassData.Param >();
             ArrayList< PropertyDecl > propertyList =
-                    new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDecls() ) );
+                    new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDeclsNoIgnore() ) );
             for ( PropertyDecl p : propertyList ) {
                 param = makeParam( p, entity );
                 String type = p.ty().toJavaString();
@@ -1239,7 +1240,7 @@ public class KtoJava {
             }
         } else {
             propertyList =
-                    new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDecls() ) );
+                    new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDeclsNoIgnore() ) );
         }
 
         for ( PropertyDecl property : propertyList ) {
@@ -1301,7 +1302,7 @@ public class KtoJava {
             constraintList =
                     new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( entity.getConstraintDecls() ) );
             propertyList =
-                    new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDecls() ) );
+                    new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDeclsNoIgnore() ) );
         }
         for ( ConstraintDecl constraint : constraintList ) {
 
@@ -2241,7 +2242,7 @@ public class KtoJava {
         entity.put( "char", numbers._2() );
         JSONArray children = new JSONArray();
         List< PropertyDecl > properties =
-                new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( e.getPropertyDecls() ) );
+                new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( e.getPropertyDeclsNoIgnore() ) );
         for ( PropertyDecl p : properties ) {
             children.put( propertyToJSON( p, map ) );
         }
