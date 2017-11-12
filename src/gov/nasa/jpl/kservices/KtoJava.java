@@ -129,7 +129,6 @@ public class KtoJava {
         }
         // Parse!
         Model m = getModelFromString();
-        Frontend.printStats(m);
         if ( m == null || m.decls() == null || m.decls().isEmpty() ) return;
 //        if ( !modelHasDeclsOutsidePackages( m ) ) {
 //            this.packageName = "";
