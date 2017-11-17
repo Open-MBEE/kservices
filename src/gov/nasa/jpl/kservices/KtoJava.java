@@ -3,6 +3,7 @@ package gov.nasa.jpl.kservices;
 import com.microsoft.z3.BoolExpr;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
+import gov.nasa.jpl.ae.event.ConstructorCall;
 import org.apache.commons.lang3.reflect.MethodUtils;
 
 import gov.nasa.jpl.ae.util.CaptureStdoutStderr;
@@ -1372,6 +1373,34 @@ public class KtoJava {
         return null;
     }
 
+    protected static void findKConstructorCalls(HasChildren elem, ArrayList< FunApplExp > constructorCalls, Seen<HasChildren> seen) {
+        if ( elem == null ) return;
+        Pair< Boolean, Seen<HasChildren>> p = Utils.seen(elem, true, seen );
+        if ( p.first ) return;
+        seen = p.second;
+        if ( elem instanceof FunApplExp )  {
+            FunApplExp fae = (FunApplExp) elem;
+            scala.collection.immutable.List<Argument> args = fae.arguments();
+            scala.collection.Iterator iter = args.iterator();
+            while( iter.hasNext() ) {
+                Object a = iter.next();
+                if ( a instanceof NamedArgument ) {
+                    constructorCalls.add(fae);
+                    break;
+                }
+            }
+        }
+        scala.collection.immutable.List<Object> children = elem.children();
+        if (children == null) return;
+        scala.collection.Iterator iter = children.iterator();
+        while ( iter.hasNext() ) {
+            Object o = iter.next();
+            if ( o instanceof HasChildren ) {
+                findKConstructorCalls( (HasChildren)o, constructorCalls, seen);
+            }
+        }
+
+    }
     protected static void findElaborationExpressions(HasChildren elem, ArrayList< FunApplExp > elaborations, Seen<HasChildren> seen) {
         if ( elem == null ) return;
         Pair< Boolean, Seen<HasChildren>> p = Utils.seen(elem, true, seen );
@@ -1394,6 +1423,41 @@ public class KtoJava {
                 findElaborationExpressions( (HasChildren)o, elaborations, seen);
             }
         }
+    }
+
+    protected ConstructorDeclaration getKConstructorDeclaration( FunApplExp fae ) {
+        // get the class name
+        String eventType = fae.exp().toJavaString();
+        // assume not elaborating from TimeVerying
+        String fromTimeVarying = null;
+
+        // get arguments
+        List< ClassData.Param > arguments = new ArrayList<ClassData.Param>();
+        scala.collection.Iterator iter = fae.args().iterator();
+        while (iter.hasNext() ) {
+            String paramName = null;
+            Argument arg = (Argument)iter.next();
+            Exp exp = null;
+            if ( arg instanceof PositionalArgument) {
+                PositionalArgument pa = (PositionalArgument)arg;
+                exp = pa.exp();
+            } else if  (arg instanceof NamedArgument ) {
+                NamedArgument na = (NamedArgument)arg;
+                exp = na.exp();
+                paramName = na.ident();
+            } else {
+                Debug.error("Unrecognized argument: " + arg);
+            }
+            ClassData.Param param =
+                    new ClassData.Param( paramName, (String)null,
+                                         exp == null ? null : exp.toJavaString() );
+            arguments.add(param);
+        }
+
+        ConstructorDeclaration ctor =
+                EventXmlToJava.getConstructorDeclaration(eventType, fromTimeVarying,
+                        arguments, expressionTranslator());
+        return ctor;
     }
 
     protected ConstructorDeclaration getConstructorDeclaration( FunApplExp fae ) {
@@ -1461,9 +1525,12 @@ public class KtoJava {
                 // Make sure that both the name of the Parameter and the Expression are together.
                 if ( iter.hasNext() ) {
                     Argument arg2 = (Argument)iter.next();
-                    ClassData.Param param = new ClassData.Param(("" + arg2).replaceAll("\"", ""), (String)null, "" + arg);
+                    ClassData.Param param = new ClassData.Param(("" + arg2).replaceAll("\"", ""), (String)null, arg.toJavaString());
                     arguments.add(param);
                 }
+            } else if ( paramName != null ) {
+                ClassData.Param param = new ClassData.Param(paramName, (String)null, arg.toJavaString());
+                arguments.add(param);
             }
 
             ++ct;
@@ -1477,10 +1544,22 @@ public class KtoJava {
     protected Collection< ConstructorDeclaration >
             getConstructorDeclarations( Model model ) {
         ArrayList<ConstructorDeclaration> ctors = new ArrayList<ConstructorDeclaration>();
+
+        // Create constructors from constructor calls on k classes (which have named arguments).
+        ArrayList<FunApplExp> kConstructorCalls = new ArrayList<FunApplExp>();
+        findKConstructorCalls( model, kConstructorCalls, null );
+        for ( FunApplExp fae : kConstructorCalls ) {
+            ConstructorDeclaration ctor = getKConstructorDeclaration(fae);
+            // TODO -- check if constructor is a duplicate of another, maybe just with the named arguments in a different order.
+            ctors.add(ctor);
+        }
+
+        // Create constructors from calls to elaborate().
         ArrayList<FunApplExp> elaborationCalls = new ArrayList<FunApplExp>();
         findElaborationExpressions( model, elaborationCalls, null );
         for ( FunApplExp fae : elaborationCalls ) {
             ConstructorDeclaration ctor = getConstructorDeclaration(fae);
+            // TODO -- don't add duplicates!
             ctors.add(ctor);
         }
         return ctors;
