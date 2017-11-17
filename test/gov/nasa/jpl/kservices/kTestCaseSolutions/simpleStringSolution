@@ -1,0 +1,34 @@
+Satisfied
+Solution:
+x = X {
+   s = Hello World!
+}
+Requirements:
+["req x.s = Hello World!"]
+{"result": {
+    "solution": "x = X {\n   s = Hello World!\n}\n",
+    "satisfied": "true",
+    "constraints": ["req x.s = Hello World!"]
+}}
+{"tree": {"tree": [
+    {
+        "children": [{
+            "children": [],
+            "line": 2,
+            "name": "s",
+            "char": 4,
+            "type": "String"
+        }],
+        "line": 1,
+        "name": "X",
+        "char": 0,
+        "type": "class"
+    },
+    {
+        "children": [],
+        "line": 5,
+        "name": "x",
+        "char": 0,
+        "type": "X"
+    }
+]}}
