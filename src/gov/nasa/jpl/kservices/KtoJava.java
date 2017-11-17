@@ -107,14 +107,6 @@ public class KtoJava {
     protected boolean allInitsAreConstraints = true;
     protected boolean smtSolved = false;
 
-    // Map: className -> FunApplExp -> ConstructorDeclaration.
-    public Map< String, Map< FunApplExp, ConstructorDeclaration > > funApplExpToConstructorDeclaration =
-            new TreeMap<String, Map<FunApplExp, ConstructorDeclaration>>();
-
-    // Map: className -> FunApplExp -> ConstructorDeclaration.
-    public Map< String, Map< ConstructorCall, FunApplExp> > constructorCallToFunApplExp =
-            new TreeMap<String, Map<ConstructorCall, FunApplExp>>();
-
     //private ImmutableSet
 
     public KtoJava( String k, String pkgName, boolean translate, boolean processStdoutAndStderr ) {
@@ -752,8 +744,6 @@ public class KtoJava {
         } else {
             value = makeExpressionString(p.expr().get()); 
             if ( isConstructorDecl( p ) ) {
-                // TODO -- HERE! Need to remove names in named arguments, ex. new A(x :: 1, y :: 2);  "::" is not in Java!
-                //value.replaceAll("\\w+\\s*::\\s*", "");  // FIXME -- this seems dangerous!  It could accidentally change a string value!
                 value = "new " + value;
             }
         }
