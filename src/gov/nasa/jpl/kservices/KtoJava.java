@@ -3,6 +3,7 @@ package gov.nasa.jpl.kservices;
 import com.microsoft.z3.BoolExpr;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
+import gov.nasa.jpl.ae.event.ConstructorCall;
 import org.apache.commons.lang3.reflect.MethodUtils;
 
 import gov.nasa.jpl.ae.util.CaptureStdoutStderr;
@@ -105,6 +106,14 @@ public class KtoJava {
     protected boolean processStdoutAndStderr = true;
     protected boolean allInitsAreConstraints = true;
     protected boolean smtSolved = false;
+
+    // Map: className -> FunApplExp -> ConstructorDeclaration.
+    public Map< String, Map< FunApplExp, ConstructorDeclaration > > funApplExpToConstructorDeclaration =
+            new TreeMap<String, Map<FunApplExp, ConstructorDeclaration>>();
+
+    // Map: className -> FunApplExp -> ConstructorDeclaration.
+    public Map< String, Map< ConstructorCall, FunApplExp> > constructorCallToFunApplExp =
+            new TreeMap<String, Map<ConstructorCall, FunApplExp>>();
 
     //private ImmutableSet
 
@@ -1426,6 +1435,41 @@ public class KtoJava {
         }
     }
 
+    protected ConstructorDeclaration getKConstructorDeclaration( FunApplExp fae ) {
+        // get the class name
+        String eventType = fae.exp().toJavaString();
+        // assume not elaborating from TimeVerying
+        String fromTimeVarying = null;
+
+        // get arguments
+        List< ClassData.Param > arguments = new ArrayList<ClassData.Param>();
+        scala.collection.Iterator iter = fae.args().iterator();
+        while (iter.hasNext() ) {
+            String paramName = null;
+            Argument arg = (Argument)iter.next();
+            Exp exp = null;
+            if ( arg instanceof PositionalArgument) {
+                PositionalArgument pa = (PositionalArgument)arg;
+                exp = pa.exp();
+            } else if  (arg instanceof NamedArgument ) {
+                NamedArgument na = (NamedArgument)arg;
+                exp = na.exp();
+                paramName = na.ident();
+            } else {
+                Debug.error("Unrecognized argument: " + arg);
+            }
+            ClassData.Param param =
+                    new ClassData.Param( paramName, (String)null,
+                                         exp == null ? null : exp.toJavaString() );
+            arguments.add(param);
+        }
+
+        ConstructorDeclaration ctor =
+                EventXmlToJava.getConstructorDeclaration(eventType, fromTimeVarying,
+                        arguments, expressionTranslator());
+        return ctor;
+    }
+
     protected ConstructorDeclaration getConstructorDeclaration( FunApplExp fae ) {
         String eventType = null;
         String fromTimeVarying = null;
@@ -1491,11 +1535,11 @@ public class KtoJava {
                 // Make sure that both the name of the Parameter and the Expression are together.
                 if ( iter.hasNext() ) {
                     Argument arg2 = (Argument)iter.next();
-                    ClassData.Param param = new ClassData.Param(("" + arg2).replaceAll("\"", ""), (String)null, "" + arg);
+                    ClassData.Param param = new ClassData.Param(("" + arg2).replaceAll("\"", ""), (String)null, arg.toJavaString());
                     arguments.add(param);
                 }
             } else if ( paramName != null ) {
-                ClassData.Param param = new ClassData.Param((paramName).replaceAll("\"", ""), (String)null, "" + arg);
+                ClassData.Param param = new ClassData.Param(paramName, (String)null, arg.toJavaString());
                 arguments.add(param);
             }
 
@@ -1515,7 +1559,7 @@ public class KtoJava {
         ArrayList<FunApplExp> kConstructorCalls = new ArrayList<FunApplExp>();
         findKConstructorCalls( model, kConstructorCalls, null );
         for ( FunApplExp fae : kConstructorCalls ) {
-            ConstructorDeclaration ctor = getConstructorDeclaration(fae);
+            ConstructorDeclaration ctor = getKConstructorDeclaration(fae);
             // TODO -- check if constructor is a duplicate of another, maybe just with the named arguments in a different order.
             ctors.add(ctor);
         }
