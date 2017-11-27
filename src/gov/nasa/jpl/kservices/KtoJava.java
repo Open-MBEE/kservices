@@ -2764,4 +2764,44 @@ public class KtoJava {
         EventXmlToJava.compileLoadAndRun(this.javaFiles, projectPath, this.packageName,
                                          mainClass, classData, loader, fileManager);
     }
+
+    public Pair<Boolean, Class<?>> compileAndLoad() {
+        String projectPath = null;
+        String mainClassString = this.packageName + ".Main";
+        Class<?> mainClass = null;
+        try {
+            mainClass = ClassUtils.classForName(mainClassString);
+        } catch (ClassNotFoundException e) {
+        }
+        if ( mainClass == null ) {
+            mainClass = ClassUtils.getClassForName("Main", null, this.packageName, true);
+        }
+        ClassData classData = this.getClassData();
+        ClassLoader loader = this.getClass().getClassLoader();///kToJava
+        JavaCompiler compiler =
+                ToolProvider.getSystemJavaCompiler();
+        StandardJavaFileManager fileManager = (compiler == null ? null : compiler.getStandardFileManager(null, null, null) );
+        ClassLoader c = EventXmlToJava.getLoader();
+        if (c == null) {
+            c = loader;
+        }
+
+        return EventXmlToJava.compileAndLoad(javaFiles, projectPath, packageName, mainClass, classData, c, fileManager);
+    }
+
+    public void run(Pair<Boolean, Class<?>> p, ClassLoader c) {
+        if (p != null && p.first != null) {
+
+            boolean succ = ((Boolean)p.first).booleanValue();
+            if (succ) {
+                Class<?> mainClass = null;
+                if (p.second != null) {
+                    mainClass = (Class)p.second;
+                }
+
+                EventXmlToJava.runMain(c, mainClass);
+            }
+        }
+
+    }
 }
