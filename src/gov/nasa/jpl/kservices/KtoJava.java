@@ -2071,8 +2071,8 @@ public class KtoJava {
                     "        String path = \"" + targetDirectory + File.separator + "solverOutput.log\";\n" +
                     "        FileUtils.stringToFile(out, path);\n" +
                     "\n" +
-                    "        File f = new File(path);\n" +
-                    "        json.put(\"solverOutFile\",f.getAbsolutePath());\n" +
+                   // "        File f = new File(path);\n" +
+                    //"        json.put(\"solverOutFile\",f.getAbsolutePath());\n" +
                     "\n" +
                     "        if ( c.baosErr.toString().length() > 3 ) {\n" +
                     "            JSONArray jarr = json.has(\"solverErrors\") ? json.getJSONArray(\"solverErrors\") : null;\n" +
