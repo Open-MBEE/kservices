@@ -2071,8 +2071,8 @@ public class KtoJava {
                     "        String path = \"" + targetDirectory + File.separator + "solverOutput.log\";\n" +
                     "        FileUtils.stringToFile(out, path);\n" +
                     "\n" +
-                    "        File f = new File(path);\n" +
-                    "        json.put(\"solverOutFile\",f.getAbsolutePath());\n" +
+                   // "        File f = new File(path);\n" +
+                    //"        json.put(\"solverOutFile\",f.getAbsolutePath());\n" +
                     "\n" +
                     "        if ( c.baosErr.toString().length() > 3 ) {\n" +
                     "            JSONArray jarr = json.has(\"solverErrors\") ? json.getJSONArray(\"solverErrors\") : null;\n" +
@@ -2419,6 +2419,7 @@ public class KtoJava {
         String packageName = "generatedCode";
         String kToJavaOutLog = "kToJavaOut.log";
         String writeJavaOutLog = "writeJavaOut.log";
+        String solutionLog = "solution.log";
 
         // System.setOut(new PrintStream(baosOut));
         // System.setErr(new PrintStream(baosErr));
@@ -2652,8 +2653,8 @@ public class KtoJava {
                 CaptureStdoutStderr c = new CaptureStdoutStderr() {
                     @Override
                     public Object run() {
-                        k2j.compileLoadAndRun();
-                        return null;
+                        return k2j.compileAndLoad();
+
                     }
                 };
                 JSONArray jarr =
@@ -2672,6 +2673,21 @@ public class KtoJava {
                 FileUtils.stringToFile( outWrite, path );
                 File f = new File( path );
                 json.put( "solve", f.getAbsolutePath() );
+
+                CaptureStdoutStderr c2 = new CaptureStdoutStderr() {
+                    @Override
+                    public Object run() {
+                        Pair<Boolean, Class<?>> p = ((Pair<Boolean, Class<?>>) c.result);
+                        k2j.run(p);
+                        return null;
+                    }
+                };
+                outWrite = c2.baosOut.toString();
+                path =
+                        targetDirectory + File.separator + solutionLog;
+                FileUtils.stringToFile( outWrite, path );
+
+
             }
         }
         if ( containmentTree ) {
@@ -2789,7 +2805,8 @@ public class KtoJava {
         return EventXmlToJava.compileAndLoad(javaFiles, projectPath, packageName, mainClass, classData, c, fileManager);
     }
 
-    public void run(Pair<Boolean, Class<?>> p, ClassLoader c) {
+    public void run(Pair<Boolean, Class<?>> p) {
+        ClassLoader c = EventXmlToJava.getLoader();
         if (p != null && p.first != null) {
 
             boolean succ = ((Boolean)p.first).booleanValue();

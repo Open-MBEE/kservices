@@ -1,0 +1,5 @@
+{"result": {
+    "solution": "y = 1.0\n",
+    "satisfied": "true",
+    "constraints": ["req y = 1.0"]
+}}
