@@ -12,12 +12,23 @@ public class KtoJavaTest {
 
 
     @Test
-    public void testSuite() throws FileNotFoundException {
-        String[] testNames = new String[]{"simple", "simpleString", "abs", "factorial"};
-        for (String testName : testNames) {
-            checkSolution(testName);
-        }
+    public void testSimple() throws FileNotFoundException {
+        checkSolution("simple");
+    }
 
+    @Test
+    public void testSimpleString() throws FileNotFoundException {
+        checkSolution("simpleString");
+    }
+
+    @Test
+    public void testAbs() throws FileNotFoundException {
+        checkSolution("abs");
+    }
+
+    @Test
+    public void testFactorial() throws FileNotFoundException {
+        checkSolution("factorial");
     }
 
     public void checkSolution(String kFileName) throws  FileNotFoundException {
