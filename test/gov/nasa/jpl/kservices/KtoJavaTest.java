@@ -12,7 +12,7 @@ public class KtoJavaTest {
 
     @Test
     public void testSuite() throws FileNotFoundException {
-        String[] testNames = new String[]{"simple", "simpleString", "abs"};
+        String[] testNames = new String[]{"simple", "simpleString", "abs", "factorial"};
         for (String testName : testNames) {
             checkSolution(testName);
         }
