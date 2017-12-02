@@ -1,0 +1,1 @@
+var y : Real = java.lang.Math.abs(-1.0)
