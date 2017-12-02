@@ -1,5 +1,6 @@
-package gov.nasa.jpl.kservices;
+package test.gov.nasa.jpl.kservices;
 
+import gov.nasa.jpl.kservices.KtoJava;
 import org.junit.Test;
 import java.io.*;
 
