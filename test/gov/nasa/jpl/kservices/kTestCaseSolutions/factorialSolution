@@ -1,1 +1,5 @@
-put solution here later
+{"result": {
+    "solution": "a = A {\n   x = 3628800\n}\n",
+    "satisfied": "true",
+    "constraints": ["req a.x = 3628800"]
+}}
