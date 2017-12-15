@@ -4,6 +4,7 @@ import com.microsoft.z3.BoolExpr;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
 import gov.nasa.jpl.ae.event.ConstructorCall;
+import gov.nasa.jpl.ae.event.DurativeEvent;
 import org.apache.commons.lang3.reflect.MethodUtils;
 
 import gov.nasa.jpl.ae.util.CaptureStdoutStderr;
@@ -67,6 +68,11 @@ import javax.tools.ToolProvider;
  */
 
 public class KtoJava {
+
+    /**
+     * The instantiation of a Durative event as the problem to solve and the solution.
+     */
+    public DurativeEvent mainEvent;
 
     protected boolean tryingToCompileAndLoadInPlace = true;
 
@@ -1985,6 +1991,14 @@ public class KtoJava {
 
         int mods = ModifierSet.PUBLIC | ModifierSet.STATIC;
 
+        MethodDeclaration setupMethodDecl =
+                new MethodDeclaration( mods, new VoidType(), "setup" );
+        BlockStmt setupBody = new BlockStmt();
+        setupMethodDecl.setBody( setupBody );
+        MethodDeclaration runMethodDecl =
+                new MethodDeclaration( mods, new ClassOrInterfaceType("Main"), "run" );
+        BlockStmt runBody = new BlockStmt();
+        runMethodDecl.setBody( runBody );
         MethodDeclaration mainMethodDecl =
                 new MethodDeclaration( mods, new VoidType(), "main" );
         BlockStmt mainBody = new BlockStmt();
@@ -2003,6 +2017,9 @@ public class KtoJava {
                 new japa.parser.ast.body.Parameter( type, id );
         // Wire everything together.
         ASTHelper.addParameter( mainMethodDecl, parameter );
+        ASTHelper.addParameter( runMethodDecl, parameter  );
+        ASTHelper.addMember( newClassDecl, setupMethodDecl );
+        ASTHelper.addMember( newClassDecl, runMethodDecl );
         ASTHelper.addMember( newClassDecl, mainMethodDecl );
 
         // List< PropertyDecl > topLevelProperties =
@@ -2027,12 +2044,13 @@ public class KtoJava {
         // stmtsMain.append( "System.out.println(scenario.kSolutionString());"
         // );
         String targetDirectory = getPackageSourcePath( null );
+        String x = "Timepoint.setUnits(\"milliseconds\");\n" +
+                "Timepoint.setEpoch(\"Mon Mar 10 03:00:00 PDT 2028\");\n" +
+                "Timepoint.setHorizonDuration(10928118000L);\n";
+        addStatements( setupBody, x );
         String y = "      JSONObject json = new JSONObject();\n";
         if ( !this.processStdoutAndStderr ) {
-            y += "Timepoint.setUnits(\"milliseconds\");\n" +
-                 "Timepoint.setEpoch(\"Mon Mar 10 03:00:00 PDT 2028\");\n" +
-                 "Timepoint.setHorizonDuration(10928118000L);\n";
-            y +=    "\n" +
+            y +=    "      setup();\n" +
                     "      Main s = new Main();\n" +
                     "      s.amTopEventToSimulate = true;\n" +
                     "      System.out.println(\"===FULLOUTPUT===\" );\n" +
@@ -2044,13 +2062,12 @@ public class KtoJava {
                     "      json.put(\"result\", solution);\n" +
                     "\n" +
                     "      System.out.println(json.toString(4));";
+            y +=    "      return s;\n";
         } else {
             y +=    "        CaptureStdoutStderr c = new CaptureStdoutStderr() {\n" +
                     "            @Override\n" +
                     "            public Object run() {\n" +
-                    "                Timepoint.setUnits(\"milliseconds\");\n" +
-                    "                Timepoint.setEpoch(\"Mon Mar 10 03:00:00 PDT 2025\");\n" +
-                    "                Timepoint.setHorizonDuration(109281180000L);\n" +
+                    "                setup();\n" +
                     "                Main scenario = null;\n" +
                     "                try {\n" +
                     "                    scenario = new Main();\n" +
@@ -2088,6 +2105,7 @@ public class KtoJava {
                     "      json.put(\"result\", solution);\n" +
                     "\n" +
                     "      System.out.println(json.toString(4));";
+            y +=    "      return s;\n";
         }
         stmtsMain.append(y);
 
@@ -2105,7 +2123,8 @@ public class KtoJava {
         addImport( "org.json.JSONArray" );
         addImport( "org.json.JSONObject" );
 
-        addStatements( mainBody, stmtsMain.toString() );
+        addStatements( runBody, stmtsMain.toString() );
+        addStatements(mainBody, "run(args);\n");
     }
 
     protected static void addExtends( ClassOrInterfaceDeclaration newClassDecl,
@@ -2416,6 +2435,9 @@ public class KtoJava {
     }
 
     public static void main( String[] args ) {
+        runMain(args);
+    }
+    public static KtoJava runMain( String[] args ) {
         String packageName = "generatedCode";
         String kToJavaOutLog = "kToJavaOut.log";
         String writeJavaOutLog = "writeJavaOut.log";
@@ -2731,6 +2753,7 @@ public class KtoJava {
             System.out.println( "JSON output:" );
         }
         System.out.println( json.toString( 4 ) );
+        return kToJava;
     }
 
     public void translateOrRunSmt(boolean trySmt, boolean translateToJava) {
@@ -2760,7 +2783,7 @@ public class KtoJava {
 
     }
 
-    public void compileLoadAndRun() {
+    public DurativeEvent compileLoadAndRun() {
         String projectPath = null;
         String mainClassString = this.packageName + ".Main";
         Class<?> mainClass = null;
@@ -2777,8 +2800,14 @@ public class KtoJava {
                 ToolProvider.getSystemJavaCompiler();
         StandardJavaFileManager fileManager = (compiler == null ? null : compiler.getStandardFileManager(null, null, null) );
 
-        EventXmlToJava.compileLoadAndRun(this.javaFiles, projectPath, this.packageName,
-                                         mainClass, classData, loader, fileManager);
+        Pair<Boolean, Object> pbo =
+                EventXmlToJava.compileLoadAndRun(this.javaFiles, projectPath, this.packageName,
+                                                 mainClass, classData, loader, fileManager);
+        if ( pbo != null && pbo.second instanceof DurativeEvent ) {
+            this.mainEvent = (DurativeEvent) pbo.second;
+            return this.mainEvent;
+        }
+        return null;
     }
 
     public Pair<Boolean, Class<?>> compileAndLoad() {
@@ -2805,7 +2834,7 @@ public class KtoJava {
         return EventXmlToJava.compileAndLoad(javaFiles, projectPath, packageName, mainClass, classData, c, fileManager);
     }
 
-    public void run(Pair<Boolean, Class<?>> p) {
+    public DurativeEvent run(Pair<Boolean, Class<?>> p) {
         ClassLoader c = EventXmlToJava.getLoader();
         if (p != null && p.first != null) {
 
@@ -2816,9 +2845,13 @@ public class KtoJava {
                     mainClass = (Class)p.second;
                 }
 
-                EventXmlToJava.runMain(c, mainClass);
+                Pair<Boolean, Object> pbo = EventXmlToJava.runRun(c, mainClass);
+                if ( pbo != null && pbo.second instanceof DurativeEvent ) {
+                    this.mainEvent = (DurativeEvent) pbo.second;
+                    return this.mainEvent;
+                }
             }
         }
-
+        return null;
     }
 }
