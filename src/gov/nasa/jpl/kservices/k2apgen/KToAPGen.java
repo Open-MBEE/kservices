@@ -10,6 +10,7 @@ import japa.parser.ast.body.ConstructorDeclaration;
 import japa.parser.ast.body.Parameter;
 import japa.parser.ast.body.TypeDeclaration;
 import k.frontend.*;
+import scala.Option;
 import scala.collection.JavaConversions;
 
 import java.util.*;
@@ -79,207 +80,429 @@ public class KToAPGen {
 
     public void translate() {
         apgenModel = translate(getModel());
+        addInheritedMembers(getModel());
+        cleanupForConstructors();
         // TODO -- translate instance from Main event instance after solved.
         String s = translate(ktoJava);
 
     }
 
+    protected void cleanupForConstructors() {
+        // TODO -- sepaate creation parameters from constructor parameters
+    }
+
+    protected void addInheritedMembers(Model model) {
+        Map<String, Set<String> > childClasses = new TreeMap<>();
+        Map<String, Set<String> > superClasses = new TreeMap<>();
+        Collection<EntityDecl> entityDecls = JavaConversions.asJavaCollection( model.allEntityDecls(model) );
+        for ( EntityDecl e: entityDecls ) {
+            Collection<Type> supers = JavaConversions.asJavaCollection(e.extending());
+            String eName = e.ident();
+            for ( Type t : supers ) {
+                String name = null;
+                if ( t instanceof IdentType ) {
+                    Collection<String> names = JavaConversions.asJavaCollection(((IdentType)t).ident().names());
+                    name = Utils.asList(names).get(names.size()-1);
+                } else if ( t instanceof ClassType ) {
+                    Collection<String> names = JavaConversions.asJavaCollection(((ClassType)t).ident().names());
+                    name = Utils.asList(names).get(names.size()-1);
+                }
+                if ( !Utils.isNullOrEmpty(name) ) {
+                    Utils.add(childClasses, name, eName);
+                    Utils.add(superClasses, eName, name);
+                }
+            }
+        }
+        // Need to process from top of class hierarchy down so tha the parent already has its inherited members.
+        // Get the top level superclasses (from childClasses) and walk down the children.
+        HashSet<String> seen = new HashSet<String>();
+        List<String> queue = new ArrayList<String>();
+        // Find top-level classes and add to queue.
+        for ( String parent : childClasses.keySet() ) {
+            if ( !superClasses.containsKey(parent) ) {
+                queue.add(parent);
+            }
+        }
+        // Now walk tree recursively with queue.
+        while ( !queue.isEmpty() ) {
+            String c = queue.remove(0);
+            if ( seen.contains(c) ) continue;
+            seen.add(c);
+            Set<String> parents = superClasses.get(c);
+            if (parents != null) {
+                for ( String p: parents ) {
+                    addInheritedMembersTo(p, c);
+                }
+            }
+            Set<String> children = childClasses.get(c);
+            if ( children != null ) {
+                queue.addAll(children);
+            }
+        }
+    }
+
+    private void addInheritedMembersTo( String parent, String child ) {
+        Activity parentAct = apgenModel.activities.get(parent);
+        Activity childAct = apgenModel.activities.get(child);
+        if ( parentAct == null || childAct == null ) return;
+        Map<String, gov.nasa.jpl.kservices.k2apgen.Parameter> newParameters
+                = new TreeMap<String, gov.nasa.jpl.kservices.k2apgen.Parameter>(parentAct.parameters);
+        newParameters.putAll(childAct.parameters);
+        childAct.parameters = newParameters;
+    }
+
     public APGenModel translate(Model model) {
         // TODO -- model.packageName() -- use package as prefix of on names of contained elements?
+        Collection<PackageDecl> packages = JavaConversions.asJavaCollection( model.packages() );
+        for ( PackageDecl p: packages ) {
+            translate(p.model());
+        }
+        Collection<EntityDecl> entityDecls = JavaConversions.asJavaCollection( model.entityDecls(model) );
+        for ( EntityDecl e: entityDecls ) {
+            translate(e, apgenModel);
+        }
         Collection<TopDecl> decls = JavaConversions.asJavaCollection( model.decls() );
         for ( TopDecl d : decls ) {
             translate(d);
         }
-        model.decls();
-        model.packages();
-        model.annotations();
-        model.imports();
+        Collection<AnnotationDecl> annotations = JavaConversions.asJavaCollection( model.annotations() );
+        for ( AnnotationDecl a: annotations ) {
+            translate(a, apgenModel);
+        }
+        // TODO -- model.imports();
         return apgenModel;
+    }
+
+    private void translate(EntityDecl e, Object parent) {
+        Activity activity = new Activity();
+        activity.name = e.ident();
+        Collection<Annotation> annotations = JavaConversions.asJavaCollection( e.annotations() );
+        for ( Annotation a: annotations ) {
+            translate(a, activity);
+        }
+        Collection<MemberDecl> members = JavaConversions.asJavaCollection( e.members() );
+        for ( MemberDecl member : members ) {
+            translate(member, activity);
+        }
     }
 
     public void translate(TopDecl d) {
         if ( d instanceof AnnotationDecl ) {
-            translate( (AnnotationDecl)d );
+            translate( (AnnotationDecl)d, apgenModel );
+        } else if ( d instanceof MemberDecl ) {
+            translate( (MemberDecl)d, apgenModel );
         }
     }
-    public void translate(AnnotationDecl d) {
-
+    public void translate(AnnotationDecl d, Object parent) {
+        // TODO ??
+    }
+    public void translate(Annotation d, Object parent) {
+        // TODO ??
     }
 
-    public void translate(MemberDecl d) {
+    public void translate(MemberDecl d, Object parent) {
         if ( d instanceof TypeDecl ) {
-            translate( (TypeDecl)d );
+            translate( (TypeDecl)d, parent );
         } else if ( d instanceof PropertyDecl ) {
-            translate( (PropertyDecl)d );
+            translate( (PropertyDecl)d, parent );
         } else if ( d instanceof FunDecl ) {
-            translate( (FunDecl)d );
+            translate( (FunDecl)d, parent );
         } else if ( d instanceof ConstraintDecl ) {
-            translate( (ConstraintDecl)d );
+            translate( (ConstraintDecl)d, parent );
         } else if ( d instanceof ExpressionDecl ) {
-            translate( (ExpressionDecl)d );
+            translate( (ExpressionDecl)d, parent );
         }
     }
-    public void translate(TypeDecl d) {
+
+    // This is like typedef: "type myType[T] = Map[T, Int]"
+    public void translate(TypeDecl d, Object parent) {
+        // TODO -- ???
+        // TODO -- maybe keep a list of aliases and never explicitly translate but always replace with type on rhs.
+        // TODO -- APGen has typedefs for structs and lists.
     }
-    public void translate(PropertyDecl d) {
+    public void translate(PropertyDecl d, Object parent) {
+        gov.nasa.jpl.kservices.k2apgen.Parameter pp =
+                new gov.nasa.jpl.kservices.k2apgen.Parameter(d.name(),
+                        translate(d.ty(), d.multiplicity()),
+                        translate(d.expr()));
+        if ( parent instanceof APGenModel ) {
+            ((APGenModel)parent).parameters.put(pp.name, pp);
+        } else if ( parent instanceof Activity ) {
+            ((Activity)parent).parameters.put(pp.name, pp);
+        } else if ( parent instanceof Function ) {
+            ((Function)parent).parameters.put(pp.name, pp);
+        }
     }
-    public void translate(FunDecl d) {
+
+    public String translate(Option<Exp> expr) {
+        if ( expr == null ) {
+            return null;
+        }
+        Exp exp = expr.get();
+        String estr = translate(exp);
+        return estr;
     }
-    public void translate(ExpressionDecl d) {
-        translate(d.exp());
+
+    public String translate(Type ty, Option<Multiplicity> multiplicity) {
+        Multiplicity m = multiplicity == null ? null : multiplicity.get();
+        if ( m != null && m.exp1() != null && ((m.exp2() != null && m.exp2().get() != null && !m.exp2().get().toJavaString().equals("1")) || !m.exp1().toJavaString().equals("1"))) {
+            return ty.toJavaString() + "[]";
+        }
+        return ty.toJavaString();
     }
-    public void translate(Exp d) {
+
+    public void translate(FunDecl d, Object parent) {
+        Function f = new Function();
+        f.name = d.ident();
+        Collection<Param> params = JavaConversions.asJavaCollection( d.params() );
+
+        if ( parent instanceof APGenModel ) {
+            ((APGenModel)parent).functions.put(f.name, f);
+        } else if ( parent instanceof Activity ) {
+            // APGen activities can't have functions.
+            apgenModel.functions.put(f.name, f);
+        } else {
+            // TODO -- ERROR
+        }
+    }
+    public String translate(ConstraintDecl d, Object parent) {
+        // Create a timeline and constraint
+        Resource r = new Resource();
+        if (d.name() != null && !Utils.isNullOrEmpty(d.name().get()) ) {
+            r.name = d.name().get();
+        } else {
+            r.name = "res_" + ("" + d).replaceAll("[^0-9A-Za-z_][^0-9A-Za-z_]*", "_");
+        }
+        r.otherAttributes.put("Description", "resource for constraint, " + d);
+        r.otherAttributes.put("Legend", "constraint");
+        r.otherAttributes.put("Color", "Green");
+        r.type = "string";
+        r.behavior = Resource.Behavior.state;
+        r.states = Utils.newList("false", "true");
+        r.profile = "true";
+        r.parameters.add(new gov.nasa.jpl.kservices.k2apgen.Parameter("State", "string", "true"));
+        r.usage = "State";
+
+        // effect on resource in activity
+        String vName = "constraint_" + r.name.replace("res_", "");
+        String val = "(" + translate(d.exp()) + ") ? \"true\" : \"false\"";
+        gov.nasa.jpl.kservices.k2apgen.Parameter cp =
+                new gov.nasa.jpl.kservices.k2apgen.Parameter(vName, "string", val);
+        String modeling = cp.toString() + "\n" +
+                "use " + r.name +"(vName) from begin to end\n";
+        if ( parent instanceof APGenModel ) {
+            ((APGenModel) parent).resources.put(r.name, r);
+            // TODO -- ERROR -- what to do with modeling?  return as String?
+        } else if ( parent instanceof Activity ) {
+            ((Activity)parent).modeling.append(modeling);
+            apgenModel.resources.put(r.name, r);
+        } else {
+            // TODO -- ERROR
+        }
+        return modeling;
+        //activity.modeling.append(cp.toString() + "\n");
+        //activity.modeling.append("use " + r.name +"(vName) from begin to end\n");
+    }
+
+    public void translate(ExpressionDecl d, Object parent) {
+        String s = translate(d.exp());
+        if ( parent instanceof APGenModel ) {
+            // TODO -- ERROR -- No place to put an expression
+        } else if ( parent instanceof Activity ) {
+            // TODO -- ERROR -- No place to put an expression
+        } else {
+            // TODO -- ERROR?
+        }
+    }
+
+    public String translate(Exp d) {
+        if ( d == null ) return null;
         if ( d instanceof ParenExp ) {
-            translate( (ParenExp)d );
+            return translate( (ParenExp)d );
         } else if ( d instanceof IdentExp ) {
-            translate( (IdentExp)d );
+            return translate( (IdentExp)d );
         } else if ( d instanceof DotExp ) {
-            translate( (DotExp)d );
+            return translate( (DotExp)d );
         } else if ( d instanceof IndexExp ) {
-            translate( (IndexExp)d );
+            return translate( (IndexExp)d );
         } else if ( d instanceof ClassExp ) {
-            translate( (ClassExp)d );
+            return translate( (ClassExp)d );
         } else if ( d instanceof FunApplExp ) {
-            translate( (FunApplExp)d );
+            return translate( (FunApplExp)d );
         } else if ( d instanceof CtorApplExp ) {
-            translate( (CtorApplExp)d );
+            return translate( (CtorApplExp)d );
         } else if ( d instanceof IfExp ) {
-            translate( (IfExp)d );
+            return translate( (IfExp)d );
         } else if ( d instanceof MatchExp ) {
-            translate( (MatchExp)d );
+            return translate( (MatchExp)d );
         } else if ( d instanceof MatchCase ) {
-            translate( (MatchCase)d );
+            return translate( (MatchCase)d );
         } else if ( d instanceof BlockExp ) {
-            translate( (BlockExp)d );
+            return translate( (BlockExp)d );
         } else if ( d instanceof WhileExp ) {
-            translate( (WhileExp)d );
+            return translate( (WhileExp)d );
         } else if ( d instanceof ForExp ) {
-            translate( (ForExp)d );
+            return translate( (ForExp)d );
         } else if ( d instanceof BinExp ) {
-            translate( (BinExp)d );
+            return translate( (BinExp)d );
         } else if ( d instanceof UnaryExp ) {
-            translate( (UnaryExp)d );
+            return translate( (UnaryExp)d );
         } else if ( d instanceof QuantifiedExp ) {
-            translate( (QuantifiedExp)d );
+            return translate( (QuantifiedExp)d );
         } else if ( d instanceof TupleExp ) {
-            translate( (TupleExp)d );
+            return translate( (TupleExp)d );
         } else if ( d instanceof CollectionRangeExp ) {
-            translate( (CollectionRangeExp)d );
+            return translate( (CollectionRangeExp)d );
         } else if ( d instanceof CollectionComprExp ) {
-            translate( (CollectionComprExp)d );
+            return translate( (CollectionComprExp)d );
         } else if ( d instanceof LambdaExp ) {
-            translate( (LambdaExp)d );
+            return translate( (LambdaExp)d );
         } else if ( d instanceof ReturnExp ) {
-            translate( (ReturnExp)d );
-        } else if ( d instanceof BreakExp ) {
-            translate( (BreakExp)d );
-        } else if ( d instanceof ContinueExp ) {
-            translate( (ContinueExp)d );
-        } else if ( d instanceof ResultExp ) {
-            translate( (ResultExp)d );
-        } else if ( d instanceof StarExp ) {
-            translate( (StarExp)d );
+            return translate( (ReturnExp)d );
+//        } else if ( d instanceof BreakExp ) {
+//            translate( (BreakExp)d );
+//        } else if ( d instanceof ContinueExp ) {
+//            translate( (ContinueExp)d );
+//        } else if ( d instanceof ResultExp ) {
+//            translate( (ResultExp)d );
+//        } else if ( d instanceof StarExp ) {
+//            translate( (StarExp)d );
         } else if ( d instanceof Argument ) {
-            translate( (Argument)d );
+            return translate( (Argument)d );
         } else if ( d instanceof Literal ) {
-            translate( (Literal)d );
+            return translate( (Literal)d );
         }
+        return null;
     }
-    public void translate(ParenExp d) {
+    public String translate(ParenExp d) {
+        return "(" + translate(d.exp()) + ")";
     }
-    public void translate(IdentExp d) {
+    public String translate(IdentExp d) {
+        return d.toJavaString();
     }
-    public void translate(ClassExp d) {
+    public String translate(ClassExp d) {
+        return d.toJavaString();
     }
-    public void translate(CallApplExp d) {
+    public String translate(CallApplExp d) {
         if (d instanceof FunApplExp) {
-            translate((FunApplExp) d);
+            return translate((FunApplExp) d);
         } else if (d instanceof CtorApplExp) {
-            translate((CtorApplExp) d);
+            return translate((CtorApplExp) d);
         } else {
             // ???!!
         }
+        return null;
     }
-    public void translate(FunApplExp d) {
+    public String translate(FunApplExp d) {
+        return d.toJavaString();
     }
-    public void translate(CtorApplExp d) {
+    public String translate(CtorApplExp d) {
+        return d.toJavaString();
     }
 
-    public void translate(IfExp d) {
+    public String translate(IfExp d) {
+        return d.toJavaString();
     }
-    public void translate(MatchExp d) {
+    public String translate(MatchExp d) {
+        return d.toJavaString();
     }
-    public void translate(MatchCase d) {
+    public String translate(MatchCase d) {
+        return d.toJavaString();
     }
-    public void translate(BlockExp d) {
+    public String translate(BlockExp d) {
+        return d.toJavaString();
     }
-    public void translate(WhileExp d) {
+    public String translate(WhileExp d) {
+        return d.toJavaString();
     }
-    public void translate(ForExp d) {
+    public String translate(ForExp d) {
+        return d.toJavaString();
     }
-    public void translate(BinExp d) {
+    public String translate(BinExp d) {
+        return d.toJavaString();
     }
-    public void translate(UnaryExp d) {
+    public String translate(UnaryExp d) {
+        return d.toJavaString();
     }
-    public void translate(QuantifiedExp d) {
+    public String translate(QuantifiedExp d) {
+        return d.toJavaString();
     }
-    public void translate(TupleExp d) {
+    public String translate(TupleExp d) {
+        return d.toJavaString();
     }
-    public void translate(CollectionRangeExp d) {
+    public String translate(CollectionRangeExp d) {
+        return d.toJavaString();
     }
-    public void translate(CollectionComprExp d) {
+    public String translate(CollectionComprExp d) {
+        return d.toJavaString();
     }
-    public void translate(LambdaExp d) {
+    public String translate(LambdaExp d) {
+        return d.toJavaString();
     }
-    public void translate(ReturnExp d) {
+    public String translate(ReturnExp d) {
+        return d.toJavaString();
     }
-    public void translate(BreakExp d) {
+    public String translate(BreakExp d) {
+        return d.toJavaString();
     }
-    public void translate(ContinueExp d) {
+    public String translate(ContinueExp d) {
+        return d.toJavaString();
     }
-    public void translate(ResultExp d) {
+    public String translate(ResultExp d) {
+        return d.toJavaString();
     }
-    public void translate(StarExp d) {
+    public String translate(StarExp d) {
+        return d.toJavaString();
     }
-    public void translate(Argument d) {
+    public String translate(Argument d) {
         if ( d instanceof NamedArgument ) {
-            translate((NamedArgument)d);
+            return translate((NamedArgument)d);
         } else if ( d instanceof PositionalArgument ) {
-            translate((PositionalArgument)d);
+            return translate((PositionalArgument)d);
         }
+        return null;
     }
-    public void translate(NamedArgument d) {
+    public String translate(NamedArgument d) {
+        return d.toJavaString();
     }
-    public void translate(Literal d) {
+    public String translate(Literal d) {
         if (d instanceof IntegerLiteral) {
-            translate((IntegerLiteral) d);
+            return translate((IntegerLiteral) d);
         } else if (d instanceof RealLiteral) {
-            translate((RealLiteral) d);
+            return translate((RealLiteral) d);
         } else if (d instanceof CharacterLiteral) {
-            translate((CharacterLiteral) d);
+            return translate((CharacterLiteral) d);
         } else if (d instanceof StringLiteral) {
-            translate((StringLiteral) d);
+            return translate((StringLiteral) d);
         } else if (d instanceof BooleanLiteral) {
-            translate((BooleanLiteral) d);
-        } else if (d instanceof NullLiteral) {
-            translate((NullLiteral) d);
-        } else if (d instanceof ThisLiteral) {
-            translate((ThisLiteral) d);
+            return translate((BooleanLiteral) d);
+//        } else if (d instanceof NullLiteral) {
+//            translate((NullLiteral) d);
+//        } else if (d instanceof ThisLiteral) {
+//            translate((ThisLiteral) d);
         }
+        return null;
     }
-    public void translate(IntegerLiteral d) {
+    public String translate(IntegerLiteral d) {
+        return d.toJavaString();
     }
-    public void translate(RealLiteral d) {
+    public String translate(RealLiteral d) {
+        return d.toJavaString();
     }
-    public void translate(CharacterLiteral d) {
+    public String translate(CharacterLiteral d) {
+        return d.toJavaString();
     }
-    public void translate(StringLiteral d) {
+    public String translate(StringLiteral d) {
+        return d.toJavaString();
     }
-    public void translate(BooleanLiteral d) {
+    public String translate(BooleanLiteral d) {
+        return d.toJavaString();
     }
-    public void translate(NullLiteral d) {
+    public String translate(NullLiteral d) {
+        return d.toJavaString();
     }
-    public void translate(ThisLiteral d) {
+    public String translate(ThisLiteral d) {
+        return d.toJavaString();
     }
 
 
