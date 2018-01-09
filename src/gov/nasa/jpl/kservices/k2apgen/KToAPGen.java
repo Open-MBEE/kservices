@@ -84,7 +84,9 @@ public class KToAPGen {
         cleanupForConstructors();
         // TODO -- translate instance from Main event instance after solved.
         String s = translate(ktoJava);
-
+        System.out.println("apgenModel = " + apgenModel);
+        System.out.println("s = " + s);
+        System.out.println("this KToAPGen = " + this);
     }
 
     protected void cleanupForConstructors() {
@@ -234,17 +236,24 @@ public class KToAPGen {
         }
     }
 
+    protected <T> T get(Option<T> o) {
+        if ( o == null || o.isEmpty() ) {
+            return null;
+        }
+        return o.get();
+    }
+
     public String translate(Option<Exp> expr) {
         if ( expr == null ) {
             return null;
         }
-        Exp exp = expr.get();
+        Exp exp = get(expr);
         String estr = translate(exp);
         return estr;
     }
 
     public String translate(Type ty, Option<Multiplicity> multiplicity) {
-        Multiplicity m = multiplicity == null ? null : multiplicity.get();
+        Multiplicity m = get(multiplicity);
         if ( m != null && m.exp1() != null && ((m.exp2() != null && m.exp2().get() != null && !m.exp2().get().toJavaString().equals("1")) || !m.exp1().toJavaString().equals("1"))) {
             return ty.toJavaString() + "[]";
         }
@@ -268,7 +277,7 @@ public class KToAPGen {
     public String translate(ConstraintDecl d, Object parent) {
         // Create a timeline and constraint
         Resource r = new Resource();
-        if (d.name() != null && !Utils.isNullOrEmpty(d.name().get()) ) {
+        if (get(d.name()) != null ) {
             r.name = d.name().get();
         } else {
             r.name = "res_" + ("" + d).replaceAll("[^0-9A-Za-z_][^0-9A-Za-z_]*", "_");
@@ -378,6 +387,9 @@ public class KToAPGen {
         return "(" + translate(d.exp()) + ")";
     }
     public String translate(IdentExp d) {
+        return d.toJavaString();
+    }
+    public String translate(IndexExp d) {
         return d.toJavaString();
     }
     public String translate(ClassExp d) {
