@@ -227,6 +227,7 @@ public class KtoJava {
         }
 
         this.instantiatedClassNames = new TreeSet< String >();
+        //Debug.turnOn();
         buildNestingTable( getClassData().getNestedToEnclosingClassNames() );
         buildParamTable( getClassData().getParamTable() );
         buildMethodTable( getClassData().getMethodTable() );
@@ -1886,6 +1887,9 @@ public class KtoJava {
         addImport( "java.util.Map" );
         addImport("java.util.ArrayList");
         addImport("java.util.Arrays");
+        if ( Utils.getJavaVersion() >= 1.8 ) {
+            addImport("java.time.Duration");
+        }
         return getClassData().getCurrentCompilationUnit();
     }
 

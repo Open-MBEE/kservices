@@ -552,6 +552,9 @@ public class KToAPGen {
     }
 
     public static Pair< Activity, List< Resource > > translateDeclaration(ParameterListenerImpl event, KtoJava kToJava) {
+        if ( event == null || kToJava == null ) {
+            System.out.println("ERROR!  One of these is null: event = " + event + "; kToJava = " + kToJava);
+        }
         TypeDeclaration type =
                 EventXmlToJava.getTypeDeclaration(event.getClass().getName(),
                                                   kToJava.getClassData());
