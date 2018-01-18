@@ -1,0 +1,22 @@
+class Light {
+	mode PowerMode(OFF, ON)// declare discrete value type
+	sv PowerMode pmode// declare state variable
+	goal IS_ON(tp begin, tp end) {
+		assert from begin to end pmode==PowerMode.ON
+		tp pre
+		elaborate TO_ON(pre, begin)
+	}
+	goal TO_ON(tp begin, tp end) {
+		begin -> [20s, 30s] end // temporal constraint
+		assert from begin to end pmode==PowerMode.ON before end
+	}
+}
+
+scenario BradTest {
+	Light system
+	tp actbegin
+	tp actend
+	actbegin -> [4h, 4h] actend
+	ground actbegin 2028-05-01T13:14:15.000 // special form of TC that fixes a TP
+	elaborate system.IS_ON(actbegin, actend)
+}
