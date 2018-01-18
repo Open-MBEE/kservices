@@ -15,7 +15,11 @@ public class Function {
         for (int i=0; i<numSpaces; i++) {
             k.append(" ");
         }
-        return s.replaceAll("^", k.toString()).replaceAll("\n", "\n" + k.toString());
+        String indented = s.replaceAll("^", k.toString()).replaceAll("\n", "\n" + k.toString());
+        if ( indented.endsWith(k.toString()) ) {
+            indented = indented.replaceFirst(k.toString() + "$", "");
+        }
+        return indented;
     }
 
     @Override
@@ -37,7 +41,8 @@ public class Function {
         int numParms = 0;
         if ( !parameters.isEmpty() ) {
             for (Parameter p : parameters.values()) {
-                sb.append(indent(p + "\n", 8));
+                sb.append(indent("" + p, 8));
+                sb.append("\n");
                 ++numParms;
             }
         }

@@ -653,7 +653,6 @@ public class KToAPGen {
             if ( e.getKey() == null ) continue;
             String decomposition = translate( e.getKey(), kToJava );
             activity.decomposition.append(decomposition);
-
         }
         return pair;
     }
@@ -744,28 +743,26 @@ public class KToAPGen {
     public static String translate(Expression<?> expression, KtoJava kToJava) {
         // TODO -- need to rename startTime, endTime, and maybe duration
         if ( expression == null ) return "null";
+        String s = null;
         switch(expression.getForm()) {
             case Function:
                 if (expression.expression instanceof FunctionCall) {
-                    translate((FunctionCall)expression.expression, kToJava);
-                    break;
+                    return translate((FunctionCall)expression.expression, kToJava);
                 }
             case Constructor:
                 if (expression.expression instanceof ConstructorCall) {
-                    translate((ConstructorCall)expression.expression, kToJava);
-                    break;
+                    return translate((ConstructorCall)expression.expression, kToJava);
                 }
             case Parameter:
                 if (expression.expression instanceof gov.nasa.jpl.ae.event.Parameter) {
-                    translate((gov.nasa.jpl.ae.event.Parameter)expression.expression, kToJava);
-                    break;
+                    return translate((gov.nasa.jpl.ae.event.Parameter)expression.expression, kToJava);
                 }
             case Value:
             case None:
             default:
-                translate(expression.expression, kToJava);
+                return translate(expression.expression, kToJava);
         }
-        return "" + expression;
+        //return "" + expression;
     }
 
     public static String translate(gov.nasa.jpl.ae.event.Parameter parameter, KtoJava kToJava) {

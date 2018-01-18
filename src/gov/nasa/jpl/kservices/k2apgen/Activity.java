@@ -47,7 +47,11 @@ public class Activity {
         for (int i=0; i<numSpaces; i++) {
             k.append(" ");
         }
-        return s.replaceAll("^", k.toString()).replaceAll("\n", "\n" + k.toString());
+        String indented = s.replaceAll("^", k.toString()).replaceAll("\n", "\n" + k.toString());
+        if ( indented.endsWith(k.toString()) ) {
+            indented = indented.replaceFirst(k.toString() + "$", "");
+        }
+        return indented;
     }
 
     @Override

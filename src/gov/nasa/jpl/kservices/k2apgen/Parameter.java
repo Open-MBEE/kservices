@@ -27,9 +27,10 @@ public class Parameter {
     }
 
     public String valueToString() {
-        if ( ( type != null && type.toLowerCase().equals("string") ) ||
+        if ( (( type != null && type.toLowerCase().equals("string") ) ||
              ( type == null && value != null && value.length() > 0 &&
-               !Character.isDigit(value.charAt(0)) ) ) {
+               !Character.isDigit(value.charAt(0)) ) ) &&
+                (value == null || value.matches("^[0-9A-Za-z ._,-]*$")) ) {
             return "\"" + value + "\"";
         }
         if ( value == null ) {

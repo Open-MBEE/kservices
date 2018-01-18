@@ -35,7 +35,11 @@ public class Resource {
         for (int i=0; i<numSpaces; i++) {
             k.append(" ");
         }
-        return s.replaceAll("^", k.toString()).replaceAll("\n", "\n" + k.toString());
+        String indented = s.replaceAll("^", k.toString()).replaceAll("\n", "\n" + k.toString());
+        if ( indented.endsWith(k.toString()) ) {
+            indented = indented.replaceFirst(k.toString() + "$", "");
+        }
+        return indented;
     }
 
     @Override
@@ -67,15 +71,21 @@ public class Resource {
 
         if ( states != null && !states.isEmpty() ) {
             sb.append("        states\n");
+            StringBuffer ssb = new StringBuffer();
+            boolean first = true;
             for ( String s : states ) {
-                sb.append(indent(s, 12));
-                sb.append("\n");
+                if ( first ) first = false;
+                else ssb.append(", ");
+                ssb.append("\"" + s + "\"");
             }
+            ssb.append(";");
+            sb.append(indent(ssb.toString(), 12));
+            sb.append("\n");
         }
 
         if ( profile != null && !profile.isEmpty() ) {
             sb.append("        profile\n");
-            sb.append(indent(profile, 12));
+            sb.append(indent("\"" + profile + "\"", 12));
             sb.append("\n");
         }
 
