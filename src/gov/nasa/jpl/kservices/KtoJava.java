@@ -39,6 +39,7 @@ import japa.parser.ast.type.PrimitiveType;
 import japa.parser.ast.type.Type;
 import japa.parser.ast.type.VoidType;
 import k.frontend.*;
+import scala.Option;
 import scala.Tuple2;
 import scala.collection.JavaConversions;
 
@@ -629,11 +630,20 @@ public class KtoJava {
 
     }
 
+    protected <T> T get(Option<T> o) {
+        if ( o == null || o.isEmpty() ) {
+            return null;
+        }
+        return o.get();
+    }
+
     public MethodDeclaration makeMethodDecl( FunDecl funDecl ) {
         MethodDeclaration methodDecl = new MethodDeclaration();
-        String typeString =
-                JavaToConstraintExpression.typeToClass( funDecl.ty().get()
-                                                               .toJavaString() );
+        Option<k.frontend.Type> ty = funDecl.ty();
+        k.frontend.Type tyg = get(ty);
+        String typeString = (tyg == null ? null :
+                JavaToConstraintExpression.typeToClass(tyg
+                        .toJavaString()));
         methodDecl.setType( new ClassOrInterfaceType( "Expression<" + typeString
                                                       + ">" ) );
         methodDecl.setModifiers( 1 );
@@ -1054,7 +1064,10 @@ public class KtoJava {
             if ( methodSet != null ) {
                 for ( MethodDeclaration methodDecl : methodSet ) {
                     BlockStmt body = new BlockStmt();
-                    String typeString = funDecl.ty().get().toJavaString();
+                    Option<k.frontend.Type> ty = funDecl.ty();
+                    k.frontend.Type tyg = get(ty);
+
+                    String typeString = (tyg == null ? null : tyg.toJavaString());
                     if ( !funDecl.body().isEmpty() ) {
                         Expression expr =
                                 expressionTranslator().parseExpression( ( (ExpressionDecl)funDecl.body()
@@ -1313,8 +1326,7 @@ public class KtoJava {
         }
         for ( ConstraintDecl constraint : constraintList ) {
 
-            String name = constraint.name().isEmpty() ? null
-                                                      : constraint.name().get();
+            String name = get(constraint.name());
             expression = makeExpressionString(constraint.exp());
 
             f = createConstraintField( name, expression, initMembers );
@@ -1328,7 +1340,8 @@ public class KtoJava {
 
             if ( !property.expr().isEmpty()
                  && (allInitsAreConstraints || isPrimitive( property.ty().toJavaString() )) ) {
-                expression = makeExpressionString(property.expr().get());
+                Exp pe = get(property.expr());
+                expression = makeExpressionString(pe);
                 f = createConstraintField( null,
                                            property.name() + " == (" + expression + ")",
                                            initMembers );
@@ -1639,7 +1652,7 @@ public class KtoJava {
 
     public FieldDeclaration createParameterField( ClassData.Param p ) {
         String args[] =
-                expressionTranslator().convertToEventParameterTypeAndConstructorArgs( p );
+                expressionTranslator().convertToEventParameterTypeAndConstructorArgs( p, null );
         // return createFieldOfGenericType( p.name, type, p.type, args );
         return createFieldOfGenericType( p.name, args[ 0 ], null, // args[ 1 ],
                                          args[ 2 ] );
@@ -1652,7 +1665,7 @@ public class KtoJava {
             return createParameterField( p );
         }
         String args[] =
-                expressionTranslator().convertToEventParameterTypeAndConstructorArgs( p );
+                expressionTranslator().convertToEventParameterTypeAndConstructorArgs( p, null );
         Statement s = createAssignmentOfGenericType( p.name, args[ 0 ],
                                                      args[ 1 ], args[ 2 ] );
         ASTHelper.addStmt( initMembers.getBody(), s );
@@ -1887,6 +1900,7 @@ public class KtoJava {
         addImport( "java.util.Map" );
         addImport("java.util.ArrayList");
         addImport("java.util.Arrays");
+        addImport( "java.util.TimeZone" );
         if ( Utils.getJavaVersion() >= 1.8 ) {
             addImport("java.time.Duration");
         }

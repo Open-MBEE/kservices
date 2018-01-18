@@ -52,6 +52,7 @@ public class Resource {
             sb.append("            ();\n");
         } else {
             sb.append(indent(attrString, 12));
+            sb.append("\n");
         }
 
         sb.append("        parameters\n");
@@ -59,28 +60,32 @@ public class Resource {
             sb.append("            ();\n");
         } else {
             for (Parameter p : parameters) {
-                sb.append(indent(p + "\n", 12));
+                sb.append(indent("" + p, 12));
+                sb.append("\n");
             }
         }
 
         if ( states != null && !states.isEmpty() ) {
             sb.append("        states\n");
             for ( String s : states ) {
-                sb.append(indent(s + "\n", 12));
+                sb.append(indent(s, 12));
+                sb.append("\n");
             }
         }
 
         if ( profile != null && !profile.isEmpty() ) {
             sb.append("        profile\n");
-            sb.append(indent(profile + "\n", 12));
+            sb.append(indent(profile, 12));
+            sb.append("\n");
         }
 
         if ( usage != null && !usage.isEmpty() ) {
             sb.append("        usage\n");
-            sb.append(indent(usage+ "\n", 12));
+            sb.append(indent(usage, 12));
+            sb.append("\n");
         }
 
-        sb.append("    end resource " + name + "\n");
+        sb.append("\n    end resource " + name + "\n");
 
         return sb.toString();
     }

@@ -84,9 +84,11 @@ public class KToAPGen {
         cleanupForConstructors();
         // TODO -- translate instance from Main event instance after solved.
         String s = translate(ktoJava);
-        System.out.println("apgenModel = " + apgenModel);
-        System.out.println("s = " + s);
-        System.out.println("this KToAPGen = " + this);
+        System.out.println("\n=========   k apgenModel   =========\n" + apgenModel);
+        System.out.println("=========   end k apgenModel   =========\n");
+        System.out.println("\n=========   bae apgenModel   =========\n" + s);
+        System.out.println("=========   end bae apgenModel   =========\n");
+        //System.out.println("this KToAPGen = " + this);
     }
 
     protected void cleanupForConstructors() {
@@ -186,6 +188,11 @@ public class KToAPGen {
         for ( MemberDecl member : members ) {
             translate(member, activity);
         }
+        APGenModel m = this.apgenModel;
+        if ( parent instanceof APGenModel ) {
+            m = (APGenModel)parent;
+        }
+        m.activities.put(activity.name, activity);
     }
 
     public void translate(TopDecl d) {
@@ -276,6 +283,9 @@ public class KToAPGen {
     }
     public String translate(ConstraintDecl d, Object parent) {
         // Create a timeline and constraint
+        if ( d.toString().contains("Timepoint.set") ) {
+            return "";
+        }
         Resource r = new Resource();
         if (get(d.name()) != null ) {
             r.name = d.name().get();
@@ -387,11 +397,11 @@ public class KToAPGen {
         return "(" + translate(d.exp()) + ")";
     }
     public String translate(IdentExp d) {
+        if ( "startTime".equals(d.ident()) ) return "begin";
+        if ( "endTime".equals(d.ident()) ) return "end";
         return d.toJavaString();
     }
-    public String translate(IndexExp d) {
-        return d.toJavaString();
-    }
+    public String translate(IndexExp d) { return d.toJavaString(); }
     public String translate(ClassExp d) {
         return d.toJavaString();
     }
@@ -566,7 +576,7 @@ public class KToAPGen {
                 (gov.nasa.jpl.ae.event.Parameter<Long>)event.getParameter("duration");
         Dependency<?> durDep = duration == null ? null : event.getDependency(duration);
         if ( durDep != null ) {
-            String val = translate(durDep.getExpression());
+            String val = translate(durDep.getExpression(), kToJava);
             activity.attributes.put("Duration", val);
         }
 
@@ -593,7 +603,7 @@ public class KToAPGen {
                 continue;
             }
             String pName = d.getParameter().getName();
-            String val = translate(d.getExpression());
+            String val = translate(d.getExpression(), kToJava);
             activity.assignValue(pName, val);
         }
 
@@ -616,7 +626,7 @@ public class KToAPGen {
         // TODO -- maybe make a common interface for the apgen stub classes and return a single list.
 
         for ( ConstraintExpression c : otherConstraints ) {
-            Pair<Resource, String> pair = translate(c);
+            Pair<Resource, String> pair = translate(c, kToJava);
             Resource r = pair == null ? null : pair.first;
             String modeling = pair == null ? null : pair.second;
             if ( r != null ) {
@@ -653,7 +663,7 @@ public class KToAPGen {
 
         Expression<Boolean> c = elaborationRule.getCondition();
         if ( c != null ) {
-            decomposition.append("if (" + translate(c) + ") {\n");
+            decomposition.append("if (" + translate(c, kToJava) + ") {\n");
         }
         Vector<EventInvocation> invocations = elaborationRule.getEventInvocations();
         for ( EventInvocation invocation : invocations ) {
@@ -684,7 +694,7 @@ public class KToAPGen {
         return inv.toString();
     }
 
-    public static Pair<Resource, String> translate(ConstraintExpression c) {
+    public static Pair<Resource, String> translate(ConstraintExpression c, KtoJava kToJava) {
         // Create a timeline and constraint
         Resource r = new Resource();
         if (!Utils.isNullOrEmpty(c.getName()) ) {
@@ -704,7 +714,7 @@ public class KToAPGen {
 
         // effect on resource in activity
         String vName = r.name.replace("res_", "constraint_");
-        String val = "(" + translate(c) + ") ? \"true\" : \"false\"";
+        String val = "(" + translate(c.getExpression(), kToJava) + ") ? \"true\" : \"false\"";
         gov.nasa.jpl.kservices.k2apgen.Parameter cp =
                 new gov.nasa.jpl.kservices.k2apgen.Parameter(vName, "string", val);
         String modeling = cp.toString() + "\n" +
@@ -720,7 +730,10 @@ public class KToAPGen {
     public static String translate(Object o, KtoJava kToJava) {
         if ( o == null ) return null;
         if ( o instanceof Expression ) {
-            return translate((Expression)o);
+            return translate((Expression)o, kToJava);
+        }
+        if ( o instanceof Call ) {
+            return translate((Call)o, kToJava);
         }
         if ( o instanceof HasName ) {
             return "" + ((HasName)o).getName();
@@ -728,15 +741,75 @@ public class KToAPGen {
         return "" + o;
     }
 
-    public static String translate(Expression<?> expression) {
+    public static String translate(Expression<?> expression, KtoJava kToJava) {
         // TODO -- need to rename startTime, endTime, and maybe duration
+        if ( expression == null ) return "null";
+        switch(expression.getForm()) {
+            case Function:
+                if (expression.expression instanceof FunctionCall) {
+                    translate((FunctionCall)expression.expression, kToJava);
+                    break;
+                }
+            case Constructor:
+                if (expression.expression instanceof ConstructorCall) {
+                    translate((ConstructorCall)expression.expression, kToJava);
+                    break;
+                }
+            case Parameter:
+                if (expression.expression instanceof gov.nasa.jpl.ae.event.Parameter) {
+                    translate((gov.nasa.jpl.ae.event.Parameter)expression.expression, kToJava);
+                    break;
+                }
+            case Value:
+            case None:
+            default:
+                translate(expression.expression, kToJava);
+        }
         return "" + expression;
     }
 
+    public static String translate(gov.nasa.jpl.ae.event.Parameter parameter, KtoJava kToJava) {
+        // TODO -- just need to print name
+        if ( "startTime".equals(parameter.getName()) ) return "begin";
+        if ( "endTime".equals(parameter.getName()) ) return "end";
+        if ( "duration".equals(parameter.getName()) ) return "Duration";
+        return translate((Object)parameter, kToJava);
+    }
+
+    public static String translateFunctionName(String callName) {
+        //if ( "".equals(callName) )
+        return callName;
+    }
+
+    public static String translate(ConstructorCall call, KtoJava kToJava) {
+        // TODO
+        return translate((Call)call, kToJava);
+    }
+
+    public static String translate(Call call, KtoJava kToJava) {
+        // TODO
+        StringBuffer sb = new StringBuffer();
+        if ( call.getObject() != null ) {
+            sb.append(translateFunctionName(call.getName()));
+        }
+        sb.append("(");
+        boolean first = true;
+        for (Object arg : call.getArguments()) {
+            if ( first ) first = false;
+            else sb.append(", ");
+            sb.append(translate(arg, kToJava));
+        }
+        sb.append(")");
+        return sb.toString();
+        //return translate((Object)call, kToJava);
+    }
+
     public static gov.nasa.jpl.kservices.k2apgen.Parameter translateParameter(gov.nasa.jpl.ae.event.Parameter<?> p) {
+        if ( p == null ) return null;
+        String type = p.getType() == null ? null : p.getType().getSimpleName();
         gov.nasa.jpl.kservices.k2apgen.Parameter pp =
                 new gov.nasa.jpl.kservices.k2apgen.Parameter(p.getName(),
-                                                             p.getType().getSimpleName(),
+                                                             type,
                                                              null);
         return pp;
     }
