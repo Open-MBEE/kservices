@@ -28,20 +28,6 @@ public class Resource {
 
     String usage = null;
 
-    // TODO -- move this to utility class -- it's copied from Activity
-    public static String indent(String s, int numSpaces) {
-        if ( s == null ) return "";
-        StringBuffer k = new StringBuffer();
-        for (int i=0; i<numSpaces; i++) {
-            k.append(" ");
-        }
-        String indented = s.replaceAll("^", k.toString()).replaceAll("\n", "\n" + k.toString());
-        if ( indented.endsWith(k.toString()) ) {
-            indented = indented.replaceFirst(k.toString() + "$", "");
-        }
-        return indented;
-    }
-
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
@@ -55,7 +41,7 @@ public class Resource {
         if ( attrString == null || attrString.isEmpty()) {
             sb.append("            ();\n");
         } else {
-            sb.append(indent(attrString, 12));
+            sb.append(Util.indent(attrString, 12));
             sb.append("\n");
         }
 
@@ -64,7 +50,7 @@ public class Resource {
             sb.append("            ();\n");
         } else {
             for (Parameter p : parameters) {
-                sb.append(indent("" + p, 12));
+                sb.append(Util.indent("" + p, 12));
                 sb.append("\n");
             }
         }
@@ -79,19 +65,19 @@ public class Resource {
                 ssb.append("\"" + s + "\"");
             }
             ssb.append(";");
-            sb.append(indent(ssb.toString(), 12));
+            sb.append(Util.indent(ssb.toString(), 12));
             sb.append("\n");
         }
 
         if ( profile != null && !profile.isEmpty() ) {
             sb.append("        profile\n");
-            sb.append(indent("\"" + profile + "\"", 12));
+            sb.append(Util.indent("\"" + profile + "\"", 12));
             sb.append("\n");
         }
 
         if ( usage != null && !usage.isEmpty() ) {
             sb.append("        usage\n");
-            sb.append(indent(usage, 12));
+            sb.append(Util.indent(usage, 12));
             sb.append("\n");
         }
 

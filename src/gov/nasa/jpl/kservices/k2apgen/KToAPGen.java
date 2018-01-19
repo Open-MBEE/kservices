@@ -83,7 +83,7 @@ public class KToAPGen {
         addInheritedMembers(getModel());
         cleanupForConstructors();
         // TODO -- translate instance from Main event instance after solved.
-        String s = translate(ktoJava);
+        String s = translateInstances(ktoJava);
         System.out.println("\n=========   k apgenModel   =========\n" + apgenModel);
         System.out.println("=========   end k apgenModel   =========\n");
         System.out.println("\n=========   bae apgenModel   =========\n" + s);
@@ -535,9 +535,19 @@ public class KToAPGen {
         return model;
     }
 
+    public String translateInstances(KtoJava kToJava) {
+        // activity instances
+        List<ActivityInstance> list = translateInstance(kToJava.mainEvent);
+        StringBuffer sb = new StringBuffer();
+        for ( ActivityInstance i : list ) {
+            sb.append(i.toString());
+        }
+        return sb.toString();
+    }
 
     public static String translate(KtoJava kToJava) {
-        Pair<Activity, List<Resource>> p = translateDeclaration(kToJava.mainEvent, kToJava);
+        Pair<Activity, List<Resource>> p =
+                translateDeclaration(kToJava.mainEvent, kToJava);
         if ( p == null ) {
             // TODO -- error
             return null;
@@ -641,6 +651,24 @@ public class KToAPGen {
         return p;
     }
 
+    public List<ActivityInstance> translateInstance(Event event) {
+        List<ActivityInstance> instances = new ArrayList<ActivityInstance>();
+        String n = event.getName();
+        String t = event.getClass().getSimpleName();
+        ActivityInstance a = apgenModel.addActivityInstance(n, t);
+        instances.add(a);
+//        HashSet<HasEvents> seen = new HashSet<HasEvents>();
+//        seen.add(this);
+        DurativeEvent durEvent = null;
+        if ( event instanceof HasEvents ) {
+            Set<Event> events = ((HasEvents) event).getEvents(true, null);
+            for ( Event e : events) {
+                instances.addAll(translateInstance(e));
+            }
+        }
+        return instances;
+    }
+
     public static Pair< Activity, List< Resource > > translateDeclaration(DurativeEvent event, KtoJava kToJava) {
         Pair< Activity, List< Resource > > pair =
                 translateDeclaration( (ParameterListenerImpl) event, kToJava);
@@ -668,7 +696,7 @@ public class KToAPGen {
         for ( EventInvocation invocation : invocations ) {
             String invString = translate(invocation, kToJava);
             if ( c != null ) {
-//                invString = indent(invString, 4);
+//                invString = Util.indent(invString, 4);
             }
             decomposition.append(invString + ";\n");
         }

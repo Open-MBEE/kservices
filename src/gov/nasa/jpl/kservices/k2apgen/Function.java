@@ -8,20 +8,6 @@ public class Function {
     Map<String, Parameter> parameters = new TreeMap<>();
     String body = null;
 
-    // TODO -- move this to utility class
-    public static String indent(String s, int numSpaces) {
-        if ( s == null ) return "";
-        StringBuffer k = new StringBuffer();
-        for (int i=0; i<numSpaces; i++) {
-            k.append(" ");
-        }
-        String indented = s.replaceAll("^", k.toString()).replaceAll("\n", "\n" + k.toString());
-        if ( indented.endsWith(k.toString()) ) {
-            indented = indented.replaceFirst(k.toString() + "$", "");
-        }
-        return indented;
-    }
-
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
@@ -41,7 +27,7 @@ public class Function {
         int numParms = 0;
         if ( !parameters.isEmpty() ) {
             for (Parameter p : parameters.values()) {
-                sb.append(indent("" + p, 8));
+                sb.append(Util.indent("" + p, 8));
                 sb.append("\n");
                 ++numParms;
             }
@@ -50,7 +36,7 @@ public class Function {
             sb.append("            ();\n");
         }
         sb.append("    {");
-        sb.append(indent(body, 8));
+        sb.append(Util.indent(body, 8));
         sb.append("    }");
         return sb.toString();
     }

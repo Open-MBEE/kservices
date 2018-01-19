@@ -5,11 +5,25 @@ import java.util.Map;
 
 public class APGenModel {
     Map<String, Activity> activities = new LinkedHashMap<String, Activity>();
+    Map<String, ActivityInstance> activityInstances = new LinkedHashMap<String, ActivityInstance>();
     Map<String, Resource> resources = new LinkedHashMap<String, Resource>();
     Map<String, Function> functions = new LinkedHashMap<String, Function>();
     //Map<String, Constraint> resources = new LinkedHashMap<String, Constraint>();
     Map<String, Parameter> parameters = new LinkedHashMap<String, Parameter>();
     Map<String, Parameter> instanceParameters = new LinkedHashMap<String, Parameter>();
+
+    public ActivityInstance addActivityInstance(String n, String t) {
+        ActivityInstance a = new ActivityInstance();
+        a.id = n;
+        a.typeName = t;
+        a.type = activities.get(t);
+        if (a.type == null) {
+            a.type = activities.get(n);
+        }
+        activityInstances.put(a.getID(), a);
+        return a;
+    }
+
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
@@ -41,6 +55,12 @@ public class APGenModel {
         for ( Parameter p : instanceParameters.values() ) {
             String ps = p.toString();
             sb.append(ps);
+            sb.append("\n\n");
+        }
+        sb.append("\n# ACTIVITY INSTANCES\n\n");
+        for ( ActivityInstance a : activityInstances.values() ) {
+            String as = a.toString();
+            sb.append(as);
             sb.append("\n\n");
         }
         return sb.toString();

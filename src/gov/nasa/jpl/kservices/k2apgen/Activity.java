@@ -1,7 +1,5 @@
 package gov.nasa.jpl.kservices.k2apgen;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -40,20 +38,6 @@ public class Activity {
         return false;
     }
 
-    // TODO -- move this to utility class
-    public static String indent(String s, int numSpaces) {
-        if ( s == null ) return "";
-        StringBuffer k = new StringBuffer();
-        for (int i=0; i<numSpaces; i++) {
-            k.append(" ");
-        }
-        String indented = s.replaceAll("^", k.toString()).replaceAll("\n", "\n" + k.toString());
-        if ( indented.endsWith(k.toString()) ) {
-            indented = indented.replaceFirst(k.toString() + "$", "");
-        }
-        return indented;
-    }
-
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
@@ -65,7 +49,7 @@ public class Activity {
         } else {
             for (Map.Entry<String, String> e : attributes.entrySet()) {
                 String q = e.getKey().equals("Start") || e.getKey().equals("Start") ? "" : "\"";
-                sb.append(indent("\"" + e.getKey() + "\" = " + q + e.getValue() + q + ";\n", 12));
+                sb.append(Util.indent("\"" + e.getKey() + "\" = " + q + e.getValue() + q + ";\n", 12));
             }
         }
         sb.append("        parameters\n");
@@ -79,7 +63,7 @@ public class Activity {
                        p.name.equals("endTime") || p.name.equals("end") ) ) {
                     continue;
                 }
-                sb.append(indent(p + "\n", 12));
+                sb.append(Util.indent(p + "\n", 12));
                 ++numParms;
             }
         }
@@ -97,7 +81,7 @@ public class Activity {
                                 p.name.equals("endTime") || p.name.equals("end") ) ) {
                     continue;
                 }
-                sb.append(indent(p + "\n", 12));
+                sb.append(Util.indent(p + "\n", 12));
             }
             if ( numParms == 0 ) {
                 sb.append("            ();\n");
@@ -105,11 +89,11 @@ public class Activity {
         }
         if ( modeling.length() > 0 ) {
             sb.append("        modeling\n");
-            sb.append(indent(modeling.toString(), 12));
+            sb.append(Util.indent(modeling.toString(), 12));
         }
         if ( decomposition.length() > 0 ) {
             sb.append("        nonexclusive_decomposition\n");
-            sb.append(indent(decomposition.toString(), 12));
+            sb.append(Util.indent(decomposition.toString(), 12));
         }
         sb.append("    end activity type " + name + "\n");
         return sb.toString();

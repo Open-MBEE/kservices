@@ -41,3 +41,5 @@ class BradTest {
     var goal00001: IS_ON = system.IS_ON(startTime :: actbegin, endTime :: actend)
     -- var goal00001: IS_ON = system.isOn(actbegin, actend)
 }
+
+var b: BradTest
