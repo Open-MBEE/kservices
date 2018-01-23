@@ -653,6 +653,7 @@ public class KToAPGen {
 
     public List<ActivityInstance> translateInstance(Event event) {
         List<ActivityInstance> instances = new ArrayList<ActivityInstance>();
+        if ( event == null ) return instances;
         String n = event.getName();
         String t = event.getClass().getSimpleName();
         ActivityInstance a = apgenModel.addActivityInstance(n, t);

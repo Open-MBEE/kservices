@@ -36,10 +36,10 @@ class BradTest {
     req actbegin = 2028-05-01T13:14:15.000
     req actbegin + Timepoint.hours(4.0) <= actend
     req actbegin + Timepoint.hours(4.0) >= actend
-    var system: Light
+    var system: Light = Light()  -- TODO -- these constructors should not be necessary and should be generated automatically.
     
     var goal00001: IS_ON = system.IS_ON(startTime :: actbegin, endTime :: actend)
     -- var goal00001: IS_ON = system.isOn(actbegin, actend)
 }
 
-var b: BradTest
+var b: BradTest = BradTest()  -- TODO -- these constructors should not be necessary and should be generated automatically.
