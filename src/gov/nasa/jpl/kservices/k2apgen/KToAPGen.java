@@ -3,6 +3,7 @@ package gov.nasa.jpl.kservices.k2apgen;
 import gov.nasa.jpl.ae.event.*;
 import gov.nasa.jpl.ae.xml.EventXmlToJava;
 import gov.nasa.jpl.kservices.KtoJava;
+import gov.nasa.jpl.mbee.util.Debug;
 import gov.nasa.jpl.mbee.util.HasName;
 import gov.nasa.jpl.mbee.util.Pair;
 import gov.nasa.jpl.mbee.util.Utils;
@@ -58,6 +59,9 @@ public class KToAPGen {
     KtoJava ktoJava = null;
     Model model = null;
     APGenModel apgenModel = new APGenModel();
+    public boolean addingToDecomposition = false;
+
+    public Map<String, List<Exp>> constructorCalls = new LinkedHashMap<String, List<Exp>>();
 
     public static void main(String[] args) {
         KtoJava kToJava = KtoJava.runMain(args);
@@ -89,6 +93,36 @@ public class KToAPGen {
         System.out.println("\n=========   bae apgenModel   =========\n" + s);
         System.out.println("=========   end bae apgenModel   =========\n");
         //System.out.println("this KToAPGen = " + this);
+    }
+
+    protected Map<String, List<Exp>> getConstructorCalls() {
+        if ( !constructorCalls.isEmpty() ) return constructorCalls;
+        HasChildren h = getModel();
+        return gatherConstructorCalls(h);
+    }
+    protected Map<String, List<Exp>> gatherConstructorCalls(HasChildren h) {
+        if (h instanceof Exp && isConstructorAppl((Exp)h)) {
+            String className = null;
+            if ( h instanceof CtorApplExp )  {
+                className = ((CtorApplExp) h).name();
+            } else if ( h instanceof FunApplExp ) {
+                FunApplExp fae = (FunApplExp) h;
+                className = fae.name();
+            }
+            List<Exp> ctors = constructorCalls.get(className);
+            if ( ctors == null ) {
+                ctors = new ArrayList<Exp>();
+                constructorCalls.put(className, ctors);
+            }
+            ctors.add( (Exp)h );
+        }
+        Collection<Object> children = JavaConversions.asJavaCollection(h.children());
+        for ( Object c : children ) {
+            if ( c instanceof HasChildren ) {
+                gatherConstructorCalls((HasChildren)c);
+            }
+        }
+        return constructorCalls;
     }
 
     protected void cleanupForConstructors() {
@@ -149,8 +183,8 @@ public class KToAPGen {
         Activity parentAct = apgenModel.activities.get(parent);
         Activity childAct = apgenModel.activities.get(child);
         if ( parentAct == null || childAct == null ) return;
-        Map<String, gov.nasa.jpl.kservices.k2apgen.Parameter> newParameters
-                = new TreeMap<String, gov.nasa.jpl.kservices.k2apgen.Parameter>(parentAct.parameters);
+        LinkedHashMap<String, gov.nasa.jpl.kservices.k2apgen.Parameter> newParameters
+                = new LinkedHashMap<String, gov.nasa.jpl.kservices.k2apgen.Parameter>(parentAct.parameters);
         newParameters.putAll(childAct.parameters);
         childAct.parameters = newParameters;
     }
@@ -179,7 +213,7 @@ public class KToAPGen {
 
     private void translate(EntityDecl e, Object parent) {
         Activity activity = new Activity();
-        activity.name = e.ident();
+        activity.name = kToApgenClassName(e.ident());
         Collection<Annotation> annotations = JavaConversions.asJavaCollection( e.annotations() );
         for ( Annotation a: annotations ) {
             translate(a, activity);
@@ -193,6 +227,69 @@ public class KToAPGen {
             m = (APGenModel)parent;
         }
         m.activities.put(activity.name, activity);
+
+        // fix parameters to meet constructors
+        fixParameters(e, activity, parent);
+    }
+
+    protected void fixParameters(EntityDecl e, Activity activity, Object parent) {
+        String className = e.ident();
+        // find the longest constructor
+        List<Exp> ctors = getConstructorCalls().get(className);
+        if ( Utils.isNullOrEmpty( ctors ) ) return;
+        CallApplExp longestCtor = null;
+        for ( Exp ctor : ctors ) {
+            scala.collection.immutable.List<Argument> args = null;
+            if ( ctor instanceof CallApplExp ) {
+                args = ((CallApplExp) ctor).args();
+            }
+            if ( longestCtor == null || args.length() > longestCtor.args().length() ) {
+                longestCtor = (CallApplExp)ctor;
+            }
+            // TODO -- check to verify that arguments match longest for the fewer args.
+            // Give a warning if they don't
+        }
+        Collection<Argument> args = JavaConversions.asJavaCollection(longestCtor.args());
+        if ( Utils.isNullOrEmpty( args ) ) return;
+        LinkedHashMap<String, gov.nasa.jpl.kservices.k2apgen.Parameter> oldParameters = activity.parameters;
+        activity.parameters = new LinkedHashMap<>();
+        for ( Argument arg : args ) {
+            if ( arg instanceof NamedArgument ) {  // This should always be true.
+                NamedArgument narg = (NamedArgument) arg;
+                String name = narg.ident();
+                if (oldParameters.containsKey(name)) {
+                    gov.nasa.jpl.kservices.k2apgen.Parameter p = oldParameters.get(name);
+                    activity.parameters.put(name, p);
+                    oldParameters.remove(name);
+                } else {
+                    if ( name.equals("startTime") || name.equals("endTime") || name.equals("duration") ) {
+                        gov.nasa.jpl.kservices.k2apgen.Parameter p =
+                                new gov.nasa.jpl.kservices.k2apgen.Parameter(name, "time", null);
+                        // TODO -- What is the type for duration?!  We're assuming "time!"
+                        activity.parameters.put(name, p);
+                        // TODO -- HERE!! -- Need to set Start or Duration in the attributes.
+                        String apgenName = name.equals("startTime") ? "Start" : name.equals("endTime") ? "Duration" : name.equals("duration") ? "Duration" : null;
+                        String attr = activity.attributes.get(apgenName);
+                        if ( attr != null ) {
+                            // TODO -- WARNING -- OVERWRITING attribute
+                        }
+                        if ( name.equals("startTime") ) {
+                            attr = name;
+                        } else if ( name.equals("endTime") ) {
+                            attr = "endTime - start";
+                        }
+
+                        activity.attributes.put(apgenName, attr);
+                    } else {
+                        Debug.error(true, true, "Couldn't find parameter, " + name + ", in activity, " + activity.name + ", for constructor call, " + longestCtor);
+                    }
+                }
+            } else {
+                Debug.error(true, true, "Unexpected positional argument, " + arg + ", in constructor call, " + longestCtor);
+            }
+        }
+        // The remaining parameters are creation params.
+        activity.creation.putAll(oldParameters);
     }
 
     public void translate(TopDecl d) {
@@ -210,7 +307,9 @@ public class KToAPGen {
     }
 
     public void translate(MemberDecl d, Object parent) {
-        if ( d instanceof TypeDecl ) {
+        if ( d instanceof EntityDecl ) {
+            translate((EntityDecl) d, parent);
+        } else if ( d instanceof TypeDecl ) {
             translate( (TypeDecl)d, parent );
         } else if ( d instanceof PropertyDecl ) {
             translate( (PropertyDecl)d, parent );
@@ -230,10 +329,16 @@ public class KToAPGen {
         // TODO -- APGen has typedefs for structs and lists.
     }
     public void translate(PropertyDecl d, Object parent) {
+        Exp expr = get(d.expr());
+        if ( expr != null && containsConstructorCall( expr ) ) {
+            addDecomposition(expr, parent);
+            return;
+        }
+        String exprString = translate(expr, parent);
         gov.nasa.jpl.kservices.k2apgen.Parameter pp =
                 new gov.nasa.jpl.kservices.k2apgen.Parameter(d.name(),
                         translate(d.ty(), d.multiplicity()),
-                        translate(d.expr()));
+                        exprString);
         if ( parent instanceof APGenModel ) {
             ((APGenModel)parent).parameters.put(pp.name, pp);
         } else if ( parent instanceof Activity ) {
@@ -243,6 +348,23 @@ public class KToAPGen {
         }
     }
 
+    public boolean isConstructorAppl( Exp exp ) {
+        return ktoJava.isConstructorCall( exp );
+    }
+
+    public boolean containsConstructorCall( HasChildren exp ) {
+        if (exp instanceof Exp && isConstructorAppl((Exp)exp)) return true;
+        if ( exp.children() != null ) {
+            for ( Object x : JavaConversions.asJavaCollection( exp.children() ) ) {
+                if ( x instanceof HasChildren &&
+                     containsConstructorCall((HasChildren)x) ) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     protected <T> T get(Option<T> o) {
         if ( o == null || o.isEmpty() ) {
             return null;
@@ -250,12 +372,11 @@ public class KToAPGen {
         return o.get();
     }
 
-    public String translate(Option<Exp> expr) {
-        if ( expr == null ) {
-            return null;
-        }
+    public String translate(Option<Exp> expr, Object parent) {
+        if ( expr == null ) return null;
         Exp exp = get(expr);
-        String estr = translate(exp);
+        if ( exp == null ) return null;
+        String estr = translate(exp, parent);
         return estr;
     }
 
@@ -304,7 +425,7 @@ public class KToAPGen {
 
         // effect on resource in activity
         String vName = "constraint_" + r.name.replace("res_", "");
-        String val = "(" + translate(d.exp()) + ") ? \"true\" : \"false\"";
+        String val = "(" + translate(d.exp(), parent) + ") ? \"true\" : \"false\"";
         gov.nasa.jpl.kservices.k2apgen.Parameter cp =
                 new gov.nasa.jpl.kservices.k2apgen.Parameter(vName, "string", val);
         String modeling = cp.toString() + "\n" +
@@ -324,7 +445,7 @@ public class KToAPGen {
     }
 
     public void translate(ExpressionDecl d, Object parent) {
-        String s = translate(d.exp());
+        String s = translate(d.exp(), parent);
         if ( parent instanceof APGenModel ) {
             // TODO -- ERROR -- No place to put an expression
         } else if ( parent instanceof Activity ) {
@@ -334,50 +455,50 @@ public class KToAPGen {
         }
     }
 
-    public String translate(Exp d) {
+    public String translate(Exp d, Object parent) {
         if ( d == null ) return null;
         if ( d instanceof ParenExp ) {
-            return translate( (ParenExp)d );
+            return translate( (ParenExp)d, parent );
         } else if ( d instanceof IdentExp ) {
             return translate( (IdentExp)d );
         } else if ( d instanceof DotExp ) {
-            return translate( (DotExp)d );
+            return translate( (DotExp)d, parent );
         } else if ( d instanceof IndexExp ) {
-            return translate( (IndexExp)d );
+            return translate( (IndexExp)d, parent );
         } else if ( d instanceof ClassExp ) {
             return translate( (ClassExp)d );
         } else if ( d instanceof FunApplExp ) {
-            return translate( (FunApplExp)d );
+            return translate( (FunApplExp)d, parent );
         } else if ( d instanceof CtorApplExp ) {
-            return translate( (CtorApplExp)d );
+            return translate( (CtorApplExp)d, parent );
         } else if ( d instanceof IfExp ) {
-            return translate( (IfExp)d );
+            return translate( (IfExp)d, parent );
         } else if ( d instanceof MatchExp ) {
-            return translate( (MatchExp)d );
+            return translate( (MatchExp)d, parent );
         } else if ( d instanceof MatchCase ) {
-            return translate( (MatchCase)d );
+            return translate( (MatchCase)d, parent );
         } else if ( d instanceof BlockExp ) {
-            return translate( (BlockExp)d );
+            return translate( (BlockExp)d, parent );
         } else if ( d instanceof WhileExp ) {
-            return translate( (WhileExp)d );
+            return translate( (WhileExp)d, parent );
         } else if ( d instanceof ForExp ) {
-            return translate( (ForExp)d );
+            return translate( (ForExp)d, parent );
         } else if ( d instanceof BinExp ) {
-            return translate( (BinExp)d );
+            return translate( (BinExp)d, parent );
         } else if ( d instanceof UnaryExp ) {
-            return translate( (UnaryExp)d );
+            return translate( (UnaryExp)d, parent );
         } else if ( d instanceof QuantifiedExp ) {
-            return translate( (QuantifiedExp)d );
+            return translate( (QuantifiedExp)d, parent );
         } else if ( d instanceof TupleExp ) {
-            return translate( (TupleExp)d );
+            return translate( (TupleExp)d, parent );
         } else if ( d instanceof CollectionRangeExp ) {
-            return translate( (CollectionRangeExp)d );
+            return translate( (CollectionRangeExp)d, parent );
         } else if ( d instanceof CollectionComprExp ) {
-            return translate( (CollectionComprExp)d );
+            return translate( (CollectionComprExp)d, parent );
         } else if ( d instanceof LambdaExp ) {
-            return translate( (LambdaExp)d );
+            return translate( (LambdaExp)d, parent );
         } else if ( d instanceof ReturnExp ) {
-            return translate( (ReturnExp)d );
+            return translate( (ReturnExp)d, parent );
 //        } else if ( d instanceof BreakExp ) {
 //            translate( (BreakExp)d );
 //        } else if ( d instanceof ContinueExp ) {
@@ -387,81 +508,193 @@ public class KToAPGen {
 //        } else if ( d instanceof StarExp ) {
 //            translate( (StarExp)d );
         } else if ( d instanceof Argument ) {
-            return translate( (Argument)d );
+            return translate( (Argument)d, parent );
         } else if ( d instanceof Literal ) {
             return translate( (Literal)d );
         }
         return null;
     }
-    public String translate(ParenExp d) {
-        return "(" + translate(d.exp()) + ")";
+    public String translate(ParenExp d, Object parent) {
+        return "(" + translate(d.exp(), parent) + ")";
     }
     public String translate(IdentExp d) {
         if ( "startTime".equals(d.ident()) ) return "begin";
         if ( "endTime".equals(d.ident()) ) return "end";
         return d.toJavaString();
     }
-    public String translate(IndexExp d) { return d.toJavaString(); }
+    public String translate(DotExp d, Object parent) {
+        StringBuffer sb = new StringBuffer();
+        sb.append(translate(d.exp(), parent));
+        sb.append(".");
+        sb.append(d.ident());
+        return sb.toString();
+    }
+    public String translate(IndexExp d, Object parent) { return d.toJavaString(); }
     public String translate(ClassExp d) {
         return d.toJavaString();
     }
-    public String translate(CallApplExp d) {
+    public String translate(CallApplExp d, Object parent) {
         if (d instanceof FunApplExp) {
-            return translate((FunApplExp) d);
+            return translate((FunApplExp) d, parent);
         } else if (d instanceof CtorApplExp) {
-            return translate((CtorApplExp) d);
+            return translate((CtorApplExp) d, parent);
         } else {
             // ???!!
         }
         return null;
     }
-    public String translate(FunApplExp d) {
+
+    public String classNameWithScope(String name) {
+        String nws = ktoJava.getClassData().getClassNameWithScope(name, false);
+        if ( nws != null ) {
+            return nws;
+        }
+        return name;
+    }
+
+    public String kToApgenClassName(String name) {
+        if ( Utils.isNullOrEmpty(name) ) return null;
+        String n = name;
+
+        // remove eclosing object scope
+        int pos = name.lastIndexOf('.');
+        if ( pos >= 0 ) {
+            String scope = name.substring(0, pos);
+            if ( !ktoJava.getClassData().isClassName(scope) ) {
+                String simpleClassName = name.substring(pos+1);
+                if ( ktoJava.getClassData().isClassName(simpleClassName) ) {
+                    n = simpleClassName;
+                }
+            }
+        }
+
+        n = classNameWithScope(n);
+        if ( Utils.isNullOrEmpty(n) ) n = name;
+        n = n.replaceAll("[.]", "_");
+        n = n.replaceFirst("^Global_", "");
+        return n;
+    }
+
+    public void addDecomposition(Exp d, Object parent) {
+        if ( parent instanceof Activity ) {
+            Activity a = (Activity)parent;
+            String s = translate(d, parent);
+            String ctorStr = s.replaceFirst("^new ", "");
+            a.decomposition.append( ctorStr + "\n" );// + " at start;\n");
+        } else {
+            // TODO -- Should instantiations at the global level be wrapped in a global activity?
+            Debug.error(true, false, "constructor at top level ignored! " + d.toJavaString());
+        }
+    }
+    public String translate(FunApplExp d, Object parent) {
+        boolean isCtor = isConstructorAppl(d);
+            // create decmposition
+        if ( addingToDecomposition && isCtor ) {
+            addDecomposition(d, parent);
+            return null;
+        }
+
+        StringBuffer sb = new StringBuffer();
+        String n = translate(d.exp1(), parent);
+        if ( isCtor ) {
+            n = kToApgenClassName(n);
+        }
+        sb.append(n + "(");
+        Collection<Argument> args = JavaConversions.asJavaCollection(d.arguments());
+        boolean first = true;
+        for (Argument arg : args) {
+            if ( first ) first = false;
+            else sb.append(", ");
+            sb.append(translate(arg, parent));
+        }
+        sb.append(")");
+        if ( isCtor ) {
+            sb.append(" at start");
+        }
+        return sb.toString();
+    }
+
+    public String translate(CtorApplExp d, Object parent) {
+        if ( addingToDecomposition ) {
+            // create decmposition
+            addDecomposition(d, parent);
+            return null;
+        }
+        StringBuffer sb = new StringBuffer();
+        String n = d.ty().toJavaString();
+        n = kToApgenClassName(n);
+        sb.append(n + "(");
+        sb.append(d.ty().toJavaString() + "(");
+        Collection<Argument> args = JavaConversions.asJavaCollection(d.arguments());
+        boolean first = true;
+        for (Argument arg : args) {
+            if ( first ) first = false;
+            else sb.append(", ");
+            sb.append(translate(arg, parent));
+        }
+        sb.append(") at start");
+        return sb.toString();
+    }
+
+    public String translate(IfExp d, Object parent) {
+        StringBuffer sb = new StringBuffer();
+        sb.append("if (");
+        sb.append( translate(d.cond(), parent) );
+        sb.append(") {\n    ");
+        sb.append( translate(d.trueBranch(), parent) );
+        Exp fb = get(d.falseBranch());
+        if ( fb != null ) {
+            sb.append(";\n} else {\n    ");
+            sb.append(translate(d.falseBranch(), parent));
+        }
+        sb.append(";\n}");
+
+        return sb.toString();
+    }
+
+    public String translate(MatchExp d, Object parent) {
         return d.toJavaString();
     }
-    public String translate(CtorApplExp d) {
+    public String translate(MatchCase d, Object parent) {
+        return d.toJavaString();
+    }
+    public String translate(BlockExp d, Object parent) {
+        return d.toJavaString();
+    }
+    public String translate(WhileExp d, Object parent) {
+        return d.toJavaString();
+    }
+    public String translate(ForExp d, Object parent) {
         return d.toJavaString();
     }
 
-    public String translate(IfExp d) {
+    public String translate(BinExp d, Object parent) {
+        StringBuffer sb = new StringBuffer();
+        sb.append(translate(d.exp1(), parent));
+        sb.append(" " + d.op() + " ");
+        sb.append(translate(d.exp2(), parent));
+        return sb.toString();
+    }
+
+    public String translate(UnaryExp d, Object parent) {
         return d.toJavaString();
     }
-    public String translate(MatchExp d) {
+    public String translate(QuantifiedExp d, Object parent) {
         return d.toJavaString();
     }
-    public String translate(MatchCase d) {
+    public String translate(TupleExp d, Object parent) {
         return d.toJavaString();
     }
-    public String translate(BlockExp d) {
+    public String translate(CollectionRangeExp d, Object parent) {
         return d.toJavaString();
     }
-    public String translate(WhileExp d) {
+    public String translate(CollectionComprExp d, Object parent) {
         return d.toJavaString();
     }
-    public String translate(ForExp d) {
+    public String translate(LambdaExp d, Object parent) {
         return d.toJavaString();
     }
-    public String translate(BinExp d) {
-        return d.toJavaString();
-    }
-    public String translate(UnaryExp d) {
-        return d.toJavaString();
-    }
-    public String translate(QuantifiedExp d) {
-        return d.toJavaString();
-    }
-    public String translate(TupleExp d) {
-        return d.toJavaString();
-    }
-    public String translate(CollectionRangeExp d) {
-        return d.toJavaString();
-    }
-    public String translate(CollectionComprExp d) {
-        return d.toJavaString();
-    }
-    public String translate(LambdaExp d) {
-        return d.toJavaString();
-    }
-    public String translate(ReturnExp d) {
+    public String translate(ReturnExp d, Object parent) {
         return d.toJavaString();
     }
     public String translate(BreakExp d) {
@@ -470,21 +703,21 @@ public class KToAPGen {
     public String translate(ContinueExp d) {
         return d.toJavaString();
     }
-    public String translate(ResultExp d) {
+    public String translate(ResultExp d, Object parent) {
         return d.toJavaString();
     }
-    public String translate(StarExp d) {
+    public String translate(StarExp d, Object parent) {
         return d.toJavaString();
     }
-    public String translate(Argument d) {
+    public String translate(Argument d, Object parent) {
         if ( d instanceof NamedArgument ) {
-            return translate((NamedArgument)d);
+            return translate((NamedArgument)d, parent);
         } else if ( d instanceof PositionalArgument ) {
-            return translate((PositionalArgument)d);
+            return translate(((PositionalArgument)d).exp(), parent);
         }
         return null;
     }
-    public String translate(NamedArgument d) {
+    public String translate(NamedArgument d, Object parent) {
         return d.toJavaString();
     }
     public String translate(Literal d) {
@@ -498,6 +731,10 @@ public class KToAPGen {
             return translate((StringLiteral) d);
         } else if (d instanceof BooleanLiteral) {
             return translate((BooleanLiteral) d);
+        } else if (d instanceof DateLiteral) {
+            return translate((DateLiteral) d);
+        } else if (d instanceof DurationLiteral) {
+            return translate((DurationLiteral) d);
 //        } else if (d instanceof NullLiteral) {
 //            translate((NullLiteral) d);
 //        } else if (d instanceof ThisLiteral) {
@@ -526,7 +763,12 @@ public class KToAPGen {
     public String translate(ThisLiteral d) {
         return d.toJavaString();
     }
-
+    public String translate(DateLiteral d) {
+        return d.toString();
+    }
+    public String translate(DurationLiteral d) {
+        return d.toString();
+    }
 
     public Model getModel() {
         if ( model == null && ktoJava != null ) {

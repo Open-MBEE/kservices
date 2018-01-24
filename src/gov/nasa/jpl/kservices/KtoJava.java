@@ -1393,6 +1393,30 @@ public class KtoJava {
         return null;
     }
 
+
+    public boolean isConstructorCall(HasChildren elem) {
+        if ( elem instanceof CtorApplExp )  {
+            return true;
+        }
+        if ( elem instanceof FunApplExp )  {
+            FunApplExp fae = (FunApplExp) elem;
+            scala.collection.immutable.List<Argument> args = fae.arguments();
+            scala.collection.Iterator iter = args.iterator();
+            if ( iter.hasNext() ) {
+                while( iter.hasNext() ) {
+                    Object a = iter.next();
+                    return ( a instanceof NamedArgument );
+                }
+            }
+            String callName = fae.exp().toJavaString();
+            if ( getClassData().isClassName(callName) ) {
+                return true;
+            }
+            //TODO -- check for classes in Java/JVM?
+        }
+        return false;
+    }
+
     protected static void findKConstructorCalls(HasChildren elem, ArrayList< FunApplExp > constructorCalls, Seen<HasChildren> seen) {
         if ( elem == null ) return;
         Pair< Boolean, Seen<HasChildren>> p = Utils.seen(elem, true, seen );

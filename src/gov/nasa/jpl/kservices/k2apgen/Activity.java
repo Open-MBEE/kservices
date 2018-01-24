@@ -1,12 +1,13 @@
 package gov.nasa.jpl.kservices.k2apgen;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
 public class Activity {
     String name = null;
     Map<String, String> attributes = new TreeMap<>();
-    Map<String, Parameter> parameters = new TreeMap<>();
+    LinkedHashMap<String, Parameter> parameters = new LinkedHashMap<String, Parameter>();
     Map<String, Parameter> creation = new TreeMap<>();
     StringBuffer modeling = new StringBuffer();
     StringBuffer decomposition  = new StringBuffer();
@@ -82,6 +83,7 @@ public class Activity {
                     continue;
                 }
                 sb.append(Util.indent(p + "\n", 12));
+                ++numParms;
             }
             if ( numParms == 0 ) {
                 sb.append("            ();\n");

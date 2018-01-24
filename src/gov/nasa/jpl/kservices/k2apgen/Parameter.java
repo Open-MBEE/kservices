@@ -30,8 +30,10 @@ public class Parameter {
         if ( (( type != null && type.toLowerCase().equals("string") ) ||
              ( type == null && value != null && value.length() > 0 &&
                !Character.isDigit(value.charAt(0)) ) ) &&
-                (value == null || value.matches("^[0-9A-Za-z ._,-]*$")) ) {
-            return "\"" + value + "\"";
+                (value == null || value.matches("^[0-9A-Za-z ._,]*$")) ) {
+            if ( !value.startsWith("endTime") && !value.startsWith("startTime") ) {
+                return "\"" + value + "\"";
+            }
         }
         if ( value == null ) {
             return getDefaultForType( type );
