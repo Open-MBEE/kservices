@@ -1,8 +1,6 @@
 package gov.nasa.jpl.kservices.k2apgen;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 public class Activity {
     String name = null;
@@ -39,6 +37,29 @@ public class Activity {
         return false;
     }
 
+    protected static Set<String> suppressedParams = new TreeSet<String>() {
+        {
+            add("begin");
+            add("Duration");
+            add("end");
+//            add("startTime");
+//            add("duration");
+//            add("endTime");
+        }
+    };
+
+    protected boolean appendParameterToString(StringBuffer sb, Parameter p) {
+        if ( p.value == null && suppressedParams.contains(p.name) ) {
+            return false;
+        }
+        String pStr = p.toString();
+        if ( pStr != null && pStr.length() > 0 ) {
+            sb.append(Util.indent(pStr + "\n", 12));
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
@@ -49,7 +70,7 @@ public class Activity {
             sb.append("            ();\n");
         } else {
             for (Map.Entry<String, String> e : attributes.entrySet()) {
-                String q = e.getKey().equals("Start") || e.getKey().equals("Start") ? "" : "\"";
+                String q = e.getKey().equals("Start") || e.getKey().equals("Duration") ? "" : "\"";
                 sb.append(Util.indent("\"" + e.getKey() + "\" = " + q + e.getValue() + q + ";\n", 12));
             }
         }
@@ -57,15 +78,8 @@ public class Activity {
         int numParms = 0;
         if ( !parameters.isEmpty() ) {
             for (Parameter p : parameters.values()) {
-                if ( p.value == null &&
-                     // TODO -- make a static set instead of comparing each.
-                     ( p.name.equals("startTime") || p.name.equals("begin") ||
-                       p.name.equals("duration") || p.name.equals("Duration") ||
-                       p.name.equals("endTime") || p.name.equals("end") ) ) {
-                    continue;
-                }
-                sb.append(Util.indent(p + "\n", 12));
-                ++numParms;
+                boolean added = appendParameterToString(sb, p);
+                if ( added ) ++numParms;
             }
         }
         if ( numParms == 0 ) {
@@ -75,15 +89,8 @@ public class Activity {
         if ( !creation.isEmpty() ) {
             sb.append("        creation\n");
             for (Parameter p : creation.values()) {
-                if ( p.value == null &&
-                        // TODO -- make a static set instead of comparing each.
-                        ( p.name.equals("startTime") || p.name.equals("begin") ||
-                                p.name.equals("duration") || p.name.equals("Duration") ||
-                                p.name.equals("endTime") || p.name.equals("end") ) ) {
-                    continue;
-                }
-                sb.append(Util.indent(p + "\n", 12));
-                ++numParms;
+                boolean added = appendParameterToString(sb, p);
+                if ( added ) ++numParms;
             }
             if ( numParms == 0 ) {
                 sb.append("            ();\n");

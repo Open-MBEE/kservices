@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
 import gov.nasa.jpl.ae.event.ConstructorCall;
 import gov.nasa.jpl.ae.event.DurativeEvent;
+import gov.nasa.jpl.ae.event.TimeVaryingMap;
 import org.apache.commons.lang3.reflect.MethodUtils;
 
 import gov.nasa.jpl.ae.util.CaptureStdoutStderr;
@@ -1355,15 +1356,81 @@ public class KtoJava {
 
     }
 
+    public static Exp getScopeExp(Exp exp) {
+        if ( exp instanceof FunApplExp ) {
+            return getScopeExp( ((FunApplExp)exp).exp() );
+        } else if ( exp instanceof DotExp ) {
+            return ((DotExp)exp).exp();
+        }
+        return null;
+    }
+
+    public boolean isEffect(Exp exp) {
+        return getEffect(exp) != null;
+    }
+    public FunApplExp getEffect(HasChildren exp) {
+//        if ( exp instanceof BinExp ) {
+//            BinExp fae = (BinExp)exp;
+//            FunApplExp e = getEffect( fae.exp1() );
+//            if ( e != null ) return e;
+//            e = getEffect( fae.exp2() );
+//            if ( e != null ) return e;
+//            String callNoArgs = "" + fae.exp();
+//            if (isEffectMethodName(callNoArgs)) {
+//                return fae;
+//            }
+//            List<Argument> args = new ArrayList(JavaConversions.asJavaCollection(fae.args()));
+//            if (callNoArgs.toLowerCase().startsWith("eq") && args.size() == 2 && args.get(1) instanceof FunApplExp) {
+//                return getEffect((FunApplExp) args.get(1));
+//            }
+//        } else
+        if ( exp instanceof FunApplExp ) {
+            FunApplExp fae = (FunApplExp)exp;
+            String callNoArgs = "" + fae.exp();
+            if (isEffectMethodName(callNoArgs)) {
+                return fae;
+            }
+            List<Argument> args = new ArrayList(JavaConversions.asJavaCollection(fae.args()));
+            if (callNoArgs.toLowerCase().startsWith("eq") && args.size() == 2 && args.get(1) instanceof FunApplExp) {
+                return getEffect((FunApplExp) args.get(1));
+            }
+//        } else if ( exp instanceof ParenExp ) {
+//            return getEffect( ((ParenExp) exp).exp() );
+        } else {
+            Collection<Object> children = JavaConversions.asJavaCollection(exp.children());
+            for ( Object c : children ) {
+                if ( c instanceof HasChildren ) {
+                    FunApplExp e = getEffect((HasChildren)c);
+                    if ( e != null ) return e;
+                }
+            }
+            // TODO???
+        }
+        return null;
+    }
+
+
+    public boolean isEffectMethodName(String methodName) {
+        if ( Utils.isNullOrEmpty(methodName) ) return false;
+        int pos = methodName.lastIndexOf('.');
+        if ( pos >= 0 && pos <  methodName.length() - 1 ) {
+            methodName = methodName.substring(pos+1);
+        }
+        return TimeVaryingMap.effectMethodNames().contains(methodName);
+    }
+
+    // TODO???
     public ArrayList<FieldDeclaration>
     getEffects(EntityDecl entity, MethodDeclaration initMembers) {
         ArrayList<FieldDeclaration> effects =
                 new ArrayList<FieldDeclaration>();
+
         //FieldDeclaration f;
 
         return effects;
     }
 
+    // TODO???
     public ArrayList< FieldDeclaration >
            getElaborations( EntityDecl entity, MethodDeclaration initMembers ) {
         ArrayList< FieldDeclaration > elaborations =

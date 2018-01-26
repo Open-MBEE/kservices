@@ -1,5 +1,10 @@
 package gov.nasa.jpl.kservices.k2apgen;
 
+import gov.nasa.jpl.mbee.util.Debug;
+
+import java.util.Set;
+import java.util.TreeSet;
+
 public class Parameter {
     String name = null;
     String type = null;
@@ -11,12 +16,16 @@ public class Parameter {
 
     public Parameter(String name, String type, String value) {
         this.name = name;
-        this.type = type;
+        this.type = translateTypeString(type);
         this.value = value;
     }
 
     @Override
     public String toString() {
+        if ( !apgenTypes.contains(type) ) {
+            Debug.error(true, false, "WARNING! not outputting parameter, " + name + ":" + type);
+            return null;
+        }
         String p;
         if ( type == null || type.length() == 0 ) {
             p = name + " = " + valueToString() + ";";
@@ -40,6 +49,23 @@ public class Parameter {
         }
         return value;
     }
+
+    public static String translateTypeString(String type) {
+        String ltype = type.toLowerCase();
+        if ( ltype.equals("double") ) return "float";
+        if ( ltype.equals("long") ) return "integer";
+        if ( apgenTypes.contains(ltype) ) return ltype;
+        return type;
+    }
+    public static Set<String> apgenTypes = new TreeSet<String>() {
+        {
+            add("string");
+            add("integer");
+            add("float");
+            add("duration");
+            add("time");
+        }
+    };
 
     private String getDefaultForType(String type) {
         if ( type == null ) return "null";  // TODO -- this isn't right, is it?
