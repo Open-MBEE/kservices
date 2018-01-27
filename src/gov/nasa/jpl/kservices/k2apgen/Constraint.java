@@ -21,15 +21,15 @@ public class Constraint {
         sb.append("    begin\n");
 
         sb.append("        condition\n");
-        sb.append(Util.indent(condition, 12));
+        sb.append(Util.indent(condition + ";", 12));
         sb.append("\n");
 
         sb.append("        message\n");
-        sb.append(Util.indent(message, 12));
+        sb.append(Util.indent("\"" + message + "\";", 12));
         sb.append("\n");
 
         sb.append("        severity\n");
-        sb.append(Util.indent(severity, 12));
+        sb.append(Util.indent(severity + ";", 12));
         sb.append("\n");
         sb.append("\n    end constraint " + name + "\n");
 

@@ -29,7 +29,7 @@ public class APGenModel {
         StringBuffer sb = new StringBuffer();
         sb.append("\n# PARAMETERS\n\n");
         for ( Parameter p : parameters.values() ) {
-            String ps = p.toString();
+            String ps = "global " + p.toString();
             sb.append(ps);
             sb.append("\n\n");
         }

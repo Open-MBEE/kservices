@@ -4,6 +4,8 @@ import java.util.*;
 
 public class Activity {
     String name = null;
+    String entityName = null;
+    Object parentScope = null;
     Map<String, String> attributes = new TreeMap<>();
     LinkedHashMap<String, Parameter> parameters = new LinkedHashMap<String, Parameter>();
     Map<String, Parameter> creation = new TreeMap<>();
@@ -70,6 +72,7 @@ public class Activity {
             sb.append("            ();\n");
         } else {
             for (Map.Entry<String, String> e : attributes.entrySet()) {
+                if ( e.getKey().equals("Start") ) continue;
                 String q = e.getKey().equals("Start") || e.getKey().equals("Duration") ? "" : "\"";
                 sb.append(Util.indent("\"" + e.getKey() + "\" = " + q + e.getValue() + q + ";\n", 12));
             }

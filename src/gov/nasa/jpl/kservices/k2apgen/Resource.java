@@ -11,7 +11,7 @@ public class Resource {
 
     String name = null;
     List<String> arrayIndices = new ArrayList<String>();
-    String type = null;
+    String type = "string";
     Behavior behavior = Behavior.state;
 
     // Attributes
@@ -62,7 +62,8 @@ public class Resource {
             for ( String s : states ) {
                 if ( first ) first = false;
                 else ssb.append(", ");
-                ssb.append("\"" + s + "\"");
+                //ssb.append("\"" + s + "\"");
+                ssb.append( s );
             }
             ssb.append(";");
             sb.append(Util.indent(ssb.toString(), 12));
@@ -71,13 +72,14 @@ public class Resource {
 
         if ( profile != null && !profile.isEmpty() ) {
             sb.append("        profile\n");
-            sb.append(Util.indent("\"" + profile + "\"", 12));
+            //sb.append(Util.indent("\"" + profile + "\";", 12));
+            sb.append(Util.indent(profile + ";", 12));
             sb.append("\n");
         }
 
         if ( usage != null && !usage.isEmpty() ) {
             sb.append("        usage\n");
-            sb.append(Util.indent(usage, 12));
+            sb.append(Util.indent(usage + ";", 12));
             sb.append("\n");
         }
 

@@ -1,8 +1,9 @@
 package gov.nasa.jpl.kservices.k2apgen;
 
+import java.lang.reflect.TypeVariable;
 import java.time.Duration;
 import gov.nasa.jpl.ae.event.*;
-import gov.nasa.jpl.ae.util.JavaForFunctionCall;
+import gov.nasa.jpl.ae.util.ClassData;
 import gov.nasa.jpl.ae.xml.EventXmlToJava;
 import gov.nasa.jpl.kservices.KtoJava;
 import gov.nasa.jpl.mbee.util.*;
@@ -16,6 +17,8 @@ import scala.collection.JavaConversions;
 import java.util.*;
 import java.util.List;
 import java.util.Collection;
+
+import static com.sun.jmx.snmp.ThreadContext.contains;
 
 /**
  * Translates a K model and partial solution to APGen input.
@@ -194,10 +197,10 @@ public class KToAPGen {
         for ( PackageDecl p: packages ) {
             translate(p.model());
         }
-        Collection<EntityDecl> entityDecls = JavaConversions.asJavaCollection( model.entityDecls(model) );
-        for ( EntityDecl e: entityDecls ) {
-            translate(e, apgenModel);
-        }
+//        Collection<EntityDecl> entityDecls = JavaConversions.asJavaCollection( model.entityDecls(model) );
+//        for ( EntityDecl e: entityDecls ) {
+//            translate(e, apgenModel);
+//        }
         Collection<TopDecl> decls = JavaConversions.asJavaCollection( model.decls() );
         for ( TopDecl d : decls ) {
             translate(d);
@@ -212,8 +215,11 @@ public class KToAPGen {
 
     private void translate(EntityDecl e, Object parent) {
         Activity activity = new Activity();
+        activity.entityName = e.ident();
         activity.name = kToApgenClassName(e.ident());
-        String nameWithScope = classNameWithScope(e.ident()).replaceFirst("^Global[._]", "");
+        activity.parentScope = parent;
+        String pattern = "^" + ktoJava.globalName + "[._]";
+        String nameWithScope = classNameWithScope(e.ident()).replaceFirst(pattern, "");
         ;
         activity.attributes.put("Description", "activity for class " + nameWithScope);
         activity.attributes.put("Legend", activity.name);
@@ -356,6 +362,154 @@ public class KToAPGen {
         } else if ( parent instanceof Function ) {
             ((Function)parent).parameters.put(pp.name, pp);
         }
+        translateResource(d, parent);
+    }
+
+    public void addAttributes( Resource resource, PropertyDecl propertyDecl ) {
+        resource.otherAttributes.put("Description", "resource for class " + propertyDecl.toString());
+        resource.otherAttributes.put("Legend", resource.name);
+        resource.otherAttributes.put("Color", "Orange");
+    }
+
+    /**
+     * If the property declaration is for a state variable, then create an APGen resource for it.
+     * @param d the property declaration
+     * @param parent the parent APGen activity or {@link APGenModel}
+     */
+    public void translateResource(PropertyDecl d, Object parent) {
+        if ( !ktoJava.isStateVariable( d ) ) {
+            return;
+        }
+        Resource r = new Resource();
+        String classPrefix = "";
+        if ( parent instanceof Activity ) {
+            classPrefix = kToApgenClassName( ((Activity) parent).name ) + "_";
+        }
+        r.name = classPrefix + d.name();
+        r.type = "string";
+        r.usage = "state";
+        addAttributes(r, d);
+        // Get the type of TimeVaryingMap to determine the type and values
+        // (e.g. possible states) of the resource.
+        String type = getResourceTypeName(d.ty());
+        addStatesOfTypeToResource(parent, type, r);
+        if ( !Utils.isNullOrEmpty(r.states) ) {
+            // create global array and State parameter
+            String arrayName = classPrefix + type;
+            String statesStr = statesArray( r.states );
+            gov.nasa.jpl.kservices.k2apgen.Parameter arrayProp =
+                    new gov.nasa.jpl.kservices.k2apgen.Parameter(arrayName, "array", statesStr);
+            apgenModel.parameters.put(arrayName, arrayProp);
+            gov.nasa.jpl.kservices.k2apgen.Parameter p =
+                    new gov.nasa.jpl.kservices.k2apgen.Parameter("State", "string", arrayName + "[0]");
+            r.profile = arrayName + "[0]";
+            r.parameters.add(p);
+            r.states.clear();
+            r.states.add(arrayName);
+        }
+        APGenModel m = apgenModel;
+        if ( parent instanceof APGenModel ) {
+            m = (APGenModel) parent;
+        }
+        m.resources.put(r.name, r);
+    }
+
+    public String statesArray( List<String> states ) {
+        StringBuffer sb = new StringBuffer();
+        sb.append("[ ");
+        boolean first = true;
+        for ( String s : states ) {
+            if ( first ) first = false;
+            else sb.append(", ");
+            sb.append("\"" + s + "\"");
+        }
+        sb.append(" ]");
+        return sb.toString();
+    }
+
+    protected void addStatesOfTypeToResource(Object parent, String typeName, Resource r) {
+        Class<?> cls = null;
+        try {
+            cls = ClassUtils.classForName(typeName);
+        } catch (ClassNotFoundException e) {
+        }
+        if ( cls == null || !ClassUtils.isPrimitive( cls ) ) {
+            // Object state variable
+            // Getting already defined parameters in the
+            Map<String, gov.nasa.jpl.kservices.k2apgen.Parameter> params = null;
+            if ( parent instanceof APGenModel ) {
+                params = ((APGenModel) parent).parameters;
+            } else if ( parent instanceof Activity ) {
+                params = ((Activity) parent).parameters;
+            }
+            for ( gov.nasa.jpl.kservices.k2apgen.Parameter param : params.values() ) {
+                if ( typeName.equals( param.type ) ) {  // TODO -- should check type is a superclass of type.
+                    r.states.add("\"" + param.name + "\"");
+                }
+            }
+            // If the states weren't found, maybe they are defined
+            // in an outer scope--big assumption!!!
+            if ( Utils.isNullOrEmpty( r.states ) ) {
+                if ( parent instanceof Activity ) {
+                    Object grandparent = ((Activity) parent).parentScope;
+                    if ( grandparent != null ) {
+                        addStatesOfTypeToResource(grandparent, typeName, r);
+                    }
+                }
+            }
+        }
+    }
+
+    public String getResourceTypeName(Object o) {
+        if ( o instanceof Class ) {
+            return getResourceTypeName( (Class<?>)o );
+        }
+        if ( o instanceof Type ) {
+            return getResourceTypeName( (Type)o );
+        }
+        return getResourceTypeName( "" + o, true );
+    }
+    public String getResourceTypeName(Class<?> cls) {
+        if ( cls == null ) return null;
+        TypeVariable<? extends Class<?>>[] parms = cls.getTypeParameters();
+        if ( parms != null && parms.length > 0 ) {
+            return parms[0].getName();
+        }
+        List<Class<?>> supers = ktoJava.getSuperClasses(cls);
+        for ( Class<?> c : supers ) {
+            String rt = getResourceTypeName( c );
+            if ( !Utils.isNullOrEmpty( rt ) ) {
+                return rt;
+            }
+        }
+        return null;
+    }
+    public String getResourceTypeName(Type type) {
+        String typeStr = type.toJavaString().trim();
+        String rt = getResourceTypeName( typeStr, true );
+        if ( !Utils.isNullOrEmpty( rt ) ) {
+            return rt;
+        }
+        typeStr = type.toString().trim();
+        rt = getResourceTypeName( typeStr, true );
+        return rt;
+    }
+    public String getResourceTypeName(String typeStr, boolean deep) {
+        int pos = typeStr.indexOf('<');
+        if ( pos > 0 && typeStr.lastIndexOf('>') == typeStr.length() -1  ) {
+            String rType = typeStr.substring( pos + 1, typeStr.length() - 1 );
+            return rType;
+        }
+        if ( deep ) {
+            List<Object> supers = ktoJava.getSuperClasses(typeStr);
+            for (Object o : supers) {
+                String rt = getResourceTypeName( o );
+                if ( !Utils.isNullOrEmpty( rt ) ) {
+                    return rt;
+                }
+            }
+        }
+        return null;
     }
 
     public boolean isConstructorAppl( Exp exp ) {
@@ -439,10 +593,18 @@ public class KToAPGen {
                 String resourceStr = translate(scope, parent);  // TODO -- REVIEW -- Calling translate multiple times okay?!  Is it statelesss, or are things consumed in a special order?
                 String timeExpStr = translate(args.get(0), parent);
                 String valueStr = translate(args.get(1), parent);
+
+                String className = ktoJava.globalName;
+                if ( parent instanceof Activity ) {
+                    className = ((Activity) parent).entityName;
+                }
+                String pScope = ktoJava.getClassData().scopeForParameter(className, resourceStr, false, false);
+                pScope = kToApgenClassName(pScope);
+
                 String modeling =
                         ("start".equals(timeExpStr) ? "" : "wait for " + timeExpStr + " - start;\n") +
-                        "set " + resourceStr + "(" + valueStr + ");";
-                return modeling;  // TODO - REVIEW -- Do we want to continue and add a constraint for this, too?
+                        "set " + pScope + "_" + resourceStr + "(\"" + valueStr + "\");";
+                return modeling;  // TODO - Do we want to continue and add a constraint for this, too?  If it's 'req foo = setValue(t,v)' and foo isn't used elsewhere, then no, else probably.
             } else {
                 // TODO!!! add(), . . .
             }
@@ -454,19 +616,20 @@ public class KToAPGen {
         } else {
             r.name = "res_" + ("" + d).replaceAll("[^0-9A-Za-z_][^0-9A-Za-z_]*", "_");
         }
-        r.otherAttributes.put("Description", "resource for constraint, " + d);
+        r.otherAttributes.put("Description", "resource for constraint, " + d.toString().replaceAll("^req ", ""));
         r.otherAttributes.put("Legend", r.name);
         r.otherAttributes.put("Color", "Green");
         r.type = "string";
         r.behavior = Resource.Behavior.state;
-        r.states = Utils.newList("active", "inactive");
-        r.profile = "inactive";
-        r.parameters.add(new gov.nasa.jpl.kservices.k2apgen.Parameter("State", "string", "true"));
+        r.states = Utils.newList("\"active\"", "\"inactive\"");
+        r.profile = "\"inactive\"";
+        r.parameters.add(new gov.nasa.jpl.kservices.k2apgen.Parameter("State", "string", "inactive"));
         r.usage = "State";
 
         Constraint c = new Constraint();
         c.name = "c_" + r.name.replace("res_", "");
         c.condition = r.name + " == \"active\" && (" + translate(d.exp(), parent) + ")";
+        c.message = "failed assertion: " + c.condition;
 
         // effect on resource in activity
         String vName = "constraint_" + r.name.replace("res_", "");
@@ -475,7 +638,7 @@ public class KToAPGen {
 //                new gov.nasa.jpl.kservices.k2apgen.Parameter(vName, "string", val);
         String modeling = //cp.toString() + "\n" +
                 //"use " + r.name +"(" + vName + ") from start to finish\n";
-                "use " + r.name +"(" + val + ") from start to finish\n";
+                "use " + r.name +"(" + val + ") from start to finish;\n";
         if ( parent instanceof APGenModel ) {
             ((APGenModel) parent).resources.put(r.name, r);
             ((APGenModel) parent).constraints.put(c.name, c);
@@ -487,8 +650,8 @@ public class KToAPGen {
             // TODO -- ERROR
         }
         return modeling;
-        //activity.modeling.append(cp.toString() + "\n");
-        //activity.modeling.append("use " + r.name +"(vName) from start to finish\n");
+        //activity.modeling.append(cp.toString() + ";\n");
+        //activity.modeling.append("use " + r.name +"(vName) from start to finish;\n");
     }
 
     public void translate(ExpressionDecl d, Object parent) {
@@ -627,7 +790,7 @@ public class KToAPGen {
             Activity a = (Activity)parent;
             String s = translate(d, parent);
             String ctorStr = s.replaceFirst("^new ", "");
-            a.decomposition.append( ctorStr + "\n" );// + " at start;\n");
+            a.decomposition.append( ctorStr + ";\n" );// + " at start;\n");
         } else {
             // TODO -- Should instantiations at the global level be wrapped in a global activity?
             Debug.error(true, false, "constructor at top level ignored! " + d.toJavaString());
@@ -901,7 +1064,8 @@ public class KToAPGen {
                 EventXmlToJava.getTypeDeclaration(event.getClass().getName(),
                                                   kToJava.getClassData());
         Activity activity = new Activity();
-        activity.name = event.getClass().getCanonicalName().replaceAll("[.]", "_");
+        activity.entityName = event.getClass().getCanonicalName();
+        activity.name = activity.entityName.replaceAll("[.]", "_");
 
         // Duration
         gov.nasa.jpl.ae.event.Parameter<Long> duration =
@@ -1058,8 +1222,8 @@ public class KToAPGen {
         r.otherAttributes.put("Color", "Green");
         r.type = "string";
         r.behavior = Resource.Behavior.state;
-        r.states = Utils.newList("false", "true");
-        r.profile = "true";
+        r.states = Utils.newList("\"false\"", "\"true\"");
+        r.profile = "\"true\"";
         r.parameters.add(new gov.nasa.jpl.kservices.k2apgen.Parameter("State", "string", "true"));
         r.usage = "State";
 
@@ -1068,8 +1232,8 @@ public class KToAPGen {
         String val = "(" + translate(c.getExpression(), kToJava) + ") ? \"true\" : \"false\"";
         gov.nasa.jpl.kservices.k2apgen.Parameter cp =
                 new gov.nasa.jpl.kservices.k2apgen.Parameter(vName, "string", val);
-        String modeling = cp.toString() + "\n" +
-                          "use " + r.name +"(" + vName + ") from start to finish\n";
+        String modeling = //cp.toString() + "\n" +
+                          "use " + r.name +"(" + vName + ") from start to finish;\n";
         //activity.modeling.append(cp.toString() + "\n");
         //activity.modeling.append("use " + r.name +"(vName) from start to finish\n");
 
