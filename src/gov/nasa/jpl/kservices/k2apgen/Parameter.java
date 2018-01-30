@@ -35,6 +35,20 @@ public class Parameter {
         return p;
     }
 
+    public String toGlobalString() {
+        if ( !apgenTypes.contains(type) ) {
+            Debug.error(true, false, "WARNING! not outputting parameter, " + name + ":" + type);
+            return null;
+        }
+        String p;
+        if ( type == null || type.length() == 0 ) {
+            p = "global " + type + " " + name + " = " + value + ";";
+        } else {
+            p = "global " + name + " = " + value + ";";
+        }
+        return p;
+    }
+
     public String valueToString() {
         if ( (( type != null && type.toLowerCase().equals("string") ) ||
              ( type == null && value != null && value.length() > 0 &&

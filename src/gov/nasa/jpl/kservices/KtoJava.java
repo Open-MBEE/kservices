@@ -101,6 +101,7 @@ public class KtoJava {
     protected Set< String > instantiatedClassNames;
     protected Map< String, Set< String > > classToParentNames;
 
+    public ArrayList<String> kFiles = new ArrayList<String>();
     protected ArrayList<String> javaFiles = new ArrayList<String>();
 
     static protected DistributionHelper dh = new DistributionHelper();
@@ -1426,6 +1427,61 @@ public class KtoJava {
         return TimeVaryingMap.effectMethodNames().contains(methodName);
     }
 
+    public static boolean isFromBeginToEnd( HasChildren exp ) {
+        if ( !( exp instanceof BinExp ) ) return false;
+        BinExp d = (BinExp)exp;
+        if (d.op() instanceof IMPL$ && d.exp1() instanceof BinExp) {
+            BinExp firstArg = (BinExp) d.exp1();
+            if (firstArg.op() instanceof AND$ && firstArg.exp1() instanceof BinExp) {
+                BinExp firstFirstArg = (BinExp) firstArg.exp1();
+                if ("time".equals(firstFirstArg.exp1().toString())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean hasNonResourceVariable(ConstraintDecl constraintDecl, String parent ) {
+        return hasNonResourceVariable( constraintDecl.exp(), parent );
+    }
+
+    public boolean hasNonResourceVariable( HasChildren exp, String parent ) {
+        String type = globalName;
+        String name = null;
+        if ( exp instanceof DotExp ) {
+            DotExp de = (DotExp)exp;
+            japa.parser.ast.expr.Expression javaExp =
+                    JavaToConstraintExpression.parseExpression(de.exp().toJavaString());
+            name = de.ident();
+            type = expressionTranslator().astToAeExprType(javaExp, name, true, false);
+        } else if ( exp instanceof IdentExp ) {
+            //String type = ktoJava.globalName;
+            type = getClassData().getClassNameWithScope( parent );
+            name = ((IdentExp)exp).toJavaString();
+        }
+        if ( name != null ) {
+            ClassData.Param p = getClassData().lookupMemberByName(type, name, true, false);
+            if (p != null) {
+                if (!isStateVariableType(p.type)) {
+                    return true;
+                }
+            }
+        }
+        Collection<Object> children = JavaConversions.asJavaCollection(exp.children());
+        for ( Object c : children ) {
+            if ( c instanceof HasChildren ) {
+                if ( !isFromBeginToEnd( (HasChildren)c ) &&
+                     hasNonResourceVariable((HasChildren)c, parent) ) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+
+
     // TODO???
     public ArrayList<FieldDeclaration>
     getEffects(EntityDecl entity, MethodDeclaration initMembers) {
@@ -2705,7 +2761,6 @@ public class KtoJava {
         String kToJavaOutLog = "kToJavaOut.log";
         String writeJavaOutLog = "writeJavaOut.log";
         String solutionLog = "solution.log";
-
         // System.setOut(new PrintStream(baosOut));
         // System.setErr(new PrintStream(baosErr));
 
@@ -2720,6 +2775,7 @@ public class KtoJava {
         JSONObject json = new JSONObject();  // This is now a member of KtoJava, so sync up with it!
 
         String kToExecute = "";
+        ArrayList<String> kFileNames = new ArrayList<>();
         Boolean areFiles = args.length > 0;
         for ( int i = 0; i < args.length; ++i ) {
             String arg = args[ i ];
@@ -2741,6 +2797,7 @@ public class KtoJava {
                         String k;
                         k = FileUtils.fileToString( arg );
                         kToExecute += k + "\n";
+                        kFileNames.add( arg );
                     } catch ( FileNotFoundException e ) {
                         e.printStackTrace();
                     }
@@ -2815,6 +2872,7 @@ public class KtoJava {
             if ( !processStdoutAndStderr ) {
                 try {
                     kToJava = new KtoJava(kToExecuteC, packageNameC, translateC, processStdoutAndStderr);
+                    kToJava.kFiles = kFileNames;
                     kToJava.translateOrRunSmt(runSmtC, !translateC && solveC);
                     json = kToJava.json;
                 } catch( Throwable t) {

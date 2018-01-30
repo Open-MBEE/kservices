@@ -36,19 +36,21 @@ public class Resource {
         sb.append("\n");
         sb.append("    begin\n");
 
-        sb.append("        attributes\n");
         String attrString = attributesToString();
         if ( attrString == null || attrString.isEmpty()) {
-            sb.append("            ();\n");
+            sb.append("        # no attributes\n");
+            //sb.append("            ();\n");
         } else {
+            sb.append("        attributes\n");
             sb.append(Util.indent(attrString, 12));
             sb.append("\n");
         }
 
-        sb.append("        parameters\n");
         if ( parameters.isEmpty() ) {
-            sb.append("            ();\n");
+            sb.append("        # no parameters\n");
+            //sb.append("            ();\n");
         } else {
+            sb.append("        parameters\n");
             for (Parameter p : parameters) {
                 sb.append(Util.indent("" + p, 12));
                 sb.append("\n");

@@ -1,9 +1,11 @@
 package gov.nasa.jpl.kservices.k2apgen;
 
+import java.io.File;
 import java.lang.reflect.TypeVariable;
 import java.time.Duration;
 import gov.nasa.jpl.ae.event.*;
 import gov.nasa.jpl.ae.util.ClassData;
+import gov.nasa.jpl.ae.util.JavaToConstraintExpression;
 import gov.nasa.jpl.ae.xml.EventXmlToJava;
 import gov.nasa.jpl.kservices.KtoJava;
 import gov.nasa.jpl.mbee.util.*;
@@ -58,12 +60,65 @@ public class KToAPGen {
      */
     String apf = null;
 
+    String aafFileName = null;
+    String apfFileName = null;
+
     KtoJava ktoJava = null;
     Model model = null;
     APGenModel apgenModel = new APGenModel();
     public boolean addingToDecomposition = false;
 
     public Map<String, List<Exp>> constructorCalls = new LinkedHashMap<String, List<Exp>>();
+
+    public String getAafFileName() {
+        if ( !Utils.isNullOrEmpty( aafFileName) ) return aafFileName;
+        setApgenFileNames( !Utils.isNullOrEmpty(apfFileName) );
+        return aafFileName;
+    }
+    public String getApfFileName() {
+        if ( !Utils.isNullOrEmpty( apfFileName) ) return apfFileName;
+        setApgenFileNames( !Utils.isNullOrEmpty(aafFileName) );
+        return apfFileName;
+    }
+    public String setApgenFileNames(boolean onlyIfNull) {
+        if ( onlyIfNull && Utils.isNullOrEmpty( aafFileName ) && Utils.isNullOrEmpty( aafFileName ) ) return aafFileName;
+        if ( ktoJava == null ) return null;
+        if ( Utils.isNullOrEmpty( ktoJava.kFiles ) ) return null;
+        File kFile = null;
+        String kFileName = null;
+        for ( String f : ktoJava.kFiles ) {
+            if ( !Utils.isNullOrEmpty( f ) ) {
+                File kF = new File( f );
+                if ( kF.exists() ) {
+                    kFileName = f;
+                    kFile = kF;
+                    break;
+                } else if ( kF == null ) {
+                    kFileName = kF.getName();
+                    kFile = kF;
+                }
+            }
+        }
+        if ( Utils.isNullOrEmpty( kFileName ) ) return null;
+        if ( !onlyIfNull || aafFileName == null ) {
+            aafFileName = kFileName.trim().replaceAll("[.]k$", "") + ".aaf";
+        }
+        if ( !onlyIfNull || apfFileName == null ) {
+            apfFileName = kFileName.trim().replaceAll("[.]k$", "") + ".apf";
+        }
+        return aafFileName;
+    }
+    public boolean writeApgenFiles() {
+        boolean succ = false;
+        if ( aaf != null ) {
+            succ = FileUtils.stringToFile( aaf, getAafFileName() );
+        }
+        if ( apf != null ) {
+            boolean s = FileUtils.stringToFile( apf, getApfFileName() );
+            succ = succ && s;
+        }
+        return succ;
+    }
 
     public static void main(String[] args) {
         KtoJava kToJava = KtoJava.runMain(args);
@@ -79,22 +134,21 @@ public class KToAPGen {
         k2apgen.ktoJava = kToJava;
         k2apgen.model = kToJava.model();
         k2apgen.translate();
-        System.out.println(k2apgen.aaf);
-        System.out.println(k2apgen.apf);
-
     }
 
     public void translate() {
         apgenModel = translate(getModel());
         addInheritedMembers(getModel());
         cleanupForConstructors();
-        // TODO -- translate instance from Main event instance after solved.
-        String s = translateInstances(ktoJava);
-        System.out.println("\n=========   k apgenModel   =========\n" + apgenModel);
+        aaf = apgenModel.toString();
+        apf = translateInstances(ktoJava);
+
+        System.out.println("\n=========   k apgenModel   =========\n" + aaf);
         System.out.println("=========   end k apgenModel   =========\n");
-        System.out.println("\n=========   bae apgenModel   =========\n" + s);
-        System.out.println("=========   end bae apgenModel   =========\n");
-        //System.out.println("this KToAPGen = " + this);
+        System.out.println("\n=========   apgen instances   =========\n" + apf);
+        System.out.println("=========   end apgen instances   =========\n");
+
+        writeApgenFiles();
     }
 
     protected Map<String, List<Exp>> getConstructorCalls() {
@@ -366,7 +420,7 @@ public class KToAPGen {
     }
 
     public void addAttributes( Resource resource, PropertyDecl propertyDecl ) {
-        resource.otherAttributes.put("Description", "resource for class " + propertyDecl.toString());
+        resource.otherAttributes.put("Description", "resource for class " + propertyDecl.toString().replaceAll("\"", "'"));
         resource.otherAttributes.put("Legend", resource.name);
         resource.otherAttributes.put("Color", "Orange");
     }
@@ -387,7 +441,7 @@ public class KToAPGen {
         }
         r.name = classPrefix + d.name();
         r.type = "string";
-        r.usage = "state";
+        r.usage = "State";
         addAttributes(r, d);
         // Get the type of TimeVaryingMap to determine the type and values
         // (e.g. possible states) of the resource.
@@ -571,52 +625,64 @@ public class KToAPGen {
         }
     }
 
+    public String translateEffect(ConstraintDecl d, Object parent) {
+        FunApplExp effect = ktoJava.getEffect( d.exp() );
+        String callNameNoArgs = effect == null ? null : "" + effect.exp();
+        Exp scope = effect == null ? null : KtoJava.getScopeExp(effect);
+        List<Argument> args = effect == null ? null : new ArrayList(JavaConversions.asJavaCollection(effect.args()));
+        if ( effect != null && callNameNoArgs.endsWith("setValue") && scope != null && args != null && args.size() == 2) {
+            String resourceStr = translate(scope, parent);  // TODO -- REVIEW -- Calling translate multiple times okay?!  Is it statelesss, or are things consumed in a special order?
+            String timeExpStr = translate(args.get(0), parent);
+            String valueStr = translate(args.get(1), parent);
 
+            String className = ktoJava.globalName;
+            if ( parent instanceof Activity ) {
+                className = ((Activity) parent).entityName;
+            }
+            String pScope = ktoJava.getClassData().scopeForParameter(className, resourceStr, false, false);
+            pScope = kToApgenClassName(pScope);
+
+            String modeling =
+                    ("start".equals(timeExpStr) ? "" : "wait for " + timeExpStr + " - start;\n") +
+                            "set " + pScope + "_" + resourceStr + "(\"" + valueStr + "\");";
+            return modeling;  // TODO - Do we want to continue and add a constraint for this, too?  If it's 'req foo = setValue(t,v)' and foo isn't used elsewhere, then no, else probably.
+        } else {
+            // TODO!!! add(), . . .
+        }
+        return null;
+    }
 
     public String translate(ConstraintDecl d, Object parent) {
         // Create a timeline and constraint
         if ( d.toString().contains("Timepoint.set") ) {
             return "";
         }
-        if ( d.exp() instanceof FunApplExp ) {
-            FunApplExp fae = (FunApplExp)d.exp();
-//            JavaForFunctionCall javaForFunctionCall =
-//                    new JavaForFunctionCall( ktoJava.getExpressionTranslator(), fae, true,
-//                            ktoJava.getExpressionTranslator().getClassData().getPackageName(),
-//                            false,
-//                            null);
-            FunApplExp effect = ktoJava.getEffect( d.exp() );
-            String callNameNoArgs = "" + effect.exp();
-            Exp scope = KtoJava.getScopeExp(effect);
-            List<Argument> args = new ArrayList(JavaConversions.asJavaCollection(effect.args()));
-            if ( callNameNoArgs.endsWith("setValue") && scope != null && args != null && args.size() == 2) {
-                String resourceStr = translate(scope, parent);  // TODO -- REVIEW -- Calling translate multiple times okay?!  Is it statelesss, or are things consumed in a special order?
-                String timeExpStr = translate(args.get(0), parent);
-                String valueStr = translate(args.get(1), parent);
+        String modeling  = translateEffect(d, parent);
+        if ( !Utils.isNullOrEmpty(modeling) ) {
+            return modeling;  // TODO - Do we want to continue and add a constraint for this, too?  If it's 'req foo = setValue(t,v)' and foo isn't used elsewhere, then no, else probably.
+        }
 
-                String className = ktoJava.globalName;
-                if ( parent instanceof Activity ) {
-                    className = ((Activity) parent).entityName;
-                }
-                String pScope = ktoJava.getClassData().scopeForParameter(className, resourceStr, false, false);
-                pScope = kToApgenClassName(pScope);
+        // TODO -- need to create a resource for all of the non-resource variables in the constraint, but
+        // there's a problem where each instance of an activity creates new variables, and resources
+        // aren't meant to be created on-the-fly, but Pierre mentioned a capability to create a resource
+        // on the fly.
 
-                String modeling =
-                        ("start".equals(timeExpStr) ? "" : "wait for " + timeExpStr + " - start;\n") +
-                        "set " + pScope + "_" + resourceStr + "(\"" + valueStr + "\");";
-                return modeling;  // TODO - Do we want to continue and add a constraint for this, too?  If it's 'req foo = setValue(t,v)' and foo isn't used elsewhere, then no, else probably.
-            } else {
-                // TODO!!! add(), . . .
-            }
+        // So, if the constraint involves a variable that is not a resource, bail.
+        String parentName = ktoJava.globalName;
+        if ( parent instanceof Activity ) {
+            parentName = ((Activity) parent).entityName;
+        }
+        if ( ktoJava.hasNonResourceVariable( d, parentName ) ) {
+            return "";
         }
 
         Resource r = new Resource();
         if (get(d.name()) != null ) {
             r.name = d.name().get();
         } else {
-            r.name = "res_" + ("" + d).replaceAll("[^0-9A-Za-z_][^0-9A-Za-z_]*", "_");
+            r.name = toIdentifier("res_" + d );
         }
-        r.otherAttributes.put("Description", "resource for constraint, " + d.toString().replaceAll("^req ", ""));
+        r.otherAttributes.put("Description", "resource for constraint, " + d.toString().replaceAll("^req ", "").replaceAll("\"", "'"));
         r.otherAttributes.put("Legend", r.name);
         r.otherAttributes.put("Color", "Green");
         r.type = "string";
@@ -636,7 +702,7 @@ public class KToAPGen {
         String val = "\"active\"";//"(" + translate(d.exp(), parent) + ") ? \"true\" : \"false\"";
 //        gov.nasa.jpl.kservices.k2apgen.Parameter cp =
 //                new gov.nasa.jpl.kservices.k2apgen.Parameter(vName, "string", val);
-        String modeling = //cp.toString() + "\n" +
+        modeling = //cp.toString() + "\n" +
                 //"use " + r.name +"(" + vName + ") from start to finish\n";
                 "use " + r.name +"(" + val + ") from start to finish;\n";
         if ( parent instanceof APGenModel ) {
@@ -652,6 +718,31 @@ public class KToAPGen {
         return modeling;
         //activity.modeling.append(cp.toString() + ";\n");
         //activity.modeling.append("use " + r.name +"(vName) from start to finish;\n");
+    }
+
+    private static LinkedHashMap<String, String> toIdentReplacements = new LinkedHashMap<String, String>() {
+        {
+            put("[ _]*>=[ _]*", " gte ");
+            put("[ _]*>=[ _]*", " gte ");
+            put("[ _]*>[ _]*", " gt ");
+            put("[ _]*<=[ _]*", " lte ");
+            put("[ _]*<[ _]*", " lt ");
+            put("[ _]*==?[ _]*", " eq ");
+            put("[ _]*+[ _]*", " plus ");
+            put("[ _]*-[ _]*", " minus ");
+            put("[ _]*[*][ _]*", " times ");
+            put("[ _]*[/][ _]*", " div ");
+            put("[ _]*%[ _]*", " mod ");
+            put("[^0-9A-Za-z_][^0-9A-Za-z_]*", "_");
+        }
+    };
+
+    protected String toIdentifier( String s ) {
+        String i = s;
+        for ( Map.Entry<String, String> e : toIdentReplacements.entrySet() ) {
+            i = i.replaceAll(e.getKey(), e.getValue());
+        }
+        return i;
     }
 
     public void translate(ExpressionDecl d, Object parent) {
@@ -893,6 +984,7 @@ public class KToAPGen {
         return sb.toString();
     }
 
+    // TODO??
     public String translate(MatchExp d, Object parent) {
         return d.toJavaString();
     }
@@ -910,15 +1002,28 @@ public class KToAPGen {
     }
 
     public String translate(BinExp d, Object parent) {
+        // remove "from begin to end X" which is translated to
+        // "time >= start && time < finish => X" since it's redundant with resource == "active"
+        if ( KtoJava.isFromBeginToEnd( d ) ) {
+            return translate( d.exp2(), parent );
+        }
         StringBuffer sb = new StringBuffer();
         sb.append(translate(d.exp1(), parent));
-        sb.append(" " + d.op() + " ");
+        sb.append(" " + translateBinOp(d.op()) + " ");
         sb.append(translate(d.exp2(), parent));
         return sb.toString();
     }
 
+    public String translateBinOp(BinaryOp op) {
+        if ( op instanceof EQ$ ) {
+            return "==";
+        }
+        return "" + op;
+    }
+
+    // TODO??
     public String translate(UnaryExp d, Object parent) {
-        return d.toJavaString();
+        return "" + d.op() + translate(d.exp(), parent);
     }
     public String translate(QuantifiedExp d, Object parent) {
         return d.toJavaString();
@@ -1217,7 +1322,7 @@ public class KToAPGen {
         } else {
             r.name = "res_" + ("" + c).replaceAll("[^0-9A-Za-z_][^0-9A-Za-z_]*", "_");
         }
-        r.otherAttributes.put("Description", "resource for constraint, " + c);
+        r.otherAttributes.put("Description", "resource for constraint, " + ("" + c).replaceAll("\"", "'"));
         r.otherAttributes.put("Legend", r.name);
         r.otherAttributes.put("Color", "Green");
         r.type = "string";

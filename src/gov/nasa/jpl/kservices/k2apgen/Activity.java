@@ -67,36 +67,45 @@ public class Activity {
         StringBuffer sb = new StringBuffer();
         sb.append("activity type " + name + "\n");
         sb.append("    begin\n");
-        sb.append("        attributes\n");
         if ( attributes.isEmpty() ) {
-            sb.append("            ();\n");
+            sb.append("        # no attributes\n");
+            //sb.append("            ();\n");
         } else {
+            sb.append("        attributes\n");
             for (Map.Entry<String, String> e : attributes.entrySet()) {
                 if ( e.getKey().equals("Start") ) continue;
                 String q = e.getKey().equals("Start") || e.getKey().equals("Duration") ? "" : "\"";
                 sb.append(Util.indent("\"" + e.getKey() + "\" = " + q + e.getValue() + q + ";\n", 12));
             }
         }
-        sb.append("        parameters\n");
+        StringBuffer tsb = new StringBuffer();
         int numParms = 0;
         if ( !parameters.isEmpty() ) {
             for (Parameter p : parameters.values()) {
-                boolean added = appendParameterToString(sb, p);
+                boolean added = appendParameterToString(tsb, p);
                 if ( added ) ++numParms;
             }
         }
         if ( numParms == 0 ) {
-            sb.append("            ();\n");
+            sb.append("        # no parameters\n");
+            // sb.append("            ();\n");
+        } else {
+            sb.append("        parameters\n");
+            sb.append( tsb.toString() );
         }
         numParms = 0;
+        tsb = new StringBuffer();
         if ( !creation.isEmpty() ) {
-            sb.append("        creation\n");
             for (Parameter p : creation.values()) {
-                boolean added = appendParameterToString(sb, p);
+                boolean added = appendParameterToString(tsb, p);
                 if ( added ) ++numParms;
             }
             if ( numParms == 0 ) {
-                sb.append("            ();\n");
+                sb.append("        # no creation\n");
+                // sb.append("            ();\n");
+            } else {
+                sb.append("        creation\n");
+                sb.append( tsb.toString() );
             }
         }
         if ( modeling.length() > 0 ) {

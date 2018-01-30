@@ -1,5 +1,6 @@
 package gov.nasa.jpl.kservices.k2apgen;
 
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -27,9 +28,12 @@ public class APGenModel {
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
+        Date d = new Date();
+        sb.append("apgen version \"generated_" +
+                  d.toString().replaceAll("[^A-Za-z0-9_]+", "_") + "\"\n\n");
         sb.append("\n# PARAMETERS\n\n");
         for ( Parameter p : parameters.values() ) {
-            String ps = "global " + p.toString();
+            String ps = p.toGlobalString();
             sb.append(ps);
             sb.append("\n\n");
         }
