@@ -1,8 +1,6 @@
 package gov.nasa.jpl.kservices.k2apgen;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 
 /**
@@ -18,7 +16,8 @@ public class ActivityInstance {
     String typeName = null;
     String abstractable = null;
     Map<String, String> attributes = new TreeMap<>();
-    Map<String, Parameter> parameters = new TreeMap<>();
+    List<String> parameters = new ArrayList<>();
+    public String decomposedInto = null;
 
     public Activity getType() { return type; }
 
@@ -74,43 +73,48 @@ public class ActivityInstance {
          #             (???);
          #     end activity instance IS_ON
          */
-        // TODO!!!
+
         StringBuffer sb = new StringBuffer();
         sb.append("activity instance " + getName() + " of type " + getTypeName() + " id " + getID() + "\n");
         sb.append("    begin\n");
-        sb.append("        attributes\n");
+
+        // Decomposition
+        if ( abstractable != null && abstractable.length() > 0 ) {
+            sb.append("        abstractable into " + abstractable + ";\n");
+        }
+        if ( decomposedInto != null && decomposedInto.length() > 0 ) {
+            sb.append("        decomposed into " + decomposedInto + ";\n");
+        }
+
+        // Attributes
         if ( attributes.isEmpty() ) {
-            sb.append("            ();\n");
+            sb.append("        # no attributes\n");
+            //sb.append("            ();\n");
         } else {
+            sb.append("        attributes\n");
             for (Map.Entry<String, String> e : attributes.entrySet()) {
+                if ( e.getKey().equals("Start") ) continue;
                 String q = e.getKey().equals("Start") || e.getKey().equals("Duration") ? "" : "\"";
                 sb.append(Util.indent("\"" + e.getKey() + "\" = " + q + e.getValue() + q + ";\n", 12));
             }
         }
-        sb.append("        parameters\n");
-        int numParms = 0;
+
+        // Parameters
+        StringBuffer tsb = new StringBuffer();
+        tsb.append( "(" );
         if ( !parameters.isEmpty() ) {
-            boolean first = true;
-            sb.append(Util.indent("(", 12));
-            for (Parameter p : parameters.values()) {
-                if ( p.value == null &&
-                        // TODO -- make a static set instead of comparing each.
-                        ( p.name.equals("startTime") || p.name.equals("begin") ||
-                                p.name.equals("duration") || p.name.equals("Duration") ||
-                                p.name.equals("endTime") || p.name.equals("end") ) ) {
-                    continue;
-                }
-                if (first) first = false;
-                else sb.append(", ");
-                sb.append(p.valueToString());
-                ++numParms;
-            }
-            sb.append(")\n");
+            tsb.append( String.join( ",\n ", parameters ) );
         }
-        if ( numParms == 0 ) {
-            sb.append("            ();\n");
+        tsb.append( ");\n" );
+        if ( parameters.isEmpty() ) {
+            sb.append( "        # no parameters\n" );
+            // sb.append("            ();\n");
+        } else {
+            sb.append( "        parameters\n" );
+            sb.append( Util.indent( tsb.toString(), 12 ) );
         }
-        numParms = 0;
+
+        // End
         sb.append("    end activity instance " + getName() + "\n");
         return sb.toString();
     }

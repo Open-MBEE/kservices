@@ -498,7 +498,7 @@ public class KToAPGen {
             }
             for ( gov.nasa.jpl.kservices.k2apgen.Parameter param : params.values() ) {
                 if ( typeName.equals( param.type ) ) {  // TODO -- should check type is a superclass of type.
-                    r.states.add("\"" + param.name + "\"");
+                    r.states.add(param.name);
                 }
             }
             // If the states weren't found, maybe they are defined
@@ -1127,7 +1127,7 @@ public class KToAPGen {
 
     public String translateInstances(KtoJava kToJava) {
         // activity instances
-        List<ActivityInstance> list = translateInstance(kToJava.mainEvent);
+        Set<ActivityInstance> list = translateInstance(kToJava.mainEvent);
         StringBuffer sb = new StringBuffer();
         for ( ActivityInstance i : list ) {
             sb.append(i.toString());
@@ -1242,8 +1242,8 @@ public class KToAPGen {
         return p;
     }
 
-    public List<ActivityInstance> translateInstance(Event event) {
-        List<ActivityInstance> instances = new ArrayList<ActivityInstance>();
+    public Set<ActivityInstance> translateInstance(Event event) {
+        Set<ActivityInstance> instances = new TreeSet<ActivityInstance>();
         if ( event == null ) return instances;
         String n = event.getName();
         String t = event.getClass().getSimpleName();
@@ -1253,13 +1253,34 @@ public class KToAPGen {
 //        seen.add(this);
         DurativeEvent durEvent = null;
         if ( event instanceof HasEvents ) {
-            Set<Event> events = ((HasEvents) event).getEvents(true, null);
+            Set<Event> events = ((HasEvents) event).getEvents(false, null);
             for ( Event e : events) {
                 instances.addAll(translateInstance(e));
             }
         }
         return instances;
     }
+
+    public ActivityInstance translateInstance(ParameterListenerImpl parent,
+                                              ParameterListenerImpl event,
+                                              Set<ParameterListenerImpl> children ) {
+        if ( event == null ) return null;
+        String n = event.getName();
+        String t = event.getClass().getSimpleName();
+        ActivityInstance a = apgenModel.addActivityInstance(n, t);
+        a.abstractable = parent.getName();
+        StringBuffer sb = new StringBuffer();
+
+        ArrayList<String> childNames = new ArrayList<>();
+        for ( ParameterListenerImpl c : children ) {
+            childNames.add( c.getName() );
+        }
+        if ( !childNames.isEmpty() ) {
+            a.decomposedInto = String.join( ", ", childNames );
+        }
+        return a;
+    }
+
 
     public static Pair< Activity, List< Resource > > translateDeclaration(DurativeEvent event, KtoJava kToJava) {
         Pair< Activity, List< Resource > > pair =

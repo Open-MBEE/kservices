@@ -41,7 +41,7 @@ public class Parameter {
             return null;
         }
         String p;
-        if ( type == null || type.length() == 0 ) {
+        if ( type != null && type.length() > 0 ) {
             p = "global " + type + " " + name + " = " + value + ";";
         } else {
             p = "global " + name + " = " + value + ";";
