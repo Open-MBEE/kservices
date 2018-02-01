@@ -16,12 +16,20 @@ public class APGenModel {
     public ActivityInstance addActivityInstance(String n, String t) {
         ActivityInstance a = new ActivityInstance();
         a.id = n;
+        a.name = n;
         a.typeName = t;
         a.type = activities.get(t);
         if (a.type == null) {
             a.type = activities.get(n);
         }
+        // There's gotta be a type.  If not, it might be a resource and not a real activity.
+        if ( a.getType() == null ) {
+            return null;
+        }
+        a.addDefaultAttributes();
+
         activityInstances.put(a.getID(), a);
+
         return a;
     }
 

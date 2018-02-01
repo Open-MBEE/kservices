@@ -1,4 +1,4 @@
--- generated from lightSwitch.scenario
+-- generated from lightSwitch.scenario and then hand edited
 
 
 class Light {
@@ -18,10 +18,6 @@ class Light {
         req pmode.setValue(startTime, ON)
     }
 
---    fun isOn(b : Long, e : Long): IS_ON {
---        IS_ON(startTime :: b, endTime :: e)
---    }
-
 }
 
 class BradTest {
@@ -31,10 +27,10 @@ class BradTest {
     req actbegin = 2028-05-01T13:14:15.000
     req actbegin + PT4H <= actend
     req actbegin + PT4H >= actend
-    var system: Light -- = Light()  -- TODO -- these constructors should not be necessary and should be generated automatically.
+    var system: Light
     
     var goal00001: IS_ON = system.IS_ON(startTime :: actbegin, endTime :: actend)
-    -- var goal00001: IS_ON = system.isOn(actbegin, actend)
+
 }
 
-var b: BradTest -- = BradTest()  -- TODO -- these constructors should not be necessary and should be generated automatically.
+var b: BradTest

@@ -10,7 +10,7 @@ import gov.nasa.jpl.ae.xml.EventXmlToJava;
 import gov.nasa.jpl.kservices.KtoJava;
 import gov.nasa.jpl.mbee.util.*;
 import japa.parser.ast.body.ConstructorDeclaration;
-import japa.parser.ast.body.Parameter;
+//import japa.parser.ast.body.Parameter;
 import japa.parser.ast.body.TypeDeclaration;
 import k.frontend.*;
 import scala.Option;
@@ -239,8 +239,8 @@ public class KToAPGen {
         Activity parentAct = apgenModel.activities.get(parent);
         Activity childAct = apgenModel.activities.get(child);
         if ( parentAct == null || childAct == null ) return;
-        LinkedHashMap<String, gov.nasa.jpl.kservices.k2apgen.Parameter> newParameters
-                = new LinkedHashMap<String, gov.nasa.jpl.kservices.k2apgen.Parameter>(parentAct.parameters);
+        LinkedHashMap<String, Parameter> newParameters
+                = new LinkedHashMap<String, Parameter>(parentAct.parameters);
         newParameters.putAll(childAct.parameters);
         childAct.parameters = newParameters;
     }
@@ -271,6 +271,15 @@ public class KToAPGen {
         Activity activity = new Activity();
         activity.entityName = e.ident();
         activity.name = kToApgenClassName(e.ident());
+
+        // Check and make sure this isn't a state mode or a resource
+        if ( apgenModel.parameters.containsKey( activity.name ) ) {
+            return;
+        }
+        if ( apgenModel.resources.containsKey( activity.name ) ) {
+            return;
+        }
+
         activity.parentScope = parent;
         String pattern = "^" + ktoJava.globalName + "[._]";
         String nameWithScope = classNameWithScope(e.ident()).replaceFirst(pattern, "");
@@ -316,20 +325,20 @@ public class KToAPGen {
         }
         Collection<Argument> args = JavaConversions.asJavaCollection(longestCtor.args());
         if ( Utils.isNullOrEmpty( args ) ) return;
-        LinkedHashMap<String, gov.nasa.jpl.kservices.k2apgen.Parameter> oldParameters = activity.parameters;
+        LinkedHashMap<String, Parameter> oldParameters = activity.parameters;
         activity.parameters = new LinkedHashMap<>();
         for ( Argument arg : args ) {
             if ( arg instanceof NamedArgument ) {  // This should always be true.
                 NamedArgument narg = (NamedArgument) arg;
                 String name = narg.ident();
                 if (oldParameters.containsKey(name)) {
-                    gov.nasa.jpl.kservices.k2apgen.Parameter p = oldParameters.get(name);
+                    Parameter p = oldParameters.get(name);
                     activity.parameters.put(name, p);
                     oldParameters.remove(name);
                 } else {
                     if ( name.equals("startTime") || name.equals("endTime") || name.equals("duration") ) {
-                        gov.nasa.jpl.kservices.k2apgen.Parameter p =
-                                new gov.nasa.jpl.kservices.k2apgen.Parameter(name, "time", null);
+                        Parameter p =
+                                new Parameter(name, "time", null);
                         // TODO -- What is the type for duration?!  We're assuming "time!"
                         activity.parameters.put(name, p);
                         // TODO -- HERE!! -- Need to set Start or Duration in the attributes.
@@ -405,8 +414,8 @@ public class KToAPGen {
             return;
         }
         String exprString = translate(expr, parent);
-        gov.nasa.jpl.kservices.k2apgen.Parameter pp =
-                new gov.nasa.jpl.kservices.k2apgen.Parameter(d.name(),
+        Parameter pp =
+                new Parameter(d.name(),
                         translate(d.ty(), d.multiplicity()),
                         exprString);
         if ( parent instanceof APGenModel ) {
@@ -450,12 +459,16 @@ public class KToAPGen {
         if ( !Utils.isNullOrEmpty(r.states) ) {
             // create global array and State parameter
             String arrayName = classPrefix + type;
+
+            // cleanup -- remove activities that are really state modes
+            apgenModel.activities.remove( arrayName );
+
             String statesStr = statesArray( r.states );
-            gov.nasa.jpl.kservices.k2apgen.Parameter arrayProp =
-                    new gov.nasa.jpl.kservices.k2apgen.Parameter(arrayName, "array", statesStr);
+            Parameter arrayProp =
+                    new Parameter(arrayName, "array", statesStr);
             apgenModel.parameters.put(arrayName, arrayProp);
-            gov.nasa.jpl.kservices.k2apgen.Parameter p =
-                    new gov.nasa.jpl.kservices.k2apgen.Parameter("State", "string", arrayName + "[0]");
+            Parameter p =
+                    new Parameter("State", "string", arrayName + "[0]");
             r.profile = arrayName + "[0]";
             r.parameters.add(p);
             r.states.clear();
@@ -490,13 +503,13 @@ public class KToAPGen {
         if ( cls == null || !ClassUtils.isPrimitive( cls ) ) {
             // Object state variable
             // Getting already defined parameters in the
-            Map<String, gov.nasa.jpl.kservices.k2apgen.Parameter> params = null;
+            Map<String, Parameter> params = null;
             if ( parent instanceof APGenModel ) {
                 params = ((APGenModel) parent).parameters;
             } else if ( parent instanceof Activity ) {
                 params = ((Activity) parent).parameters;
             }
-            for ( gov.nasa.jpl.kservices.k2apgen.Parameter param : params.values() ) {
+            for ( Parameter param : params.values() ) {
                 if ( typeName.equals( param.type ) ) {  // TODO -- should check type is a superclass of type.
                     r.states.add(param.name);
                 }
@@ -689,7 +702,7 @@ public class KToAPGen {
         r.behavior = Resource.Behavior.state;
         r.states = Utils.newList("\"active\"", "\"inactive\"");
         r.profile = "\"inactive\"";
-        r.parameters.add(new gov.nasa.jpl.kservices.k2apgen.Parameter("State", "string", "inactive"));
+        r.parameters.add(new Parameter("State", "string", "inactive"));
         r.usage = "State";
 
         Constraint c = new Constraint();
@@ -700,8 +713,8 @@ public class KToAPGen {
         // effect on resource in activity
         String vName = "constraint_" + r.name.replace("res_", "");
         String val = "\"active\"";//"(" + translate(d.exp(), parent) + ") ? \"true\" : \"false\"";
-//        gov.nasa.jpl.kservices.k2apgen.Parameter cp =
-//                new gov.nasa.jpl.kservices.k2apgen.Parameter(vName, "string", val);
+//        Parameter cp =
+//                new Parameter(vName, "string", val);
         modeling = //cp.toString() + "\n" +
                 //"use " + r.name +"(" + vName + ") from start to finish\n";
                 "use " + r.name +"(" + val + ") from start to finish;\n";
@@ -1127,10 +1140,18 @@ public class KToAPGen {
 
     public String translateInstances(KtoJava kToJava) {
         // activity instances
-        Set<ActivityInstance> list = translateInstance(kToJava.mainEvent);
+        List<ActivityInstance> list = translateInstance(kToJava.mainEvent);
+        // these are already added on creation
+//        for ( ActivityInstance a : list ) {
+//            apgenModel.activityInstances.put(a.getName(), a);
+//        }
         StringBuffer sb = new StringBuffer();
+        Date d = new Date();
+        sb.append("apgen version \"generated_" +
+                d.toString().replaceAll("[^A-Za-z0-9_]+", "_") + "\"\n\n");
+
         for ( ActivityInstance i : list ) {
-            sb.append(i.toString());
+            sb.append(i.toString() + "\n");
         }
         return sb.toString();
     }
@@ -1186,7 +1207,7 @@ public class KToAPGen {
                 constructorParameters(kToJava, event);
         if (ctorParams != null && !ctorParams.isEmpty()) {
             for ( gov.nasa.jpl.ae.event.Parameter<?> p : ctorParams.values() ) {
-                gov.nasa.jpl.kservices.k2apgen.Parameter pp = translateParameter(p);
+                Parameter pp = translateParameter(p);
                 activity.parameters.put(pp.name, pp);
             }
         }
@@ -1194,7 +1215,7 @@ public class KToAPGen {
         for ( gov.nasa.jpl.ae.event.Parameter<?> p : event.getParameters() ) {
             String aeName = p.getName();
             if ( aeName != null && !aeName.isEmpty() && !ctorParams.containsKey( aeName ) ) {
-                gov.nasa.jpl.kservices.k2apgen.Parameter pp = translateParameter(p);
+                Parameter pp = translateParameter(p);
                 activity.creation.put(pp.name, pp);
             }
         }
@@ -1242,35 +1263,136 @@ public class KToAPGen {
         return p;
     }
 
-    public Set<ActivityInstance> translateInstance(Event event) {
-        Set<ActivityInstance> instances = new TreeSet<ActivityInstance>();
-        if ( event == null ) return instances;
-        String n = event.getName();
-        String t = event.getClass().getSimpleName();
-        ActivityInstance a = apgenModel.addActivityInstance(n, t);
-        instances.add(a);
-//        HashSet<HasEvents> seen = new HashSet<HasEvents>();
-//        seen.add(this);
+    public List<ActivityInstance> translateInstance(ParameterListenerImpl event) {
+        Map<String, ActivityInstance> instances = new LinkedHashMap<>();
+        if ( event == null ) return Utils.asList(instances.values());
+//        String n = event.getName();
+//        String t = event.getClass().getSimpleName();
+//        ActivityInstance a = apgenModel.addActivityInstance(n, t);
+//        instances.add(a);
+////        HashSet<HasEvents> seen = new HashSet<HasEvents>();
+////        seen.add(this);
         DurativeEvent durEvent = null;
-        if ( event instanceof HasEvents ) {
-            Set<Event> events = ((HasEvents) event).getEvents(false, null);
-            for ( Event e : events) {
-                instances.addAll(translateInstance(e));
+        if ( event instanceof ParameterListenerImpl ) {
+            Set<ParameterListenerImpl> events = ((ParameterListenerImpl) event).getObjects(true, null);
+            events.add(event);
+            for ( ParameterListenerImpl e : events ) {
+                Set<ParameterListenerImpl> children = new LinkedHashSet<>();
+                for ( ParameterListenerImpl c : events ) {
+                    if ( Expression.valuesEqual( c.getOwningObject(), e, ParameterListenerImpl.class ) ) {
+                        children.add( c );
+                    }
+                }
+                Object owner = e.getOwningObject();
+                ActivityInstance a = translateInstance( owner, e, children );
+                if ( a != null ) {
+                    instances.put(a.getName(), a);
+                }
             }
         }
-        return instances;
+
+        // remove "abstractable into" when parent actvity does not exist
+        for ( ActivityInstance a : instances.values() ) {
+            if ( a.abstractable != null && !instances.containsKey( a.abstractable ) ) {
+                a.abstractable = null;
+            }
+        }
+
+        return Utils.asList(instances.values());
     }
 
-    public ActivityInstance translateInstance(ParameterListenerImpl parent,
+    public ActivityInstance translateInstance(Object parent,
                                               ParameterListenerImpl event,
                                               Set<ParameterListenerImpl> children ) {
         if ( event == null ) return null;
         String n = event.getName();
-        String t = event.getClass().getSimpleName();
+        String t = kToApgenClassName( event.getClass().getSimpleName() );
         ActivityInstance a = apgenModel.addActivityInstance(n, t);
-        a.abstractable = parent.getName();
+        if ( a == null ) return null;
+
+        // attributes -- defaults are probably already set, including Duration
+        if ( event instanceof Event ) {
+            gov.nasa.jpl.ae.event.Duration d = ((Event) event).getDuration();
+            if ( d == null || d.getValue(false) == null ) {
+                Debug.error(true, false,
+                        "Warning!  KToAPGen.translateInstance(): Missing or ungrounded start time for " + event );
+            } else {
+                String dur = d.toShortFormattedStringForIdentifier();
+                if (dur != null) {
+                    a.attributes.put("Duration", dur);
+                }
+            }
+            Timepoint s = ((Event) event).getStartTime();
+            if ( s == null || s.getValue(false) == null ) {
+                Debug.error(true, false,
+                        "Warning!  KToAPGen.translateInstance(): Missing or ungrounded start time for " + event );
+            } else {
+                String st = s.toTimestamp();
+                if (st != null) {
+                    a.attributes.put("Start", st);
+                }
+            }
+        }
+
+        // parameters
+        Activity act = a.getType();
+        if ( act != null && !Utils.isNullOrEmpty(act.parameters) ) {
+            // TODO -- make separate functions for the loop and the inside of the loop.
+            for ( Map.Entry<String, Parameter> entry : act.parameters.entrySet() ) {
+                String pName = entry.getKey();
+                Parameter apgenParam = entry.getValue();
+                String apgenType = apgenParam == null ? null : apgenParam.type;
+                if ( !Parameter.apgenTypes.contains(apgenType) ) {
+                    // REVIEW -- bother add warning?  this is expected and the same warnings are given for Parameter. 
+                    continue;
+                }
+                boolean added = false;
+                gov.nasa.jpl.ae.event.Parameter<?> p = event.getParameter(pName);
+                String pVal = null;
+                if (p != null && p.getValue(false) != null) {
+                    if (p instanceof Timepoint) {
+                        pVal = ((Timepoint) p).toTimestamp();
+                    } else if (p instanceof gov.nasa.jpl.ae.event.Duration) {
+                        pVal = ((gov.nasa.jpl.ae.event.Duration) p).toShortFormattedStringForIdentifier();
+                    } else {
+                        pVal = MoreToString.Helper.toShortString(p.getValue(false));
+                        if (!Utils.isNullOrEmpty(pVal) && apgenType != null) {
+                            if (apgenType.equals("time")) {
+                                try {
+                                    Long tLong = Long.parseLong(pVal);
+                                    pVal = Timepoint.toTimestamp(tLong);
+                                } catch (NumberFormatException nfe) {
+                                    nfe.printStackTrace();
+                                }
+                            } else if (apgenType.equals("duration")) {
+                                try {
+                                    Long tLong = Long.parseLong(pVal);
+                                    Long millis = gov.nasa.jpl.ae.event.Duration.durationToMillis(tLong);
+                                    pVal = gov.nasa.jpl.ae.event.Duration.toShortFormattedStringForIdentifier(millis);
+                                } catch (NumberFormatException nfe) {
+                                    nfe.printStackTrace();
+                                }
+                            }
+                        }
+                    }
+                }
+                if (pVal != null) {
+                    a.parameters.add(pVal);
+                    added = true;
+                } else if ( !added ) {
+                    Debug.error(true, false, "Could not find a value for parameter " + pName + " in activity " + event );
+                    // TODO? -- REVIEW -- consider adding a default value
+                }
+            }
+        }
+
+        // owner/parent
+        if ( parent instanceof ParameterListenerImpl ) {
+            a.abstractable = ((ParameterListenerImpl)parent).getName();
+        }
         StringBuffer sb = new StringBuffer();
 
+        // decomposition
         ArrayList<String> childNames = new ArrayList<>();
         for ( ParameterListenerImpl c : children ) {
             childNames.add( c.getName() );
@@ -1278,6 +1400,7 @@ public class KToAPGen {
         if ( !childNames.isEmpty() ) {
             a.decomposedInto = String.join( ", ", childNames );
         }
+
         return a;
     }
 
@@ -1350,14 +1473,14 @@ public class KToAPGen {
         r.behavior = Resource.Behavior.state;
         r.states = Utils.newList("\"false\"", "\"true\"");
         r.profile = "\"true\"";
-        r.parameters.add(new gov.nasa.jpl.kservices.k2apgen.Parameter("State", "string", "true"));
+        r.parameters.add(new Parameter("State", "string", "true"));
         r.usage = "State";
 
         // effect on resource in activity
         String vName = r.name.replace("res_", "constraint_");
         String val = "(" + translate(c.getExpression(), kToJava) + ") ? \"true\" : \"false\"";
-        gov.nasa.jpl.kservices.k2apgen.Parameter cp =
-                new gov.nasa.jpl.kservices.k2apgen.Parameter(vName, "string", val);
+        Parameter cp =
+                new Parameter(vName, "string", val);
         String modeling = //cp.toString() + "\n" +
                           "use " + r.name +"(" + vName + ") from start to finish;\n";
         //activity.modeling.append(cp.toString() + "\n");
@@ -1442,11 +1565,11 @@ public class KToAPGen {
         //return translate((Object)call, kToJava);
     }
 
-    public static gov.nasa.jpl.kservices.k2apgen.Parameter translateParameter(gov.nasa.jpl.ae.event.Parameter<?> p) {
+    public static Parameter translateParameter(gov.nasa.jpl.ae.event.Parameter<?> p) {
         if ( p == null ) return null;
         String type = p.getType() == null ? null : p.getType().getSimpleName();
-        gov.nasa.jpl.kservices.k2apgen.Parameter pp =
-                new gov.nasa.jpl.kservices.k2apgen.Parameter(p.getName(),
+        Parameter pp =
+                new Parameter(p.getName(),
                                                              type,
                                                              null);
         return pp;
@@ -1466,8 +1589,8 @@ public class KToAPGen {
                 new LinkedHashMap<String, gov.nasa.jpl.ae.event.Parameter<?>>();
         if ( ctors != null ) {
             for ( ConstructorDeclaration ctor : ctors ) {
-                List<Parameter> params = ctor.getParameters();
-                if ( params != null ) for ( Parameter p: params ) {
+                List<japa.parser.ast.body.Parameter> params = ctor.getParameters();
+                if ( params != null ) for ( japa.parser.ast.body.Parameter p: params ) {
                     String name = p.getId().getName();
                     gov.nasa.jpl.ae.event.Parameter<?> pp = event.getParameter(name);
                     if ( pp == null ) {

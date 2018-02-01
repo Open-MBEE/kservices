@@ -1,5 +1,8 @@
 package gov.nasa.jpl.kservices.k2apgen;
 
+import gov.nasa.jpl.ae.event.Timepoint;
+import gov.nasa.jpl.mbee.util.Utils;
+
 import java.util.*;
 
 
@@ -46,6 +49,21 @@ public class ActivityInstance {
             autoIdCounters.put(n, ct + 1);
         }
         return id;
+    }
+
+    public void addDefaultAttributes() {
+        // attributes
+        String d = getType() == null ? null : getType().attributes.get("Description");
+        if ( Utils.isNullOrEmpty( d ) && getType() != null ) {
+            d = getTypeName();
+        }
+        attributes.put("Description", "instance of " + d);
+        attributes.put("Legend", getName());
+        String color = getType() == null ? "Orange" : getType().attributes.get("Color");
+        if ( Utils.isNullOrEmpty( color ) ) color = "Orange";
+        attributes.put("Color", color);
+        attributes.put("Duration", "00:01:00");
+        attributes.put("Start", Timepoint.getEpochTimepoint().toTimestamp());
     }
 
     @Override
