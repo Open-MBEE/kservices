@@ -34,3 +34,6 @@ class BradTest {
 }
 
 var b: BradTest
+
+req startTime = 2028-05-01T00:00:00.000
+req endTime = 2028-05-02T00:00:00.000

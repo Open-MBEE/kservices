@@ -1317,7 +1317,7 @@ public class KToAPGen {
                 Debug.error(true, false,
                         "Warning!  KToAPGen.translateInstance(): Missing or ungrounded start time for " + event );
             } else {
-                String dur = d.toShortFormattedStringForIdentifier();
+                String dur = formatDuration(d.toMillis());
                 if (dur != null) {
                     a.attributes.put("Duration", dur);
                 }
@@ -1327,7 +1327,7 @@ public class KToAPGen {
                 Debug.error(true, false,
                         "Warning!  KToAPGen.translateInstance(): Missing or ungrounded start time for " + event );
             } else {
-                String st = s.toTimestamp();
+                String st = formatTimestamp(s);
                 if (st != null) {
                     a.attributes.put("Start", st);
                 }
@@ -1351,7 +1351,7 @@ public class KToAPGen {
                 String pVal = null;
                 if (p != null && p.getValue(false) != null) {
                     if (p instanceof Timepoint) {
-                        pVal = ((Timepoint) p).toTimestamp();
+                        pVal = formatTimestamp((Timepoint)p);
                     } else if (p instanceof gov.nasa.jpl.ae.event.Duration) {
                         pVal = ((gov.nasa.jpl.ae.event.Duration) p).toShortFormattedStringForIdentifier();
                     } else {
@@ -1360,7 +1360,7 @@ public class KToAPGen {
                             if (apgenType.equals("time")) {
                                 try {
                                     Long tLong = Long.parseLong(pVal);
-                                    pVal = Timepoint.toTimestamp(tLong);
+                                    pVal = formatTimestamp(tLong);
                                 } catch (NumberFormatException nfe) {
                                     nfe.printStackTrace();
                                 }
@@ -1368,7 +1368,7 @@ public class KToAPGen {
                                 try {
                                     Long tLong = Long.parseLong(pVal);
                                     Long millis = gov.nasa.jpl.ae.event.Duration.durationToMillis(tLong);
-                                    pVal = gov.nasa.jpl.ae.event.Duration.toShortFormattedStringForIdentifier(millis);
+                                    pVal = formatDuration(millis);
                                 } catch (NumberFormatException nfe) {
                                     nfe.printStackTrace();
                                 }
@@ -1404,6 +1404,31 @@ public class KToAPGen {
         return a;
     }
 
+    public static String formatTimestamp(Timepoint tp) {
+        String v = tp.toDoyTimestamp();
+        v = v.replaceFirst("[+]0000?$", "");
+        v = v.replaceFirst("[.]000$", "");
+        v = v.replaceFirst("([0-9])[.]([0-9][0-9]).([0-9][0-9])($|[.][0-9][0-9][0-9])?", "$1:$2:$3$4");
+        return v;
+    }
+    public static String formatTimestamp(long t) {
+        String v = Timepoint.toDoyTimestamp(t);
+        v = v.replaceFirst("[+]0000?$", "");
+        v = v.replaceFirst("[.]000$", "");
+        v = v.replaceFirst("([0-9])[.]([0-9][0-9]).([0-9][0-9])($|[.][0-9][0-9][0-9])?", "$1:$2:$3$4");
+        return v;
+    }
+
+    public static String formatDuration(long millis) {
+        String pVal = gov.nasa.jpl.ae.event.Duration.toShortFormattedStringForIdentifier(millis);
+        if ( millis < 365 * 24 * 3600 * 1000 ) {
+            pVal = pVal.replaceFirst("^001T", "");
+        }
+        pVal = pVal.replaceFirst("[+]0000?$", "");
+        pVal = pVal.replaceFirst("[.]000$", "");
+        pVal = pVal.replaceFirst("([0-9])[.]([0-9][0-9]).([0-9][0-9])($|[.][0-9][0-9][0-9])?", "$1:$2:$3$4");
+        return pVal;
+    }
 
     public static Pair< Activity, List< Resource > > translateDeclaration(DurativeEvent event, KtoJava kToJava) {
         Pair< Activity, List< Resource > > pair =
