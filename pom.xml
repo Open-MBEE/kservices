@@ -39,7 +39,7 @@
  		<app.log.root.level>WARN</app.log.root.level>
 		<env>local</env>
 		<maven.test.skip>false</maven.test.skip> <!--- use command line arg Dmaven.test.skip=true/false -->
-		<mbee.version>2.3.4-SNAPSHOT</mbee.version>
+		<mbee.version>2.3.5-SNAPSHOT</mbee.version>
 		<scalaVersion>2.11.8</scalaVersion>
 		<!-- change to "2.11" once Scala 2.11.0 final is out -->
 		<scalaBinaryVersion>2.11</scalaBinaryVersion>
