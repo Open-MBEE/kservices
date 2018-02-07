@@ -63,7 +63,15 @@ public class ActivityInstance {
         if ( Utils.isNullOrEmpty( color ) ) color = "Orange";
         attributes.put("Color", color);
         attributes.put("Duration", "00:01:00");
-        attributes.put("Start", Timepoint.getEpochTimepoint().toTimestamp());
+        attributes.put("Start", formatTimestamp(Timepoint.getEpochTimepoint()));//.toTimestamp());
+    }
+
+    public static String formatTimestamp(Timepoint tp) {
+        String v = tp.toDoyTimestamp();
+        v = v.replaceFirst("[+-]0000?$", "");
+        v = v.replaceFirst("[.]000$", "");
+        v = v.replaceFirst("([0-9])[.]([0-9][0-9]).([0-9][0-9])($|[.][0-9][0-9][0-9])?", "$1:$2:$3$4");
+        return v;
     }
 
     @Override
@@ -111,7 +119,6 @@ public class ActivityInstance {
         } else {
             sb.append("        attributes\n");
             for (Map.Entry<String, String> e : attributes.entrySet()) {
-                if ( e.getKey().equals("Start") ) continue;
                 String q = e.getKey().equals("Start") || e.getKey().equals("Duration") ? "" : "\"";
                 sb.append(Util.indent("\"" + e.getKey() + "\" = " + q + e.getValue() + q + ";\n", 12));
             }
