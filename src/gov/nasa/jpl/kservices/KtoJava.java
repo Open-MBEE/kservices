@@ -2462,7 +2462,7 @@ public class KtoJava {
         }
         String packagePath =
                 getPackageName().replace( '.', File.separatorChar );
-        String srcPath = projectPath + "src" + File.separator + packagePath;
+        String srcPath = projectPath + EventXmlToJava.generatedCodeLocation + File.separator + packagePath;
         return srcPath;
     }
 
@@ -2579,6 +2579,11 @@ public class KtoJava {
             File path2 = new File( javaPath );
             if ( !path2.exists() && !sourceOrClass ) {
                 javaPath = "src" + File.separator + this.packageName;
+                path2 = new File( javaPath );
+            }
+            if ( !path2.exists() && sourceOrClass) {
+                javaPath = EventXmlToJava.generatedCodeLocation + File.separator
+                        + this.packageName;
                 path2 = new File( javaPath );
             }
             if ( path2.exists() ) {
@@ -2855,7 +2860,7 @@ public class KtoJava {
 
 
         KtoJava kToJava = null;
-        String targetDirectory = "src" + File.separator + packageName;
+        String targetDirectory = EventXmlToJava.generatedCodeLocation + File.separator + packageName;
 
         if ( errorInfo ) {
             // KtoJava kToJava = new KtoJava( kToExecute, packageName, translate
@@ -2909,7 +2914,7 @@ public class KtoJava {
                 }
                 kToJava = (KtoJava)c.result;
                 if ( kToJava == null ) {
-                    targetDirectory = "src" + File.separator + packageName;
+                    targetDirectory = EventXmlToJava.generatedCodeLocation + File.separator + packageName;
                 } else {
 
                     json = kToJava.json;
