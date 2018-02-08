@@ -27,14 +27,14 @@ for arg in "$@"; do
 done
    
 
-kToJavaOutput=`mvn -q exec:java@generate -Dexec.args="--tree --error $*" -Pmbee-dev`
+kToJavaOutput=`mvn -q exec:java@generate -DskipTests -Dexec.args="--tree --error $*" -Pmbee-dev`
 
 
 
 solveOutput=
 if [ "$solve" = true ] ; then 
 
-    solveOutput=`mvn -q compile exec:java@solve -DkPackageName=${pkg} -Pmbee-dev` || true
+    solveOutput=`mvn -q compile exec:java@solve -DskipTests -DkPackageName=${pkg} -Pmbee-dev` || true
 
 
     rm -f ${HOME}/git/kservices/target/classes/${pkg}/* || true
