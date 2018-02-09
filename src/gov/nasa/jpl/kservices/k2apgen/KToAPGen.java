@@ -1308,6 +1308,8 @@ public class KToAPGen {
         String n = event.getName();
         String t = kToApgenClassName( event.getClass().getSimpleName() );
         ActivityInstance a = apgenModel.addActivityInstance(n, t);
+        //a.attributes.put("Start", Timepoint.getEpochTimepoint().toTimestamp());
+
         if ( a == null ) return null;
 
         // attributes -- defaults are probably already set, including Duration
@@ -1406,14 +1408,14 @@ public class KToAPGen {
 
     public static String formatTimestamp(Timepoint tp) {
         String v = tp.toDoyTimestamp();
-        v = v.replaceFirst("[+]0000?$", "");
+        v = v.replaceFirst("[+-]0000?$", "");
         v = v.replaceFirst("[.]000$", "");
         v = v.replaceFirst("([0-9])[.]([0-9][0-9]).([0-9][0-9])($|[.][0-9][0-9][0-9])?", "$1:$2:$3$4");
         return v;
     }
     public static String formatTimestamp(long t) {
         String v = Timepoint.toDoyTimestamp(t);
-        v = v.replaceFirst("[+]0000?$", "");
+        v = v.replaceFirst("[+-]0000?$", "");
         v = v.replaceFirst("[.]000$", "");
         v = v.replaceFirst("([0-9])[.]([0-9][0-9]).([0-9][0-9])($|[.][0-9][0-9][0-9])?", "$1:$2:$3$4");
         return v;

@@ -22,7 +22,8 @@ class BradTest extends DurativeEvent {
 
 }
 
-var b: BradTest
+var foo: Time
+var b: BradTest = BradTest(startTime :: foo)
 
 req startTime = 2028-05-01T00:00:00.000
 req endTime = 2028-05-02T00:00:00.000
