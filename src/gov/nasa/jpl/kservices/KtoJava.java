@@ -3033,7 +3033,12 @@ public class KtoJava {
                 outWrite = c2.baosOut.toString();
                 path =
                         targetDirectory + File.separator + solutionLog;
-                FileUtils.stringToFile( outWrite, path );
+                boolean succ = FileUtils.stringToFile( outWrite, path );
+                if ( succ ) {
+                    System.out.println("Wrote solution to " + path);
+                } else {
+                    System.out.println("Failed to write solution to " + path);
+                }
 
 
             }
