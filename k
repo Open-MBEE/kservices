@@ -25,9 +25,12 @@ for arg in "$@"; do
 	"--package") pkg="true"
     esac
 done
-   
 
-kToJavaOutput=$( { mvn -q -Pmbee-dev -DskipTests exec:java@generate -Dexec.args="--tree --error $*" ; } 2>&1 ) || true
+SOLVE=
+if [ "$solve" = true ] ; then
+  SOLVE='--solve'
+fi
+kToJavaOutput=$( { mvn -q -Pmbee-dev -DskipTests exec:java@generate -Dexec.args="--tree $SOLVE --error $*" ; } 2>&1 ) || true
 
 
 solveOutput=
