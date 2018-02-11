@@ -2,7 +2,7 @@
 
 # flags: --tree to get containment tree, --error to get syntax/type errors, --solve to get syntax/type errors and solve
 
-#set -x
+set -x
 
 if [ -n "$M2_REPO" ]; then
     m2=$M2_REPO
@@ -27,14 +27,14 @@ for arg in "$@"; do
 done
    
 
-kToJavaOutput=$( { mvn -q exec:java@generate -Dexec.args="--tree --error $*" -Pmbee-dev; } 2>&1 ) || true
+kToJavaOutput=$( { mvn -q exec:java@generate -DskipTests -Dexec.args="--tree --error $*" -Pmbee-dev; } 2>&1 ) || true
 
 
 
 solveOutput=
 if [ "$solve" = true ] ; then 
 
-    solveOutput=$( { mvn -q compile exec:java@solve -DkPackageName=${pkg} -Pmbee-dev; } 2>&1 ) || true
+    solveOutput=$( { mvn -q compile exec:java@solve -DskipTests -DkPackageName=${pkg} -Pmbee-dev; } 2>&1 ) || true
 
 
     rm -f ${HOME}/git/kservices/target/classes/${pkg}/* || true
