@@ -82,7 +82,7 @@
                     <version>1.0</version>
                     <scope>system</scope>
                     <type>jar</type>
-                    <systemPath>${project.basedir}/../Klang/target/klang-${mbee.version}.jar</systemPath>
+                    <systemPath>${project.basedir}/../klang/target/klang-${mbee.version}.jar</systemPath>
                 </dependency>
 <!-- 				<dependency>
 					<groupId>gov.nasa.jpl.mbee.klang</groupId>
@@ -134,17 +134,24 @@
 							<dependency>
 								<groupId>gov.nasa.jpl.mbee.util</groupId>
 								<artifactId>mbee_util</artifactId>
-								<version>${mbee.version}</version>
+								<version>1.0</version>
+								<scope>system</scope>
+								<type>jar</type>
+								<!--<version>${mbee.version}</version>-->
+								<systemPath>${project.basedir}/../util/target/mbee_util-${mbee.version}.jar</systemPath>
 							</dependency>
 							<dependency>
 								<groupId>gov.nasa.jpl.mbee.sysml</groupId>
 								<artifactId>sysml</artifactId>
-								<version>${mbee.version}</version>
+								<!--<version>${mbee.version}</version>-->
+								<version>1.0</version>
+								<scope>system</scope>
+								<type>jar</type>
+								<systemPath>${project.basedir}/../sysml/target/sysml-${mbee.version}.jar</systemPath>
 							</dependency>
 							<dependency>
 								<groupId>gov.nasa.jpl.mbee.bae</groupId>
 								<artifactId>bae</artifactId>
-								<!--<version>${mbee.version}</version>-->
 								<version>1.0</version>
 								<scope>system</scope>
 								<type>jar</type>
@@ -156,7 +163,7 @@
 								<version>1.0</version>
 								<scope>system</scope>
 								<type>jar</type>
-								<systemPath>${project.basedir}/../Klang/target/klang-${mbee.version}.jar</systemPath>
+								<systemPath>${project.basedir}/../klang/target/klang-${mbee.version}.jar</systemPath>
 							</dependency>
 						</dependencies>
 					</plugin>
@@ -279,7 +286,7 @@
 			<version>1.0</version>
 			<scope>system</scope>
 			<type>jar</type>
-			<systemPath>${project.basedir}/../Klang/lib/com.microsoft.z3.jar</systemPath>
+			<systemPath>${project.basedir}/../klang/lib/com.microsoft.z3.jar</systemPath>
 		</dependency>
 
 		<dependency>
@@ -288,7 +295,7 @@
 			<version>1.0</version>
 			<scope>system</scope>
 			<type>so</type>
-			<systemPath>${project.basedir}/../Klang/lib/libz3java.so</systemPath>
+			<systemPath>${project.basedir}/../klang/lib/libz3java.so</systemPath>
 		</dependency>
 
 		<dependency>
@@ -297,7 +304,7 @@
 			<version>1.0</version>
 			<scope>system</scope>
 			<type>so</type>
-			<systemPath>${project.basedir}/../Klang/lib/libz3.so</systemPath>
+			<systemPath>${project.basedir}/../klang/lib/libz3.so</systemPath>
 		</dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
