@@ -164,7 +164,8 @@ public class KtoJava {
     public static boolean modelHasDeclsOutsidePackages( Model model ) {
         if ( model == null ) return false;
         if ( model.decls() == null ) return false;
-        for ( TopDecl d : JavaConversions.asJavaCollection( model.decls() ) ) {
+        Collection<TopDecl> declList = JavaConversions.asJavaCollection(model.decls());
+        for ( TopDecl d : declList ) {
             if ( d instanceof PackageDecl ) continue;
             return true;
         }
@@ -3034,13 +3035,11 @@ public class KtoJava {
                 path =
                         targetDirectory + File.separator + solutionLog;
                 boolean succ = FileUtils.stringToFile( outWrite, path );
-                if ( succ ) {
-                    System.out.println("Wrote solution to " + path);
-                } else {
-                    System.out.println("Failed to write solution to " + path);
-                }
-
-
+//                if ( succ ) {
+//                    System.out.println("Wrote solution to " + path);
+//                } else {
+//                    System.out.println("Failed to write solution to " + path);
+//                }
             }
         }
         if ( containmentTree ) {
