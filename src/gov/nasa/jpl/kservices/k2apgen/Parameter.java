@@ -89,7 +89,7 @@ public class Parameter {
         if ( type.equals("integer") ) return "0";
         if ( type.equals("float") ) return "0.0";
         if ( type.equals("duration") ) return "00:00:01";
-        if ( type.equals("time"[]) ) return "2000-001T00:00:00.000";
+        if ( type.equals("time") ) return "2000-001T00:00:00.000";
         if ( type.equals("array") ) return "[]";
         return "null";  // TODO -- this isn't right, is it?
     }
