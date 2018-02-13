@@ -342,9 +342,9 @@ public class KtoJava {
             //jarr.put(Utils.arrayAsList(parseErrors));  // This deosn't work!
             json.put("parseErrors", jarr);
             //if ( verbose ) {
-            //    System.err.println(err);
-            //    System.out.println(out);
-            //    System.out.println();
+                System.err.println(err);
+                System.out.println(out);
+                System.out.println();
             //}
         }
         return this.model();
