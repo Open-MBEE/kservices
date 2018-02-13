@@ -429,7 +429,7 @@ public class KToAPGen {
     }
 
     public void addAttributes( Resource resource, PropertyDecl propertyDecl ) {
-        resource.otherAttributes.put("Description", "resource for class " + propertyDecl.toString().replaceAll("\"", "'"));
+        resource.otherAttributes.put("Description", "resource for class " + propertyDecl.toString().replaceAll("\"", "'").replaceAll("\n", " "));
         resource.otherAttributes.put("Legend", resource.name);
         resource.otherAttributes.put("Color", "Orange");
     }
@@ -449,12 +449,27 @@ public class KToAPGen {
             classPrefix = kToApgenClassName( ((Activity) parent).name ) + "_";
         }
         r.name = classPrefix + d.name();
+        String type = getResourceTypeName(d.ty());
+        String ltype = type == null ? null : type.toLowerCase();
         r.type = "string";
         r.usage = "State";
+        if ( type != null ) {
+            r.behavior = Resource.Behavior.nonconsumable;
+            if ( ltype.equals("real") || ltype.equals("double") || ltype.equals("float") ) {
+                r.type = "float";
+            } else if (ltype.equals("int") || ltype.equals("integer") || ltype.equals("short") || ltype.equals("long") ) {
+                r.type = "integer";
+            } else if (ltype.equals("time") ) {
+                r.type = "time";
+            } else if (ltype.equals("duration") ) {
+                r.type = "duration";
+            } else {
+                r.behavior = Resource.Behavior.state;
+            }
+        }
         addAttributes(r, d);
         // Get the type of TimeVaryingMap to determine the type and values
         // (e.g. possible states) of the resource.
-        String type = getResourceTypeName(d.ty());
         addStatesOfTypeToResource(parent, type, r);
         if ( !Utils.isNullOrEmpty(r.states) ) {
             // create global array and State parameter
@@ -469,10 +484,18 @@ public class KToAPGen {
             apgenModel.parameters.put(arrayName, arrayProp);
             Parameter p =
                     new Parameter("State", "string", arrayName + "[0]");
-            r.profile = arrayName + "[0]";
             r.parameters.add(p);
+            r.profile = arrayName + "[0]";
             r.states.clear();
             r.states.add(arrayName);
+        } else {
+            // TODO -- r.profile should be assigned default value as specified in TimeVaryingMap constructor.
+            // TODO -- We need to handle the case where a resource is defined by a function instead of a constructor.
+            // TODO -- How do we say that a resource is the sum of two other resources in APGen?
+            r.profile = Parameter.getDefaultForType( r.type );
+            Parameter p =
+                    new Parameter("State", r.type, Parameter.getDefaultForType(r.type) );
+            r.parameters.add( p );
         }
         APGenModel m = apgenModel;
         if ( parent instanceof APGenModel ) {
@@ -500,7 +523,8 @@ public class KToAPGen {
             cls = ClassUtils.classForName(typeName);
         } catch (ClassNotFoundException e) {
         }
-        if ( cls == null || !ClassUtils.isPrimitive( cls ) ) {
+        if ( ( cls == null || !ClassUtils.isPrimitive( cls ) ) &&
+             typeName != null && !typeName.equals("Time") && !typeName.equals("Duration") ) {
             // Object state variable
             // Getting already defined parameters in the
             Map<String, Parameter> params = null;

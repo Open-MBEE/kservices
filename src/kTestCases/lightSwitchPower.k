@@ -8,6 +8,8 @@ class Light {
 
     var pmode: TimeVaryingMap[PowerMode]
 
+    var load: TimeVaryingMap[Real] = if pmode = ON then 20.0 else 0.0
+
     class IS_ON extends DurativeEvent {
         var pro: Time
         req time >= startTime && time < endTime => pmode = ON
@@ -17,7 +19,7 @@ class Light {
     class TO_ON extends DurativeEvent {
         req startTime + PT20S <= endTime
         req startTime + PT30S >= endTime
-        req pmode.setValue(startTime, ON)
+        var v: Object = pmode.setValue(startTime, ON)
     }
 
 }
@@ -33,7 +35,7 @@ class BradTest {
     
     var goal00001: IS_ON = system.IS_ON(startTime :: actbegin, endTime :: actend)
 
-    var power: TimeVaryingMap[Real] = if system.pmode == ON then 20 else 0
+    var availablePower: TimeVaryingMap[Real] = 100 - system.load
 }
 
 var b: BradTest

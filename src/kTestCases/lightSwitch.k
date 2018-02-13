@@ -15,7 +15,7 @@ class Light {
     class TO_ON extends DurativeEvent {
         req startTime + PT20S <= endTime
         req startTime + PT30S >= endTime
-        req pmode.setValue(startTime, ON)
+        var v : Object = pmode.setValue(startTime, ON)
     }
 
 }
