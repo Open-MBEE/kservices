@@ -3034,6 +3034,17 @@ public class KtoJava {
                 outWrite = c2.baosOut.toString();
                 path =
                         targetDirectory + File.separator + solutionLog;
+                try {
+                    JSONObject j = new JSONObject(outWrite);
+                    if ( j != null ) {
+                        for(String key : JSONObject.getNames(j)) {
+                            json.put(key, j.get(key));
+                        }
+                    }
+                } catch( Throwable t ) {
+                    t.printStackTrace();
+                    // ignore?
+                }
                 boolean succ = FileUtils.stringToFile( outWrite, path );
 //                if ( succ ) {
 //                    System.out.println("Wrote solution to " + path);

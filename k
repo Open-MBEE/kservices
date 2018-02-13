@@ -30,13 +30,13 @@ SOLVE=
 if [ "$solve" = true ] ; then
   SOLVE='--solve'
 fi
-kToJavaOutput=$( { mvn -q -Pmbee-dev -DskipTests exec:java@generate -Dexec.args="--tree $SOLVE --error $*" ; } 2>&1 ) || true
+kToJavaOutput=$( { mvn -q -B -Pmbee-dev -DskipTests exec:java@generate -Dexec.args="--tree $SOLVE --error $*" ; } 2>&1 ) || true
 
 
 solveOutput=
 if [ "$solve" = true ] ; then 
 
-    solveOutput=$( { mvn -q -DskipTests -Pmbee-dev compile exec:java@solve -DkPackageName=${pkg} ; } 2>&1 ) || true
+    #solveOutput=$( { mvn -q -B -DskipTests -Pmbee-dev compile exec:java@solve -DkPackageName=${pkg} ; } 2>&1 ) || true
 
 
     rm -f ${HOME}/git/kservices/target/classes/${pkg}/* || true
