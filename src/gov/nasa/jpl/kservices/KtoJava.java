@@ -2716,9 +2716,18 @@ public class KtoJava {
     }
 
     public static JSONObject kToContainmentTree( String k ) {
-        Model m = Frontend.getModelFromString( k );
+        return kToContainmentTree(k, null);
+    }
+    public static JSONObject kToContainmentTree( String k, Model m ) {
+        if ( m == null ) {
+            m = Frontend.lastParsedModel();
+            if ( m == null ) {
+                // stdout and stderr are not suppressed here
+                m = Frontend.getModelFromString(k);
+            }
+        }
         Map< MemberDecl, Tuple2< Object, Object > > map =
-                JavaConversions.mapAsJavaMap( Frontend.getDeclDict( k ) );
+                JavaConversions.mapAsJavaMap( Frontend.getLastDeclDict( k ) );
         JSONObject tree = new JSONObject();
         JSONArray topDecls = new JSONArray();
         if ( m == null ) {
@@ -3057,7 +3066,8 @@ public class KtoJava {
             // System.out.println( "===TREE===" );
             JSONObject tree = new JSONObject();
             try {
-                tree = kToContainmentTree( kToExecute );
+                Model m = kToJava == null ? null : kToJava.model();
+                tree = kToContainmentTree( kToExecute, m );
             } catch ( Throwable t ) {
                 if ( verbose ) {
                     t.printStackTrace();
