@@ -2274,7 +2274,18 @@ public class KtoJava {
                     (verbose ?
                     "      System.out.println(\"===RESULTS===\" );\n" +
                     "      System.out.println(s.kSolutionString());\n" : "");
-            y +=    "      JSONObject solution = s.kSolutionJson();\n" +
+            y +=    "        CaptureStdoutStderr cj = new CaptureStdoutStderr() {\n" +
+                    "            @Override\n" +
+                    "            public Object run() {\n" +
+                    "                JSONObject jo = null;\n" +
+                    "                try {\n" +
+                    "                    jo = s.kSolutionJson();\n" +
+                    "                } catch( Throwable t ) {\n" +
+                    "                }\n" +
+                    "                return jo;\n" +
+                    "            }\n" +
+                    "        };\n";
+            y +=    "      JSONObject solution = (JSONObject)cj.result;\n" +
                     "      json.put(\"result\", solution);\n" +
                     "\n" +
                     "      System.out.println(json.toString(4));";
@@ -3041,8 +3052,7 @@ public class KtoJava {
                     }
                 };
                 outWrite = c2.baosOut.toString();
-                path =
-                        targetDirectory + File.separator + solutionLog;
+                path = targetDirectory + File.separator + solutionLog;
                 try {
                     JSONObject j = new JSONObject(outWrite);
                     if ( j != null ) {
@@ -3051,7 +3061,8 @@ public class KtoJava {
                         }
                     }
                 } catch( Throwable t ) {
-                    t.printStackTrace();
+                    json.put("badJson", outWrite);
+                    //t.printStackTrace();
                     // ignore?
                 }
                 boolean succ = FileUtils.stringToFile( outWrite, path );
