@@ -2866,7 +2866,7 @@ public class KtoJava {
             }
         }
 
-        if ( solve ) {
+        if ( solve || runSMT ) {
             errorInfo = true;
             //translate = true;
             containmentTree = true;
