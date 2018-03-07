@@ -23,6 +23,7 @@ public class Resource {
     List<Parameter> parameters = new ArrayList<Parameter>();
 
     List<String> states = new ArrayList<String>();
+    List<String> stateValues = new ArrayList<String>();
 
     String profile = null;
 

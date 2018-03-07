@@ -209,7 +209,7 @@ public class KToAPGen {
         }
         // Need to process from top of class hierarchy down so tha the parent already has its inherited members.
         // Get the top level superclasses (from childClasses) and walk down the children.
-        HashSet<String> seen = new HashSet<String>();
+        HashSet<String> seen = new LinkedHashSet<String>();
         List<String> queue = new ArrayList<String>();
         // Find top-level classes and add to queue.
         for ( String parent : childClasses.keySet() ) {
@@ -381,23 +381,25 @@ public class KToAPGen {
     }
 
     public void translate(MemberDecl d, Object parent) {
+        String modeling = null;
         if ( d instanceof EntityDecl ) {
             translate((EntityDecl) d, parent);
         } else if ( d instanceof TypeDecl ) {
             translate( (TypeDecl)d, parent );
         } else if ( d instanceof PropertyDecl ) {
-            translate( (PropertyDecl)d, parent );
+            modeling = translate( (PropertyDecl)d, parent );
         } else if ( d instanceof FunDecl ) {
             translate( (FunDecl)d, parent );
         } else if ( d instanceof ConstraintDecl ) {
-            String modeling = translate( (ConstraintDecl)d, parent );
-            if ( !Utils.isNullOrEmpty(modeling) ) {
-                if ( parent instanceof Activity ) {
-                    ((Activity)parent).modeling.append(modeling + "\n");
-                }
-            }
+            modeling = translate( (ConstraintDecl)d, parent );
         } else if ( d instanceof ExpressionDecl ) {
-            translate( (ExpressionDecl)d, parent );
+            modeling = translate( (ExpressionDecl)d, parent );
+        }
+
+        if ( !Utils.isNullOrEmpty(modeling) ) {
+            if ( parent instanceof Activity ) {
+                ((Activity)parent).modeling.append(modeling + "\n");
+            }
         }
     }
 
@@ -407,12 +409,16 @@ public class KToAPGen {
         // TODO -- maybe keep a list of aliases and never explicitly translate but always replace with type on rhs.
         // TODO -- APGen has typedefs for structs and lists.
     }
-    public void translate(PropertyDecl d, Object parent) {
+    public String translate(PropertyDecl d, Object parent) {
         Exp expr = get(d.expr());
         if ( expr != null && containsConstructorCall( expr ) ) {
             addDecomposition(expr, parent);
-            return;
+            return null;
         }
+        String modeling = translateEffect(expr, parent);
+//        if ( !Utils.isNullOrEmpty(modeling) ) {
+//            return modeling;
+//        }
         String exprString = translate(expr, parent);
         Parameter pp =
                 new Parameter(d.name(),
@@ -426,6 +432,7 @@ public class KToAPGen {
             ((Function)parent).parameters.put(pp.name, pp);
         }
         translateResource(d, parent);
+        return modeling;
     }
 
     public void addAttributes( Resource resource, PropertyDecl propertyDecl ) {
@@ -433,6 +440,9 @@ public class KToAPGen {
         resource.otherAttributes.put("Legend", resource.name);
         resource.otherAttributes.put("Color", "Orange");
     }
+
+    protected static Set<String> primTypes =
+            new LinkedHashSet<>( Arrays.asList( "float", "integer", "time", "duration", "boolean" ) );
 
     /**
      * If the property declaration is for a state variable, then create an APGen resource for it.
@@ -455,19 +465,18 @@ public class KToAPGen {
         r.usage = "State";
         if ( type != null ) {
             r.behavior = Resource.Behavior.nonconsumable;
-            if ( ltype.equals("real") || ltype.equals("double") || ltype.equals("float") ) {
-                r.type = "float";
-            } else if (ltype.equals("int") || ltype.equals("integer") || ltype.equals("short") || ltype.equals("long") ) {
-                r.type = "integer";
-            } else if (ltype.equals("time") ) {
-                r.type = "time";
-            } else if (ltype.equals("duration") ) {
-                r.type = "duration";
+            String apgType = javaToApgenType(type);
+            if ( primTypes.contains(apgType) ) {
+                r.type = apgType;
             } else {
                 r.behavior = Resource.Behavior.state;
             }
         }
         addAttributes(r, d);
+
+        // If the variable is assigned to some expression, set the profile to that.
+        r.profile = translate(d.expr(), parent);
+
         // Get the type of TimeVaryingMap to determine the type and values
         // (e.g. possible states) of the resource.
         addStatesOfTypeToResource(parent, type, r);
@@ -485,14 +494,19 @@ public class KToAPGen {
             Parameter p =
                     new Parameter("State", "string", arrayName + "[0]");
             r.parameters.add(p);
-            r.profile = arrayName + "[0]";
+            // If no value is specified for the variable, make its default the first mode/state in the array.
+            if ( Utils.isNullOrEmpty(r.profile) ) {
+                r.profile = arrayName + "[0]";
+            }
             r.states.clear();
             r.states.add(arrayName);
         } else {
             // TODO -- r.profile should be assigned default value as specified in TimeVaryingMap constructor.
             // TODO -- We need to handle the case where a resource is defined by a function instead of a constructor.
             // TODO -- How do we say that a resource is the sum of two other resources in APGen?
-            r.profile = Parameter.getDefaultForType( r.type );
+            if ( Utils.isNullOrEmpty(r.profile) ) {
+                r.profile = Parameter.getDefaultForType(r.type);
+            }
             Parameter p =
                     new Parameter("State", r.type, Parameter.getDefaultForType(r.type) );
             r.parameters.add( p );
@@ -531,6 +545,7 @@ public class KToAPGen {
             if ( parent instanceof APGenModel ) {
                 params = ((APGenModel) parent).parameters;
             } else if ( parent instanceof Activity ) {
+                // REVIEW -- TODO -- Would all of these be known--couldn't it be in the middle of collecting these?
                 params = ((Activity) parent).parameters;
             }
             for ( Parameter param : params.values() ) {
@@ -548,6 +563,10 @@ public class KToAPGen {
                     }
                 }
             }
+        }
+        // Need to save this elsewhere since this will get overwritten by the array name.
+        if ( r.states != null ) {
+            r.stateValues.addAll(r.states);
         }
     }
 
@@ -635,14 +654,57 @@ public class KToAPGen {
         return estr;
     }
 
+    protected static String[] typePrecedence =
+            new String[] { "array", "string", "time", "duration", "float", "integer", "boolean" };
+
+    protected String mostSpecificCommonSuperclass(String type1,  String type2) {
+        if ( type1 == null ) return type2;
+        if ( type2 == null ) return type1;
+        if ( type1.equals(type2) ) return type1;
+        for ( String typeName : typePrecedence ) {
+            if ( type1.equals(typeName) || type2.equals(typeName) ) {
+                return typeName;
+            }
+        }
+        // REVIEW -- this case is unexpected; add error?
+        return type1;
+    }
+
+    public String javaToApgenType(String type) {
+        if ( type == null || type.isEmpty() ) return null;
+        String apgenType = type;
+        String ltype = type.toLowerCase();
+        if ( ltype.equals("real") || ltype.equals("double") || ltype.equals("float") ) {
+            apgenType = "float";
+        } else if (ltype.equals("int") || ltype.equals("integer") || ltype.equals("short") || ltype.equals("long") ) {
+            apgenType = "integer";
+        } else if (ltype.equals("time") ) {
+            apgenType = "time";
+        } else if (ltype.equals("duration") ) {
+            apgenType = "duration";
+        } else if (ltype.equals("string") || ltype.equals("character") ) {
+            apgenType = "string";
+        } else if (ltype.equals("boolean") || ltype.equals("bool") ) {
+            apgenType = "boolean";
+        }
+        return apgenType;
+    }
+
     public String translate(Type ty, Option<Multiplicity> multiplicity) {
         Multiplicity m = get(multiplicity);
+        return translate(ty, m);
+    }
+    public String translate(Type ty, Multiplicity m) {
         String typeStr = ty.toString();
         if ( !typeStr.equals("Time") && !typeStr.equals("Duration") ) {
             typeStr = ty.toJavaString();
         }
-        if ( m != null && m.exp1() != null && ((m.exp2() != null && m.exp2().get() != null && !m.exp2().get().toJavaString().equals("1")) || !m.exp1().toJavaString().equals("1"))) {
+        if ( m != null && m.exp1() != null &&
+             ( ( m.exp2() != null && m.exp2().get() != null && !m.exp2().get().toJavaString().equals("1") )
+               || !m.exp1().toJavaString().equals("1") ) ) {
             return typeStr + "[]";
+        } else {
+            typeStr = javaToApgenType(typeStr);
         }
         return typeStr;
     }
@@ -663,7 +725,10 @@ public class KToAPGen {
     }
 
     public String translateEffect(ConstraintDecl d, Object parent) {
-        FunApplExp effect = ktoJava.getEffect( d.exp() );
+        return translateEffect(d.exp(), parent);
+    }
+    public String translateEffect(HasChildren exp, Object parent) {
+        FunApplExp effect = ktoJava.getEffect( exp );
         String callNameNoArgs = effect == null ? null : "" + effect.exp();
         Exp scope = effect == null ? null : KtoJava.getScopeExp(effect);
         List<Argument> args = effect == null ? null : new ArrayList(JavaConversions.asJavaCollection(effect.args()));
@@ -681,7 +746,7 @@ public class KToAPGen {
 
             String modeling =
                     ("start".equals(timeExpStr) ? "" : "wait for " + timeExpStr + " - start;\n") +
-                            "set " + pScope + "_" + resourceStr + "(\"" + valueStr + "\");";
+                            "set " + (pScope == null ? "" : pScope + "_") + resourceStr.replace(".currentval()", "") + "(" + valueStr + ");";
             return modeling;  // TODO - Do we want to continue and add a constraint for this, too?  If it's 'req foo = setValue(t,v)' and foo isn't used elsewhere, then no, else probably.
         } else {
             // TODO!!! add(), . . .
@@ -741,7 +806,7 @@ public class KToAPGen {
 //                new Parameter(vName, "string", val);
         modeling = //cp.toString() + "\n" +
                 //"use " + r.name +"(" + vName + ") from start to finish\n";
-                "use " + r.name +"(" + val + ") from start to finish;\n";
+                "use " + r.name.replace(".currentval()", "") +"(" + val + ") from start to finish;\n";
         if ( parent instanceof APGenModel ) {
             ((APGenModel) parent).resources.put(r.name, r);
             ((APGenModel) parent).constraints.put(c.name, c);
@@ -782,7 +847,11 @@ public class KToAPGen {
         return i;
     }
 
-    public void translate(ExpressionDecl d, Object parent) {
+    public String translate(ExpressionDecl d, Object parent) {
+        String modeling = translateEffect(d.exp(), parent);
+        if ( !Utils.isNullOrEmpty(modeling) ) {
+            return modeling;
+        }
         String s = translate(d.exp(), parent);
         if ( parent instanceof APGenModel ) {
             // TODO -- ERROR -- No place to put an expression
@@ -791,6 +860,7 @@ public class KToAPGen {
         } else {
             // TODO -- ERROR?
         }
+        return null;
     }
 
     public String translate(Exp d, Object parent) {
@@ -798,7 +868,7 @@ public class KToAPGen {
         if ( d instanceof ParenExp ) {
             return translate( (ParenExp)d, parent );
         } else if ( d instanceof IdentExp ) {
-            return translate( (IdentExp)d );
+            return translate( (IdentExp)d, parent );
         } else if ( d instanceof DotExp ) {
             return translate( (DotExp)d, parent );
         } else if ( d instanceof IndexExp ) {
@@ -855,19 +925,117 @@ public class KToAPGen {
     public String translate(ParenExp d, Object parent) {
         return "(" + translate(d.exp(), parent) + ")";
     }
-    public String translate(IdentExp d) {
+    public String translate(IdentExp d, Object parent) {
         if ( "startTime".equals(d.ident()) ) return "start";
         if ( "endTime".equals(d.ident()) ) return "finish";
+        String svString = translateAsStateVariable(d, parent);
+        if ( !Utils.isNullOrEmpty( svString ) ) {
+            return svString;
+        }
+        String type = getType(d, parent);
+        String name = d.toJavaString();
+        // If the object is a mode/state value (often an object and not a primitive), translate to a string value.
+        if ( (type == null || !Parameter.apgenTypes.contains(type)) && !Utils.valuesEqual(name, type) && isResourceState( name ) ) {
+            return "\"" + d.toJavaString() + "\"";
+        }
         return d.toJavaString();
     }
+
+    public boolean isResourceState( String ident ) {
+        Collection<Resource> resources = apgenModel.resources.values();
+        for ( Resource r : resources ) {
+            if ( r.states != null && r.stateValues.contains(ident) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The Java type of the K expression.  This is not complete for all expression types.
+     * @param exp an AST element of parsed K; the classes of these elements are found in {@link k.frontend}.AbstractSyntax.scala
+     * @param parent the parent scope, i.e. the name of the class immediately surrounding the expression
+     * @return name of the Java type/class
+     */
+    public String getType(Object exp, Object parent) {
+        LinkedHashSet<String> classNames = getPossibleScopes( parent );
+        String type = null;
+        for ( String className : classNames ) {
+            type = getType(exp, className);
+            if ( type != null && !type.isEmpty() ) break;
+        }
+        return type;
+    }
+
+    /**
+     * The Java type of the K expression.  This is not complete for all expression types.
+     * @param exp an AST element of parsed K; the classes of these elements are found in {@link k.frontend}.AbstractSyntax.scala
+     * @param parent the parent scope, i.e. the name of the class immediately surrounding the expression
+     * @return name of the Java type/class
+     */
+    public String getType(Object exp, String parent) {
+        String javaType = ktoJava.getType(exp, parent);
+        String apgenType = javaToApgenType( javaType );
+        if ( apgenType != null ) {
+            return apgenType;
+        }
+        return javaType;
+    }
+
+    protected LinkedHashSet<String> getPossibleScopes( Object parent ) {
+        LinkedHashSet<String> classNames = new LinkedHashSet<>();
+        if ( parent instanceof Activity ) {
+            classNames.add(((Activity) parent).entityName);
+        }
+        classNames.add(ktoJava.globalName);
+        classNames.add(ktoJava.getClassData().getCurrentClass());
+        return classNames;
+    }
+
+    /**
+     * Try to translate the expression as a reference to a state variable.
+     * @param exp a reference to a state variable; this may be and IdentExp or a DotExp
+     * @param parent the scope in which the variable is referenced
+     * @return the translated name of the state variable or null if not a state variable.
+     */
+    public String translateAsStateVariable(Exp exp, Object parent) {
+        LinkedHashSet<String> classNames = getPossibleScopes( parent );
+        ClassData.Param p = null;
+        for ( String className : classNames ) {
+            ClassData.Param p1 = ktoJava.getMember(exp, className);
+            if (p1 != null && (p == null || (p.type == null && p1.type != null))) {
+                p = p1;
+            }
+        }
+        if ( p != null && p.type != null && ktoJava.isStateVariableType(p.type)) {
+            // FIXME -- TODO -- This assumes only one instance of the state variable.
+            String name = null;
+            if ( !Utils.isNullOrEmpty( p.scope ) ) {
+                name = kToApgenClassName( p.scope ) + "_" + p.name + ".currentval()";
+            } else {
+                name = p.name + ".currentval()";
+            }
+            return name;
+        }
+        return null;
+    }
+
     public String translate(DotExp d, Object parent) {
+        String svString = translateAsStateVariable(d, parent);
+        if ( !Utils.isNullOrEmpty( svString ) ) {
+            return svString;
+        }
         StringBuffer sb = new StringBuffer();
-        sb.append(translate(d.exp(), parent));
+        String scope = translate(d.exp(), parent);
+        sb.append(scope);
         sb.append(".");
         sb.append(d.ident());
+
         return sb.toString();
     }
-    public String translate(IndexExp d, Object parent) { return d.toJavaString(); }
+    public String translate(IndexExp d, Object parent) {
+        return d.toJavaString();
+    }
     public String translate(ClassExp d) {
         return d.toJavaString();
     }
@@ -1005,18 +1173,50 @@ public class KToAPGen {
         return sb.toString();
     }
 
+    public String addIfTheElseFunction(String type) {
+        String fName = "ifThenElse" + Utils.capitalize(type);
+        if ( !apgenModel.functions.containsKey(fName) ) {
+            Function f = new Function();
+            f.name = fName;
+            Parameter pc = new Parameter("c", "boolean", null);
+            Parameter pt = new Parameter("t", type, null);
+            Parameter pf = new Parameter("f", type, null);
+            f.parameters.put("c", pc);
+            f.parameters.put("t", pt);
+            f.parameters.put("f", pf);
+            f.body = "if ( c ) {\n  return t;\n}\nreturn f;";
+            apgenModel.functions.put(fName, f);
+        }
+        return fName;
+    }
+
     public String translate(IfExp d, Object parent) {
         StringBuffer sb = new StringBuffer();
-        sb.append("if (");
+//        String parentName = ktoJava.globalName;
+//        if ( parent instanceof Activity ) {
+//            parentName = ((Activity)parent).entityName;
+//        }
+        String tbType = getType(d.trueBranch(), parent);
+        String fbType = getType(d.falseBranch(), parent);
+        String type = mostSpecificCommonSuperclass( tbType, fbType );
+        String fName = addIfTheElseFunction(type);
+        sb.append( fName );
+        sb.append("(");
+        //sb.append("if (");
         sb.append( translate(d.cond(), parent) );
-        sb.append(") {\n    ");
+        sb.append( ", " );
+        //sb.append(") {\n    ");
         sb.append( translate(d.trueBranch(), parent) );
+        sb.append( ", " );
         Exp fb = get(d.falseBranch());
-        if ( fb != null ) {
-            sb.append(";\n} else {\n    ");
+        if ( fb == null ) {
+            sb.append("null");
+        } else {
+            //sb.append(";\n} else {\n    ");
             sb.append(translate(d.falseBranch(), parent));
         }
-        sb.append(";\n}");
+        sb.append( ")" );
+        //sb.append(";\n}");
 
         return sb.toString();
     }
@@ -1126,7 +1326,9 @@ public class KToAPGen {
         return null;
     }
     public String translate(IntegerLiteral d) {
-        return d.toJavaString();
+        // Don't use toJavaString() here since it adds 'L'
+        // to the end of the number to indicate it is long.
+        return d.toString();
     }
     public String translate(RealLiteral d) {
         return d.toJavaString();
@@ -1294,7 +1496,7 @@ public class KToAPGen {
 //        String t = event.getClass().getSimpleName();
 //        ActivityInstance a = apgenModel.addActivityInstance(n, t);
 //        instances.add(a);
-////        HashSet<HasEvents> seen = new HashSet<HasEvents>();
+////        HashSet<HasEvents> seen = new LinkedHashSet<HasEvents>();
 ////        seen.add(this);
         DurativeEvent durEvent = null;
         if ( event instanceof ParameterListenerImpl ) {

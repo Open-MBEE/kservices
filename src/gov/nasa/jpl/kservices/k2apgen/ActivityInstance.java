@@ -11,7 +11,7 @@ import java.util.*;
  */
 public class ActivityInstance {
 
-    protected static Map<String, Integer> autoIdCounters = new HashMap<String, Integer>();
+    protected static Map<String, Integer> autoIdCounters = new LinkedHashMap<String, Integer>();
 
     String id = null;
     String name = null;

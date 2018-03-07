@@ -1,11 +1,11 @@
 package gov.nasa.jpl.kservices.k2apgen;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class Function {
     String name = null;
-    Map<String, Parameter> parameters = new TreeMap<>();
+    Map<String, Parameter> parameters = new LinkedHashMap<>();
     String body = null;
 
     @Override
@@ -35,9 +35,9 @@ public class Function {
         if ( numParms == 0 ) {
             sb.append("            ();\n");
         }
-        sb.append("    {");
+        sb.append("    {\n");
         sb.append(Util.indent(body, 8));
-        sb.append("    }");
+        sb.append("\n    }");
         return sb.toString();
     }
 }

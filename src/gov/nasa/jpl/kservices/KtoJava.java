@@ -7,7 +7,7 @@ import gov.nasa.jpl.ae.event.ConstructorCall;
 import gov.nasa.jpl.ae.event.DurativeEvent;
 import gov.nasa.jpl.ae.event.TimeVarying;
 import gov.nasa.jpl.ae.event.TimeVaryingMap;
-import org.apache.commons.lang3.reflect.MethodUtils;
+//import org.apache.commons.lang3.reflect.MethodUtils;
 
 import gov.nasa.jpl.ae.util.CaptureStdoutStderr;
 import gov.nasa.jpl.ae.util.ClassData;
@@ -132,7 +132,7 @@ public class KtoJava {
         // Debug.turnOn();
         this.constraintCounter = 0;
         this.expressionCounter = 0;
-        this.expressionTranslators = new HashMap<String, JavaToConstraintExpression>();
+        this.expressionTranslators = new LinkedHashMap<String, JavaToConstraintExpression>();
                 //new JavaToConstraintExpression( packageName );
 
         if ( verbose ) {
@@ -760,8 +760,16 @@ public class KtoJava {
 //            if ( !( typeOld.equals( "Boolean" ) || typeOld.equals( "Double" )
 //                    || typeOld.equals( "Integer" ) || typeOld.equals( "Long" )
 //                    || typeOld.equals( "String" ) ) ) {
+                String clsString = "(Class)null";
                 if ( isStateVariableType( typeOld ) ) {
-                    value = "new " + type + "(\"" + p.name()+ "\", (String)null, null, (Class)null)";
+                    if ( type.startsWith("TimeVarying") && type.contains("<") || (type.contains("[") && type.contains("]") ) ) {
+                        String t2 = type.replaceAll("\\[", "<").replaceAll("\\]", ">");
+                        String typeParameter = ClassUtils.parameterPartOfName( t2, false );
+                        if ( !Utils.isNullOrEmpty(typeParameter) ) {
+                            clsString = typeParameter + ".class";
+                        }
+                    }
+                    value = "new " + type + "(\"" + p.name()+ "\", (String)null, null, " + clsString + ")";
                 } else {
                     value = "new " + type + "()";
                 }
@@ -1215,18 +1223,18 @@ public class KtoJava {
         createEnclosingInstanceStatment( entity,initMembers );
 
         ArrayList<FieldDeclaration> effects = null;
-          effects = getEffects( entity,
-                                initMembers );
+        effects = getEffects( entity, initMembers, false);  // TODO -- should deep be true?
         Collection< FieldDeclaration > elaborations = null;
-          elaborations =
-              getElaborations( entity,
-                               initElaborations );
+        elaborations = getElaborations( entity, initElaborations );
 
         
         parameters.addAll( getExpressions( entity, initMembers ) );
 
         members.addAll( parameters );
         members.addAll( constraints );
+        members.addAll( effects );
+        members.addAll( elaborations );
+
         addTryCatchToInitMembers( initMembers );
         
 
@@ -1378,6 +1386,7 @@ public class KtoJava {
         return getEffect(exp) != null;
     }
     public FunApplExp getEffect(HasChildren exp) {
+        if ( exp == null ) return null;
 //        if ( exp instanceof BinExp ) {
 //            BinExp fae = (BinExp)exp;
 //            FunApplExp e = getEffect( fae.exp1() );
@@ -1443,6 +1452,150 @@ public class KtoJava {
         return false;
     }
 
+
+    public ClassData.Param getMember( Exp e, String classScope ) {
+        if (e instanceof DotExp) {
+            return getMember((DotExp) e, classScope);
+        } else if (e instanceof IdentExp) {
+            return getMember((IdentExp) e, classScope);
+        } // REVIEW -- TODO -- other cases?
+        return null;
+    }
+
+    public ClassData.Param getMember( IdentExp e, String classScope ) {
+        String oldCurrentClass = getClassData().getCurrentClass();
+        getClassData().setCurrentClass( classScope );
+        ClassData.Param p = null;
+        try {  // This try/catch/finally is probably not necessary.
+            p = getClassData().getParam(null, e.ident(), true, true,
+                    false, false);
+        } catch (Throwable t) {
+            // ignore
+        } finally {
+            getClassData().setCurrentClass( oldCurrentClass );
+        }
+        return p;
+    }
+
+    public ClassData.Param getMember( DotExp de, String classScope ) {
+        String type = globalName;
+        String name = null;
+        japa.parser.ast.expr.Expression javaExp =
+                JavaToConstraintExpression.parseExpression(de.exp().toJavaString());
+        name = de.ident();
+        String oldCurrentClass = getClassData().getCurrentClass();
+        getClassData().setCurrentClass( classScope );
+        ClassData.Param p = null;
+        try {  // This try/catch/finally is probably not necessary.
+            type = expressionTranslator().astToAeExprType(javaExp, name, true, false);
+            if ( name != null ) {
+                p = getClassData().lookupMemberByName(type, name, true, false);
+            }
+        } catch (Throwable t) {
+            // ignore
+        } finally {
+            getClassData().setCurrentClass( oldCurrentClass );
+        }
+        return p;
+    }
+
+    /**
+     * The Java type of the K expression.  This is not complete for all expression types.
+     * @param exp an AST element of parsed K; the classes of these elements are found in {@link k.frontend}.AbstractSyntax.scala
+     * @param parent the parent scope, i.e. the name of the class immediately surrounding the expression
+     * @return name of the Java type/class
+     */
+    public String getType(Object exp, String parent) {
+        if ( exp == null ) return null;
+        if ( exp instanceof HasChildren ) {
+            return getType((HasChildren)exp, parent);
+        }
+        // These don't inherit from HasChildren
+        if ( exp instanceof ThisLiteral ) {
+            return parent;
+        }
+        if ( exp instanceof NullLiteral ) {
+            return "Object";
+        }
+        String javaString = null;
+        if ( exp instanceof Exp ) {
+            javaString = ((Exp) exp).toJavaString();
+        } else {
+            javaString = "" + exp;
+        }
+        japa.parser.ast.expr.Expression javaExp =
+                JavaToConstraintExpression.parseExpression(javaString);
+        String type = expressionTranslator().astToAeExprType(javaExp, null, true, false);
+
+        return type;
+    }
+
+    /**
+     * The Java type of the K expression.  This is not complete for all expression types.
+     * @param exp an AST element of parsed K; the classes of these elements are found in {@link k.frontend}.AbstractSyntax.scala
+     * @param parent the parent scope, i.e. the name of the class immediately surrounding the expression
+     * @return name of the Java type/class
+     */
+    public String getType(HasChildren exp, String parent) {
+        String type = globalName;
+        String name = null;
+        if ( exp instanceof DotExp ) {
+            DotExp de = (DotExp)exp;
+            japa.parser.ast.expr.Expression javaExp =
+                    JavaToConstraintExpression.parseExpression(de.exp().toJavaString());
+            name = de.ident();
+            type = expressionTranslator().astToAeExprType(javaExp, name, true, false);
+        } else
+        if ( exp instanceof IdentExp ) {
+            //String type = ktoJava.globalName;
+            type = getClassData().getClassNameWithScope( ((IdentExp)exp).toJavaString());
+            if ( type == null ) {
+                type = getClassData().getClassNameWithScope(parent);
+                name = ((IdentExp)exp).toJavaString();
+            }
+        } else
+        if ( exp instanceof StringLiteral ) {
+            type = "String";
+        } else
+        if ( exp instanceof RealLiteral ) {
+            type = "Double";
+        } else
+        if ( exp instanceof IntegerLiteral ) {
+            type = "Integer";
+        } else
+        if ( exp instanceof BooleanLiteral ) {
+            type = "Boolean";
+        } else
+        if ( exp instanceof DateLiteral ) {
+            type = "Date";
+        } else
+        if ( exp instanceof DurationLiteral ) {
+            type = "Duration";
+        } else
+        if ( exp instanceof CharacterLiteral ) {
+            type = "Character";
+        } else {
+            String javaString = null;
+            if ( exp instanceof Exp ) {
+                javaString = ((Exp) exp).toJavaString();
+            } else {
+                javaString = "" + exp;
+            }
+            japa.parser.ast.expr.Expression javaExp =
+                    JavaToConstraintExpression.parseExpression(javaString);
+            type = expressionTranslator().astToAeExprType(javaExp, null, true, false);
+        }
+
+        if ( name != null ) {
+            ClassData.Param p = getClassData().lookupMemberByName(type, name, true, false);
+            if (p != null && p.type != null) {
+                type = p.type;
+            }
+        }
+
+        return type;
+    }
+
     public boolean hasNonResourceVariable(ConstraintDecl constraintDecl, String parent ) {
         return hasNonResourceVariable( constraintDecl.exp(), parent );
     }
@@ -1482,16 +1635,73 @@ public class KtoJava {
     }
 
 
-
-    // TODO???
+    /**
+     * Gather the effects of this entity but not in nested EntityDecls.
+     * @param entity
+     * @param initMembers
+     * @return
+     */
     public ArrayList<FieldDeclaration>
-    getEffects(EntityDecl entity, MethodDeclaration initMembers) {
-        ArrayList<FieldDeclaration> effects =
-                new ArrayList<FieldDeclaration>();
-
-        //FieldDeclaration f;
-
+    getEffects(MemberDecl entity, MethodDeclaration initMembers, boolean deep) {
+        ArrayList<FieldDeclaration> effects = new ArrayList<FieldDeclaration>();
+        if ( entity == null || entity.children() == null ) return effects;
+        Collection<Object> children = JavaConversions.asJavaCollection(entity.children());
+        for ( Object c : children ) {
+            Exp exp = null;
+            if ( c instanceof PropertyDecl ) {
+                exp = get(((PropertyDecl) c).expr());
+            } else if ( c instanceof ConstraintDecl ) {
+                exp = ((ConstraintDecl) c).exp();
+            } else if ( c instanceof ExpressionDecl ) {
+                exp = ((ExpressionDecl) c).exp();
+            } else if ( deep && c instanceof FunDecl ) {
+                ArrayList<FieldDeclaration> someEffects = getEffects((FunDecl)c, initMembers, deep);
+                effects.addAll(someEffects);
+            } else if ( deep && c instanceof EntityDecl ) {
+                ArrayList<FieldDeclaration> someEffects = getEffects((EntityDecl)c, initMembers, deep);
+                effects.addAll(someEffects);
+            }
+            if ( exp != null ) {
+                ArrayList<FieldDeclaration> someEffects = getEffects(exp, initMembers);
+                effects.addAll(someEffects);
+            }
+        }
         return effects;
+    }
+
+    public ArrayList<FieldDeclaration>
+    getEffects(Exp exp, MethodDeclaration initMembers) {
+        ArrayList<FieldDeclaration> effects = new ArrayList<FieldDeclaration>();
+        if ( isEffect(exp) ) {
+            Expression expr = expressionTranslator().parseExpression( exp.toJavaString() );
+            List<Pair<String, FieldDeclaration>> fields =
+                    EventXmlToJava.createEffectField(expr, initMembers, getExpressionTranslator());
+            for ( Pair<String, FieldDeclaration> p : fields ) {
+                effects.add(p.second);
+            }
+        }
+        if ( exp == null || exp.children() == null ) return effects;
+        Collection<Object> children = JavaConversions.asJavaCollection(exp.children());
+        for ( Object c : children ) {
+            if (c instanceof HasChildren) {
+                if (c instanceof Exp ) {
+                    ArrayList<FieldDeclaration> someEffects = getEffects((Exp)c, initMembers);
+                    effects.addAll(someEffects);
+                }
+            }
+        }
+        return effects;
+    }
+
+
+    public boolean isEffect(HasChildren exp) {
+        if ( exp instanceof FunApplExp ) {
+            FunApplExp f = (FunApplExp)exp;
+            if ( f.name() != null && TimeVaryingMap.effectMethodNames().contains(f.name())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // TODO???

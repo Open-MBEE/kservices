@@ -1,12 +1,6 @@
 package gov.nasa.jpl.kservices.sysml2k;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Optional;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -18,7 +12,7 @@ public class S2KLearner {
   private static Collection<Template> standardTemplates = null; 
   private static final Set<String> tagBlacklist = makeTagBlacklist();
   private static Set<String> makeTagBlacklist() {
-    Set<String> output = new HashSet<String>();
+    Set<String> output = new LinkedHashSet<String>();
     
     output.add("documentation");
     

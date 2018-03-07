@@ -341,7 +341,7 @@ public class TestGenerator {
         if ( tests == null || tests.isEmpty() ) {
             return 0;
         }
-        Map<Integer, Map<Integer, Map<Integer, Set<Integer>> > > pairs = new HashMap<>();
+        Map<Integer, Map<Integer, Map<Integer, Set<Integer>> > > pairs = new LinkedHashMap<>();
         for ( int t=0; t < tests.size(); ++t ) {
             int tz = tests.get(t).size();
             for ( int i = 0; i < tz-1; ++i ) {
@@ -404,7 +404,7 @@ public class TestGenerator {
                         int i, int j, int u, int v ) {
         Map<Integer, Map<Integer, Set<Integer>>> first = pairs.get(i);
         if ( first == null ) {
-            first = new HashMap<>();
+            first = new LinkedHashMap<>();
             pairs.put(i, first);
         }
         return putPair1(first, j, u, v);
@@ -414,7 +414,7 @@ public class TestGenerator {
                           int j, int u, int v) {
         Map<Integer, Set<Integer>> second = first.get(j);
         if ( second == null ) {
-            second = new HashMap<>();
+            second = new LinkedHashMap<>();
             first.put(j, second);
         }
         Set<Integer> s = second.get(u);
@@ -774,7 +774,7 @@ public class TestGenerator {
         System.out.println("total pairs = " + totalPairs);
 
 //        Map<Integer, Map<Integer, Map<Integer, Set<Integer> > > > pairs =
-//                new HashMap<>();
+//                new LinkedHashMap<>();
         Vector<Vector<Vector<Vector<Boolean>>>> pairs = gotPair;
         int numPairs = 0;
 
