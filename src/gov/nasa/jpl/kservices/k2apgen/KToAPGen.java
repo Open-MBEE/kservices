@@ -246,6 +246,9 @@ public class KToAPGen {
     }
 
     public APGenModel translate(Model model) {
+        // Preprocess top level to find constraints that could be merged with property declarations.
+        unitePropertiesAndConstraints( model ); // ok to call multiple times for same parent
+
         // TODO -- model.packageName() -- use package as prefix of on names of contained elements?
         Collection<PackageDecl> packages = JavaConversions.asJavaCollection( model.packages() );
         for ( PackageDecl p: packages ) {
@@ -267,7 +270,7 @@ public class KToAPGen {
         return apgenModel;
     }
 
-    private void translate(EntityDecl e, Object parent) {
+    protected void translate(EntityDecl e, Object parent) {
         Activity activity = new Activity();
         activity.entityName = e.ident();
         activity.name = kToApgenClassName(e.ident());
@@ -279,6 +282,9 @@ public class KToAPGen {
         if ( apgenModel.resources.containsKey( activity.name ) ) {
             return;
         }
+
+        // Preprocess entity to find constraints that could be merged with property declarations.
+        unitePropertiesAndConstraints( e ); // ok to call multiple times for same parent
 
         activity.parentScope = parent;
         String pattern = "^" + ktoJava.globalName + "[._]";
@@ -409,16 +415,117 @@ public class KToAPGen {
         // TODO -- maybe keep a list of aliases and never explicitly translate but always replace with type on rhs.
         // TODO -- APGen has typedefs for structs and lists.
     }
+
+    protected Map<String, Map<String, Pair<ConstraintDecl, Exp> > > propertyValuesInConstraints = new LinkedHashMap<>();
+    protected Set< ConstraintDecl > constraintsInPropertDecls = new LinkedHashSet<>();
+
+    /**
+     * When a property is declared separate from it's value, put the value back into the property.<p>
+     * More specifically, look for a constraint with the form<br>
+     * <pre>
+     * req x = someFunctionOrFormula()
+     * </pre>
+     * We remove the contraint and make <code>someFunctionOrFormula()}</code> the value in the property declaration of <code>x</code>.<p>
+     *
+     * So, we effectively replace
+     * <pre>
+     * var x : SomeType
+     * req x = someFunctionOrFormula()
+     * </pre>
+     * with
+     * <pre>
+     * var x : SomeType = someFunctionOrFormula()
+     * </pre>
+     *
+     * @param parent
+     */
+    protected void unitePropertiesAndConstraints( HasChildren parent ) {
+        if ( parent == null ) return;
+        String x = null;
+        if ( parent instanceof EntityDecl ) {
+            x = ((EntityDecl) parent).ident();
+        } else {//if ( parent instanceof APGenModel ) {
+            x = "Global";
+        }
+        if ( propertyValuesInConstraints.containsKey( x ) ) {
+            // Already did this computation.
+            return;
+        }
+
+        // Make maps for efficient, simple lookup
+        Map<String, PropertyDecl > props = new LinkedHashMap<>();
+        Map<String, ConstraintDecl > constrs = new LinkedHashMap<>();
+        Map<String, Exp > constrRHSs = new LinkedHashMap<>();
+
+        Collection<Object> children = JavaConversions.asJavaCollection(parent.children());
+        for ( Object child : children ) {
+            Exp e = null;
+            if ( child instanceof ConstraintDecl ) {
+                ConstraintDecl c = (ConstraintDecl) child;
+                e = c.exp();
+                if ( e instanceof BinExp && ((BinExp) e).op() instanceof EQ$ ) {
+                    BinExp be = (BinExp) e;
+                    if ( be.exp1() instanceof IdentExp ) {
+                        String name = ((IdentExp)be.exp1()).ident();
+                        constrs.put(name, c);
+                        constrRHSs.put(name, be.exp2());
+                    }
+                }
+            } else if ( child instanceof PropertyDecl ) {
+                PropertyDecl p = (PropertyDecl) child;
+                props.put(p.name(), p);
+            }
+        }
+
+        // Now match constraints to the property, and if the property does not already have a value, put the right hand side of the constraint in as the value, and remove the constraint.
+        for ( Map.Entry<String, Exp > entry : constrRHSs.entrySet() ) {
+            String name = entry.getKey();
+            PropertyDecl prop = props.get(name);
+            if ( prop != null && get(prop.expr()) == null ) {
+                Utils.put( propertyValuesInConstraints,
+                           x,
+                           name,
+                           new Pair<>(constrs.get(name), entry.getValue()) );
+//                        Option<Exp> val = Option.apply(entry.getValue());
+//                        PropertyDecl newProp =
+//                        new PropertyDecl(prop.modifiers(), prop.name(),
+//                                prop.ty(), prop.multiplicity(), prop.assignment(),
+//                                val);
+            }
+        }
+    }
+
+
     public String translate(PropertyDecl d, Object parent) {
-        Exp expr = get(d.expr());
+        Exp expr = get(d.expr()); // the property value
+
+        // If there is an equals constraint with this property alone on the
+        // left hand side, use the right hand side as the value and skip
+        // processing the constraint later.
+        if ( expr == null ) {
+            Map<String, Exp > constrs = new LinkedHashMap<>();
+            String name = null;
+            if ( parent instanceof Activity ) {
+                name = ((Activity) parent).entityName;
+            } else if ( parent instanceof APGenModel ) {
+                name = "Global";
+            }
+            Pair<ConstraintDecl, Exp> p =
+                    Utils.get(propertyValuesInConstraints, name, d.name());
+            if ( p != null ) {
+                expr = p.second;
+                if ( p.first != null ) {
+                    constraintsInPropertDecls.add( p.first );
+                }
+            }
+        }
         if ( expr != null && containsConstructorCall( expr ) ) {
             addDecomposition(expr, parent);
             return null;
         }
+
         String modeling = translateEffect(expr, parent);
-//        if ( !Utils.isNullOrEmpty(modeling) ) {
-//            return modeling;
-//        }
+
         String exprString = translate(expr, parent);
         Parameter pp =
                 new Parameter(d.name(),
@@ -431,7 +538,11 @@ public class KToAPGen {
         } else if ( parent instanceof Function ) {
             ((Function)parent).parameters.put(pp.name, pp);
         }
-        translateResource(d, parent);
+        Option<Exp> val = Option.apply(expr);
+        PropertyDecl newProp = new PropertyDecl(d.modifiers(), d.name(),
+                                d.ty(), d.multiplicity(), d.assignment(),
+                                val);
+        translateResource(newProp, parent);
         return modeling;
     }
 
@@ -714,6 +825,10 @@ public class KToAPGen {
         f.name = d.ident();
         Collection<Param> params = JavaConversions.asJavaCollection( d.params() );
 
+        // Preprocess entity to find constraints that could be merged with property declarations.
+        unitePropertiesAndConstraints( d ); // ok to call multiple times for same parent
+
+
         if ( parent instanceof APGenModel ) {
             ((APGenModel)parent).functions.put(f.name, f);
         } else if ( parent instanceof Activity ) {
@@ -755,6 +870,9 @@ public class KToAPGen {
     }
 
     public String translate(ConstraintDecl d, Object parent) {
+        if ( constraintsInPropertDecls.contains( d ) ) {
+            return "";
+        }
         // Create a timeline and constraint
         if ( d.toString().contains("Timepoint.set") ) {
             return "";
@@ -767,7 +885,8 @@ public class KToAPGen {
         // TODO -- need to create a resource for all of the non-resource variables in the constraint, but
         // there's a problem where each instance of an activity creates new variables, and resources
         // aren't meant to be created on-the-fly, but Pierre mentioned a capability to create a resource
-        // on the fly.
+        // on the fly.  We have all of the Event/object instances in the solution, so hopefully won't
+        // need the on-the-fly resource creation.
 
         // So, if the constraint involves a variable that is not a resource, bail.
         String parentName = ktoJava.globalName;
@@ -784,7 +903,7 @@ public class KToAPGen {
         } else {
             r.name = toIdentifier("res_" + d );
         }
-        r.otherAttributes.put("Description", "resource for constraint, " + d.toString().replaceAll("^req ", "").replaceAll("\"", "'"));
+        r.otherAttributes.put("Description", "resource for constraint, " + d.toString().replaceAll("^req ", "").replaceAll("\"", "'").replaceAll("\n", " "));
         r.otherAttributes.put("Legend", r.name);
         r.otherAttributes.put("Color", "Green");
         r.type = "string";
@@ -796,8 +915,8 @@ public class KToAPGen {
 
         Constraint c = new Constraint();
         c.name = "c_" + r.name.replace("res_", "");
-        c.condition = r.name + " == \"active\" && (" + translate(d.exp(), parent) + ")";
-        c.message = "failed assertion: " + c.condition;
+        c.condition = (r.name + " == \"active\" && (" + translate(d.exp(), parent) + ")").replaceAll(".currentval[(][)]", "");
+        c.message = ("failed assertion: " + c.condition).replaceAll("\"", "'").replaceAll("\n", " ").replaceAll(".currentval[(][)]", "");
 
         // effect on resource in activity
         String vName = "constraint_" + r.name.replace("res_", "");
@@ -830,11 +949,11 @@ public class KToAPGen {
             put("[ _]*<=[ _]*", " lte ");
             put("[ _]*<[ _]*", " lt ");
             put("[ _]*==?[ _]*", " eq ");
-            put("[ _]*+[ _]*", " plus ");
+            put("[ _]*[+][ _]*", " plus ");
             put("[ _]*-[ _]*", " minus ");
             put("[ _]*[*][ _]*", " times ");
             put("[ _]*[/][ _]*", " div ");
-            put("[ _]*%[ _]*", " mod ");
+            put("[ _]*[%][ _]*", " mod ");
             put("[^0-9A-Za-z_][^0-9A-Za-z_]*", "_");
         }
     };
@@ -1197,7 +1316,7 @@ public class KToAPGen {
 //            parentName = ((Activity)parent).entityName;
 //        }
         String tbType = getType(d.trueBranch(), parent);
-        String fbType = getType(d.falseBranch(), parent);
+        String fbType = getType(get(d.falseBranch()), parent);
         String type = mostSpecificCommonSuperclass( tbType, fbType );
         String fName = addIfTheElseFunction(type);
         sb.append( fName );
@@ -1719,7 +1838,7 @@ public class KToAPGen {
         } else {
             r.name = "res_" + ("" + c).replaceAll("[^0-9A-Za-z_][^0-9A-Za-z_]*", "_");
         }
-        r.otherAttributes.put("Description", "resource for constraint, " + ("" + c).replaceAll("\"", "'"));
+        r.otherAttributes.put("Description", "resource for constraint, " + ("" + c).replaceAll("\"", "'").replaceAll("\n", " "));
         r.otherAttributes.put("Legend", r.name);
         r.otherAttributes.put("Color", "Green");
         r.type = "string";

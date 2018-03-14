@@ -1222,7 +1222,7 @@ public class KtoJava {
                 getConstraints( entity, initMembers );
         createEnclosingInstanceStatment( entity,initMembers );
 
-        ArrayList<FieldDeclaration> effects = null;
+        ArrayList<Pair<String, FieldDeclaration>> effects = null;
         effects = getEffects( entity, initMembers, false);  // TODO -- should deep be true?
         Collection< FieldDeclaration > elaborations = null;
         elaborations = getElaborations( entity, initElaborations );
@@ -1232,7 +1232,9 @@ public class KtoJava {
 
         members.addAll( parameters );
         members.addAll( constraints );
-        members.addAll( effects );
+        for ( Pair< String, FieldDeclaration > p : effects ) {
+            members.add( p.second );
+        }
         members.addAll( elaborations );
 
         addTryCatchToInitMembers( initMembers );
@@ -1240,7 +1242,7 @@ public class KtoJava {
 
         MethodDeclaration initCollections =
                 createInitCollectionsMethod( "init" + newClassDecl.getName()
-                                             + "Collections", parameters, constraints );
+                                             + "Collections", parameters, constraints, effects );
 
         // Add fields and methods to class declaration.
         for ( FieldDeclaration f : members ) {
@@ -1641,9 +1643,9 @@ public class KtoJava {
      * @param initMembers
      * @return
      */
-    public ArrayList<FieldDeclaration>
+    public ArrayList<Pair<String, FieldDeclaration>>
     getEffects(MemberDecl entity, MethodDeclaration initMembers, boolean deep) {
-        ArrayList<FieldDeclaration> effects = new ArrayList<FieldDeclaration>();
+        ArrayList<Pair<String, FieldDeclaration>> effects = new ArrayList<Pair<String, FieldDeclaration>>();
         if ( entity == null || entity.children() == null ) return effects;
         Collection<Object> children = JavaConversions.asJavaCollection(entity.children());
         for ( Object c : children ) {
@@ -1655,37 +1657,35 @@ public class KtoJava {
             } else if ( c instanceof ExpressionDecl ) {
                 exp = ((ExpressionDecl) c).exp();
             } else if ( deep && c instanceof FunDecl ) {
-                ArrayList<FieldDeclaration> someEffects = getEffects((FunDecl)c, initMembers, deep);
+                ArrayList<Pair<String, FieldDeclaration>> someEffects = getEffects((FunDecl)c, initMembers, deep);
                 effects.addAll(someEffects);
             } else if ( deep && c instanceof EntityDecl ) {
-                ArrayList<FieldDeclaration> someEffects = getEffects((EntityDecl)c, initMembers, deep);
+                ArrayList<Pair<String, FieldDeclaration>> someEffects = getEffects((EntityDecl)c, initMembers, deep);
                 effects.addAll(someEffects);
             }
             if ( exp != null ) {
-                ArrayList<FieldDeclaration> someEffects = getEffects(exp, initMembers);
+                ArrayList<Pair<String, FieldDeclaration>> someEffects = getEffects(exp, initMembers);
                 effects.addAll(someEffects);
             }
         }
         return effects;
     }
 
-    public ArrayList<FieldDeclaration>
+    public ArrayList<Pair<String, FieldDeclaration>>
     getEffects(Exp exp, MethodDeclaration initMembers) {
-        ArrayList<FieldDeclaration> effects = new ArrayList<FieldDeclaration>();
+        ArrayList<Pair<String, FieldDeclaration>> effects = new ArrayList<Pair<String, FieldDeclaration>>();
         if ( isEffect(exp) ) {
             Expression expr = expressionTranslator().parseExpression( exp.toJavaString() );
             List<Pair<String, FieldDeclaration>> fields =
                     EventXmlToJava.createEffectField(expr, initMembers, getExpressionTranslator());
-            for ( Pair<String, FieldDeclaration> p : fields ) {
-                effects.add(p.second);
-            }
+            effects.addAll(fields);
         }
         if ( exp == null || exp.children() == null ) return effects;
         Collection<Object> children = JavaConversions.asJavaCollection(exp.children());
         for ( Object c : children ) {
             if (c instanceof HasChildren) {
                 if (c instanceof Exp ) {
-                    ArrayList<FieldDeclaration> someEffects = getEffects((Exp)c, initMembers);
+                    ArrayList<Pair<String, FieldDeclaration>> someEffects = getEffects((Exp)c, initMembers);
                     effects.addAll(someEffects);
                 }
             }
@@ -2325,7 +2325,8 @@ public class KtoJava {
             createInitCollectionsMethod( String methodName,
                                          Collection< FieldDeclaration > parameters,
 
-                                         Collection< FieldDeclaration > constraints ) {
+                                         Collection< FieldDeclaration > constraints,
+                                         Collection<  Pair< String, FieldDeclaration > > effects ) {
         MethodDeclaration initCollections =
                 new MethodDeclaration( ModifierSet.PROTECTED, new VoidType(),
                                        methodName );
@@ -2339,6 +2340,15 @@ public class KtoJava {
                 createStmtsFromFieldCollection( "constraintExpressions.add( ",
                                                 constraints, " );\n" );
         addStmts( block, stmtList );
+
+        if ( effects != null ) {
+            stmtList = EventXmlToJava.createEffectStmtsFromFieldCollection(
+                    "addEffects( (Parameter< ? >)",
+                    effects,
+                    " );\n",
+                    getClassData() );
+            addStmts( block, stmtList );
+        }
 
         initCollections.setBody( block );
         return initCollections;
