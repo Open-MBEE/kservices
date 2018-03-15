@@ -703,7 +703,8 @@ public class KtoJava {
         String type =
                 JavaToConstraintExpression.typeToClass( p.ty().toJavaString() );
         String value = p.expr().get().toJavaString();
-        if ( value.startsWith( type + "(" ) ) {
+        if ( value.matches("[_A-Za-z0-9.]*" + type + "[(].*") ) {
+        //if ( value.startsWith( type + "(" ) ) {
             return true;
         }
         return false;
@@ -777,7 +778,8 @@ public class KtoJava {
         } else {
             value = makeExpressionString(p.expr().get()); 
             if ( isConstructorDecl( p ) ) {
-                value = "new " + value;
+                //value = "new " + value;
+                value = "null";
             }
         }
         String entityName = e == null ? null : getClassName(e);
@@ -1225,7 +1227,7 @@ public class KtoJava {
         ArrayList<Pair<String, FieldDeclaration>> effects = null;
         effects = getEffects( entity, initMembers, false);  // TODO -- should deep be true?
         Collection< FieldDeclaration > elaborations = null;
-        elaborations = getElaborations( entity, initElaborations );
+        elaborations = getElaborations( entity, initElaborations, false );
 
         
         parameters.addAll( getExpressions( entity, initMembers ) );
@@ -1427,6 +1429,16 @@ public class KtoJava {
             // TODO???
         }
         return null;
+    }
+    public Pair<List<FunApplExp>, List<FunApplExp>> getElaborationExpressions(HasChildren exp) {
+        if ( exp == null ) return null;
+        ArrayList<FunApplExp> kConstructorCalls = new ArrayList<FunApplExp>();
+        findKConstructorCalls( exp, kConstructorCalls, null );
+        // Create constructors from calls to elaborate().
+        ArrayList<FunApplExp> elaborationCalls = new ArrayList<FunApplExp>();
+        findElaborationExpressions( exp, elaborationCalls, null );
+        //elaborationCalls.addAll(kConstructorCalls, elaborationCalls);
+        return new Pair(kConstructorCalls, elaborationCalls);
     }
 
 
@@ -1704,15 +1716,60 @@ public class KtoJava {
         return false;
     }
 
+    /**
+     * Get the field declarations for adding elaborations to the event.
+     * Elaborations can show up as constructor calls or elaborate() calls.
+     * A constructor call may be constrained to equal a Parameter, or
+     * it may be part of a larger expression in a constraint.  In the case that
+     * the elaboration is re-instantiated (maybe due to a change in arguments),
+     * the old elaboration needs to be deconstructed.
+     * @param entity
+     * @param initMembers
+     * @param deep
+     * @return
+     */
     // TODO???
     public ArrayList< FieldDeclaration >
-           getElaborations( EntityDecl entity, MethodDeclaration initMembers ) {
+           getElaborations( EntityDecl entity, MethodDeclaration initMembers, boolean deep ) {
         ArrayList< FieldDeclaration > elaborations =
                 new ArrayList< FieldDeclaration >();
+        return elaborations;
+        /*
+        Pair<List<FunApplExp>, List<FunApplExp>> p = getElaborationExpressions(entity);
+        // constructor calls
+        for ( FunApplExp fae : p.first ) {
+            EventXmlToJava.createElaborationField(name, enclosingInstance, eventType, eventName,
+                    arguments, fromTimeVarying, conditionExpression, applicableStartTime,
+                    applicableEndTime, initMembers,
+                    getExpressionTranslator(), getClassData());
+        }
+        if ( entity == null || entity.children() == null ) return elaborations;
+        Collection<TopDecl> children = JavaConversions.asJavaCollection(entity.children());
+        for ( TopDecl c : children ) {
+            Exp exp = null;
+            if ( c instanceof PropertyDecl ) {
+                exp = get(((PropertyDecl) c).expr());
+            } else if ( c instanceof ConstraintDecl ) {
+                exp = ((ConstraintDecl) c).exp();
+            } else if ( c instanceof ExpressionDecl ) {
+                exp = ((ExpressionDecl) c).exp();
+            } else if ( deep && c instanceof FunDecl ) {
+                ArrayList<FieldDeclaration> someElabs = getElaborations((FunDecl)c, initMembers, deep);
+                elaborations.addAll(someElabs);
+            } else if ( deep && c instanceof EntityDecl ) {
+                ArrayList<FieldDeclaration> someElabs = getElaborations((EntityDecl)c, initMembers, deep);
+                elaborations.addAll(someElabs);
+            }
+            if ( exp != null ) {
+                ArrayList<FieldDeclaration> someElabs = getEffects(exp, initMembers);
+                elaborations.addAll(someElabs);
+            }
+        }
         //FieldDeclaration f;
 
         
         return elaborations;
+        */
     }
 
     // Add constructors for invocations.
