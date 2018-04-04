@@ -1,7 +1,7 @@
-var netPower : TimeVaryingMap = TimeVaryingMap("", "/Users/ayelaman/git/kservices/src/kTestCases/BusPower.csv", null, Double.class)
+var netPower : TimeVaryingMap = TimeVaryingMap("", "/Users/bclement/git/kservices/src/kTestCases/BusPower.csv", null, Double.class)
 var netPowerIntegrated : TimeVaryingMap = netPower.integrate()
 var netDeltaWattHours : TimeVaryingMap = netPowerIntegrated.getDeltaMap()
-var batteryVoltage : TimeVaryingMap = TimeVaryingMap("", "/Users/ayelaman/git/kservices/src/kTestCases/batteryVoltage.csv", null, Double.class)
+var batteryVoltage : TimeVaryingMap = TimeVaryingMap("", "/Users/bclement/git/kservices/src/kTestCases/batteryVoltage.csv", null, Double.class)
 var rechargeEfficiency : Real = 0.95
 var ahCapacityBattery : Real = 183.0
 

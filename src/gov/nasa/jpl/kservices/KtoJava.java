@@ -500,12 +500,16 @@ public class KtoJava {
             paramTable.put( entityName, params );
 
         }
+        // Add inherited parameters.
         for ( EntityDecl entity : this.allClasses ) { // pass 2
             String entityName = getClassName( entity );
             params = paramTable.get( entityName );
             Set< String > extendingList =
                     classToParentNames.get( entity.ident() );
             for ( String e : extendingList ) {
+                if ( "Event".equals(e) || "DurativeEvent".equals(e) ) {
+                    EventXmlToJava.isEventMap.put(entityName, true);
+                }
                 Map< String, ClassData.Param > otherParams =
                         paramTable.get( getClassName( e ) );
                 if ( otherParams != null ) {
@@ -514,8 +518,13 @@ public class KtoJava {
 
             }
 
+            if ( !EventXmlToJava.isEventMap.containsKey(entityName) ) {
+                Set<String> pNames = classToParentNames.get(entityName);
+                if ( pNames != null && (pNames.contains("Event") || pNames.contains("DurativeEvent")) ) {
+                    EventXmlToJava.isEventMap.put(entityName, true);
+                }
+            }
         }
-
     }
 
     public void
@@ -1253,6 +1262,7 @@ public class KtoJava {
         ASTHelper.addMember( newClassDecl, initMembers );
         ASTHelper.addMember( newClassDecl, initCollections );
         ASTHelper.addMember( newClassDecl, initDependencies );
+        ASTHelper.addMember( newClassDecl, initElaborations );
 
     }
 
@@ -1287,6 +1297,9 @@ public class KtoJava {
         for ( PropertyDecl property : propertyList ) {
             ClassData.Param p = makeParam( property, entity );
             if (p.scope == null && entity != null ) p.scope = getClassName(entity);
+            if ( initializingNull( property ) ) {
+                p.value = "null";
+            }
             f = createParameterField( p, initMembers );
             if ( f != null ) {
                 parameters.add( f );
@@ -1295,6 +1308,14 @@ public class KtoJava {
         }
 
         return parameters;
+    }
+
+    protected boolean initializingNull(PropertyDecl propertDecl) {
+        Exp exp = get(propertDecl.expr());
+        if ( hasElaboration( exp ) ) {
+            return true;
+        }
+        return false;
     }
 
     public ArrayList< FieldDeclaration >
@@ -1430,10 +1451,10 @@ public class KtoJava {
         }
         return null;
     }
-    public Pair<List<FunApplExp>, List<FunApplExp>> getElaborationExpressions(HasChildren exp) {
+    public Pair<List<CallApplExp>, List<FunApplExp>> getElaborationExpressions(HasChildren exp) {
         if ( exp == null ) return null;
-        ArrayList<FunApplExp> kConstructorCalls = new ArrayList<FunApplExp>();
-        findKConstructorCalls( exp, kConstructorCalls, null );
+        ArrayList<CallApplExp> kConstructorCalls = new ArrayList<CallApplExp>();
+        findKConstructorCalls( exp, kConstructorCalls, getClassData(), null );
         // Create constructors from calls to elaborate().
         ArrayList<FunApplExp> elaborationCalls = new ArrayList<FunApplExp>();
         findElaborationExpressions( exp, elaborationCalls, null );
@@ -1716,6 +1737,22 @@ public class KtoJava {
         return false;
     }
 
+    public boolean isEvent( String className ) {
+        boolean isEvent = EventXmlToJava.isEvent(className, getClassData() );
+        return isEvent;
+    }
+
+
+    public boolean hasElaboration( Exp exp ) {
+        ArrayList<FieldDeclaration> elabs = getElaborations( exp, null );
+        if ( !Utils.isNullOrEmpty( elabs ) ) return true;
+        if ( exp instanceof FunApplExp && "elaborates".equals( ((FunApplExp)exp).name() ) ) {
+            return true;
+        }
+        return false;
+    }
+
+
     /**
      * Get the field declarations for adding elaborations to the event.
      * Elaborations can show up as constructor calls or elaborate() calls.
@@ -1723,54 +1760,221 @@ public class KtoJava {
      * it may be part of a larger expression in a constraint.  In the case that
      * the elaboration is re-instantiated (maybe due to a change in arguments),
      * the old elaboration needs to be deconstructed.
+     * <p>
+     * Consider an example:<br>
+     * <code>var x = if b then dog.jump(startTime) else dog.sit(startTime)</code>
+     * <p>
+     * We need an ElaborationRule with <code>b</code> as the condition for
+     * <code>dog.jump()</code> and <code>not(b)</code> as the condition for <code>dog.sit()</code>.
+     * <p>
+     * Consider another example:<br>
+     * <code>req (b && x = dog.jump()) || x = dog.sit()</code>
+     * <p>
+     * We need an ElaborationRule with <code>b</code> as the condition for
+     * <code>dog.jump()</code> and <code>not(b && x = dog.jump())</code> as the condition for <code>dog.sit()</code>.
+     * <p>
+     * Consider another example:<br>
+     * <code>req (x.startTime > foo && x = dog.jump()) || (b && x = dog.sit())</code>
+     * <p>
+     * This is tricky.  The right thing to do is elaborate <code>dog.jump()</code>
+     * and try to satisfy <code>x.startTime > foo</code>, but initially x will be null,
+     * failing <code>x.startTime > foo</code> and blocking the construction of <code>dog.jump()</code>.
+     * Do we try to recognize the dependency of <code>x.startTime > foo</code> on <code>x = dog.jump()</code>?
+     *
      * @param entity
      * @param initMembers
      * @param deep
      * @return
      */
-    // TODO???
     public ArrayList< FieldDeclaration >
            getElaborations( EntityDecl entity, MethodDeclaration initMembers, boolean deep ) {
         ArrayList< FieldDeclaration > elaborations =
                 new ArrayList< FieldDeclaration >();
-        return elaborations;
-        /*
-        Pair<List<FunApplExp>, List<FunApplExp>> p = getElaborationExpressions(entity);
-        // constructor calls
-        for ( FunApplExp fae : p.first ) {
-            EventXmlToJava.createElaborationField(name, enclosingInstance, eventType, eventName,
+
+        /* DurativeEvent.elaborates(..) works when elaborating from a
+           TimeVaryingMap without special translation since it creates
+           elaboration rules. So, code below should not be necessary.
+           If not elaborating from TimeVarying, it's better to elaborate
+           an event in the style of a constructor.
+
+        // This gets elaborations specified with the elaborates() function.
+        //Pair<List<FunApplExp>, List<FunApplExp>> p = getElaborationExpressions(entity);
+        ArrayList<FunApplExp> elaboratesCalls = new ArrayList<FunApplExp>();
+        findElaborationExpressions( entity, elaboratesCalls, null );
+        for ( FunApplExp fae : elaboratesCalls ) {
+            String name = null;
+            Object enclosingInstance = null;
+            String eventType = null;
+            String eventName = null;
+            List<ClassData.Param> arguments = new ArrayList<>();
+            Collection<Argument> args = JavaConversions.asJavaCollection(fae.args());
+            for (Argument a : args) {
+                ClassData.Param p =
+                        new ClassData.Param( null, null,
+                                a.toJavaString(), null );
+                arguments.add(p);
+            }
+            String fromTimeVarying = null;
+            String conditionExpression = null;
+            String applicableStartTime = null;
+            String applicableEndTime = null;
+            // TODO -- need something other than null args
+            EventXmlToJava.createElaborationField(name, (String) enclosingInstance, eventType, eventName,
                     arguments, fromTimeVarying, conditionExpression, applicableStartTime,
                     applicableEndTime, initMembers,
                     getExpressionTranslator(), getClassData());
         }
+        */
         if ( entity == null || entity.children() == null ) return elaborations;
+
+        // Now get elaborations specified like function/constructor calls.
         Collection<TopDecl> children = JavaConversions.asJavaCollection(entity.children());
         for ( TopDecl c : children ) {
-            Exp exp = null;
-            if ( c instanceof PropertyDecl ) {
-                exp = get(((PropertyDecl) c).expr());
-            } else if ( c instanceof ConstraintDecl ) {
-                exp = ((ConstraintDecl) c).exp();
-            } else if ( c instanceof ExpressionDecl ) {
-                exp = ((ExpressionDecl) c).exp();
-            } else if ( deep && c instanceof FunDecl ) {
-                ArrayList<FieldDeclaration> someElabs = getElaborations((FunDecl)c, initMembers, deep);
-                elaborations.addAll(someElabs);
-            } else if ( deep && c instanceof EntityDecl ) {
-                ArrayList<FieldDeclaration> someElabs = getElaborations((EntityDecl)c, initMembers, deep);
-                elaborations.addAll(someElabs);
-            }
-            if ( exp != null ) {
-                ArrayList<FieldDeclaration> someElabs = getEffects(exp, initMembers);
-                elaborations.addAll(someElabs);
+            ArrayList<FieldDeclaration> elabs = getElaborations(c, initMembers, deep);
+            elaborations.addAll(elabs);
+        }
+
+        return elaborations;
+    }
+
+
+    public ArrayList<FieldDeclaration> getElaborations( TopDecl decl,
+                                                       MethodDeclaration initMembers,
+                                                       boolean deep ) {
+        ArrayList<FieldDeclaration> elaborations = new ArrayList<FieldDeclaration>();
+        Exp exp = null;
+        if ( decl instanceof PropertyDecl ) {
+            exp = get(((PropertyDecl) decl).expr());
+        } else if ( decl instanceof ConstraintDecl ) {
+            exp = ((ConstraintDecl) decl).exp();
+        } else if ( decl instanceof ExpressionDecl ) {
+            exp = ((ExpressionDecl) decl).exp();
+        } else if ( deep && decl instanceof FunDecl ) {
+            ArrayList<FieldDeclaration> someElabs =
+                    getElaborations((FunDecl)decl, initMembers, deep);
+            elaborations.addAll(someElabs);
+        } else if ( deep && decl instanceof EntityDecl ) {
+            ArrayList<FieldDeclaration> someElabs =
+                    getElaborations((EntityDecl)decl, initMembers, deep);
+            elaborations.addAll(someElabs);
+        }
+        if ( exp != null ) {
+            ArrayList<FieldDeclaration> someElabs =
+                    getElaborations(exp, initMembers);
+            elaborations.addAll(someElabs);
+        }
+        return elaborations;
+    }
+
+    public ArrayList<FieldDeclaration> getElaborations( Exp exp, MethodDeclaration initMembers ) {
+        return getElaborations(exp, null, null, initMembers);
+    }
+    public ArrayList<FieldDeclaration> getElaborations( IfExp ifExp, Exp condition,
+                                                       Exp enclosingInstance,
+                                                       MethodDeclaration initMembers ) {
+        ArrayList<FieldDeclaration> elaborations = new ArrayList<FieldDeclaration>();
+        // true case
+        Exp newCondition = condition == null
+                ? ifExp.cond()
+                : new BinExp(condition, AND$.MODULE$, ifExp.cond());
+        ArrayList<FieldDeclaration> trueDecls =
+                getElaborations(ifExp.trueBranch(), newCondition,
+                                enclosingInstance, initMembers);
+        if ( trueDecls != null ) elaborations.addAll(trueDecls);
+
+        // false case
+        newCondition = condition == null
+                ? new UnaryExp(NEG$.MODULE$, ifExp.cond())
+                : new BinExp(condition, AND$.MODULE$,
+                new UnaryExp(NEG$.MODULE$, ifExp.cond()) );
+        Exp falseBranch = get(ifExp.falseBranch());
+        if ( falseBranch != null ) {
+            ArrayList<FieldDeclaration> falseDecls =
+                    getElaborations(falseBranch, newCondition,
+                                   enclosingInstance, initMembers);
+            if ( falseDecls != null ) elaborations.addAll(falseDecls);
+        }
+        return elaborations;
+    }
+    public ArrayList<FieldDeclaration> getElaborations( Exp exp, Exp condition,
+                                                       Exp enclosingInstance,
+                                                       MethodDeclaration initMembers ) {
+        if ( exp instanceof IfExp ) {
+            IfExp ifExp = (IfExp)exp;
+            return getElaborations( ifExp, condition,
+                                   enclosingInstance, initMembers );
+        }
+//        if ( exp instanceof DotExp ) {
+//            return getElaborations( (DotExp)exp, condition,
+//                                   enclosingInstance, initMembers );
+//        }
+
+        ArrayList< FieldDeclaration > elaborations = new ArrayList< FieldDeclaration >();
+        if ( exp == null ) return elaborations;
+
+        if ( exp instanceof CallApplExp && isConstructorCall( exp ) ) {
+            CallApplExp cae = (CallApplExp)exp;
+            if ( isEvent( cae.name() ) ) {
+                if ( cae.exp1() instanceof DotExp ) {
+                    enclosingInstance = ((DotExp) cae.exp1()).exp();
+                }
+                String name = null;
+                String eventType = cae.name();
+                String eventName = null;
+                List<ClassData.Param> arguments = new ArrayList<>();
+                Collection<Argument> args = JavaConversions.asJavaCollection(cae.args());
+                for (Argument a : args) {
+                    String pvalue = a.toJavaString();
+                    String pname = null;
+                    String ptype = null;
+                    if ( a instanceof NamedArgument ) {
+                        pname = ((NamedArgument)a).ident();
+                    }
+                    ClassData.Param p =
+                            new ClassData.Param( pname, ptype, pvalue, null );
+                    arguments.add(p);
+                }
+                String fromTimeVarying = null;
+                String conditionExpression = condition == null ? null : condition.toJavaString();
+                String applicableStartTime = null;
+                String applicableEndTime = null;
+                FieldDeclaration f =
+                        EventXmlToJava.createElaborationField(
+                                name,
+                                enclosingInstance == null ? null : enclosingInstance.toJavaString(),
+                                eventType, eventName, arguments,
+                                fromTimeVarying, conditionExpression,
+                                applicableStartTime, applicableEndTime,
+                                initMembers, getExpressionTranslator(),
+                                getClassData());
+                elaborations.add(f);
             }
         }
-        //FieldDeclaration f;
-
-        
+        Collection<Object> children = JavaConversions.asJavaCollection(exp.children());
+        for ( Object c : children ) {
+            if ( c instanceof Exp ) {
+                ArrayList<FieldDeclaration> elabs =
+                        getElaborations( (Exp) c, condition, enclosingInstance,
+                                        initMembers);
+            }
+        }
         return elaborations;
-        */
     }
+
+    public ArrayList< FieldDeclaration > getElaborations( FunDecl fDecl,
+                                                          MethodDeclaration initMembers,
+                                                          boolean deep ) {
+        // TODO
+        ArrayList< FieldDeclaration > elaborations = new ArrayList< FieldDeclaration >();
+        Collection<MemberDecl> members = JavaConversions.asJavaCollection(fDecl.body());
+        for ( MemberDecl md : members ) {
+            ArrayList<FieldDeclaration> elabs =
+                    getElaborations(md, initMembers, deep);
+            elaborations.addAll( elabs );
+        }
+        return elaborations;
+    }
+
 
     // Add constructors for invocations.
     protected void addConstructors() {
@@ -1792,7 +1996,10 @@ public class KtoJava {
     }
 
 
-    public boolean isConstructorCall(HasChildren elem) {
+    public boolean isConstructorCall( HasChildren elem ) {
+        return isConstructorCall( elem, getClassData() );
+    }
+    public static boolean isConstructorCall(HasChildren elem, ClassData classData) {
         if ( elem instanceof CtorApplExp )  {
             return true;
         }
@@ -1807,7 +2014,7 @@ public class KtoJava {
                 }
             }
             String callName = fae.exp().toJavaString();
-            if ( getClassData().isClassName(callName) ) {
+            if ( classData.isClassName(callName) ) {
                 return true;
             }
             //TODO -- check for classes in Java/JVM?
@@ -1815,21 +2022,18 @@ public class KtoJava {
         return false;
     }
 
-    protected static void findKConstructorCalls(HasChildren elem, ArrayList< FunApplExp > constructorCalls, Seen<HasChildren> seen) {
+    protected static void findKConstructorCalls(HasChildren elem,
+                                                ArrayList< CallApplExp > constructorCalls,
+                                                ClassData classData,
+                                                Seen<HasChildren> seen) {
         if ( elem == null ) return;
         Pair< Boolean, Seen<HasChildren>> p = Utils.seen(elem, true, seen );
         if ( p.first ) return;
         seen = p.second;
-        if ( elem instanceof FunApplExp )  {
-            FunApplExp fae = (FunApplExp) elem;
-            scala.collection.immutable.List<Argument> args = fae.arguments();
-            scala.collection.Iterator iter = args.iterator();
-            while( iter.hasNext() ) {
-                Object a = iter.next();
-                if ( a instanceof NamedArgument ) {
-                    constructorCalls.add(fae);
-                    break;
-                }
+        if ( isConstructorCall( elem, classData ) ) {
+            if ( elem instanceof CallApplExp ) {
+                CallApplExp cae = (CallApplExp) elem;
+                constructorCalls.add(cae);
             }
         }
         scala.collection.immutable.List<Object> children = elem.children();
@@ -1838,7 +2042,7 @@ public class KtoJava {
         while ( iter.hasNext() ) {
             Object o = iter.next();
             if ( o instanceof HasChildren ) {
-                findKConstructorCalls( (HasChildren)o, constructorCalls, seen);
+                findKConstructorCalls( (HasChildren)o, constructorCalls, classData, seen);
             }
         }
 
@@ -1867,9 +2071,9 @@ public class KtoJava {
         }
     }
 
-    protected ConstructorDeclaration getKConstructorDeclaration( FunApplExp fae ) {
+    protected ConstructorDeclaration getKConstructorDeclaration( CallApplExp fae ) {
         // get the class name
-        String eventType = fae.exp().toJavaString();
+        String eventType = fae.name();//exp().toJavaString();
         // assume not elaborating from TimeVerying
         String fromTimeVarying = null;
 
@@ -1988,9 +2192,9 @@ public class KtoJava {
         ArrayList<ConstructorDeclaration> ctors = new ArrayList<ConstructorDeclaration>();
 
         // Create constructors from constructor calls on k classes (which have named arguments).
-        ArrayList<FunApplExp> kConstructorCalls = new ArrayList<FunApplExp>();
-        findKConstructorCalls( model, kConstructorCalls, null );
-        for ( FunApplExp fae : kConstructorCalls ) {
+        ArrayList<CallApplExp> kConstructorCalls = new ArrayList<>();
+        findKConstructorCalls( model, kConstructorCalls, getClassData(), null );
+        for ( CallApplExp fae : kConstructorCalls ) {
             ConstructorDeclaration ctor = getKConstructorDeclaration(fae);
             // TODO -- check if constructor is a duplicate of another, maybe just with the named arguments in a different order.
             ctors.add(ctor);
@@ -2315,6 +2519,7 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.ae.event.TimeVaryingFunctionCall" );
         addImport( "gov.nasa.jpl.ae.event.Event" );
         addImport( "gov.nasa.jpl.ae.solver.ObjectDomain" );
+        addImport( "gov.nasa.jpl.mbee.util.TimeUtils" );
         addImport( "gov.nasa.jpl.mbee.util.Utils" );
         addImport( "gov.nasa.jpl.mbee.util.Debug" );
         addImport( "gov.nasa.jpl.mbee.util.ClassUtils" );
