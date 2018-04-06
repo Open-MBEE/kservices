@@ -1117,7 +1117,8 @@ public class KtoJava {
         }
 
     }
-
+//        addDependency(startTime, new Expression<Long>(0L));
+//        addDependency(duration, new Expression<Long>(Timepoint.getHorizonDuration()));
     protected void createDefaultConstructor( TypeDeclaration newClassDecl ) {
         ConstructorDeclaration ctor =
                 new ConstructorDeclaration( ModifierSet.PUBLIC,
@@ -1126,6 +1127,10 @@ public class KtoJava {
         BlockStmt block = new BlockStmt();
         ASTHelper.addStmt( block, new ExplicitConstructorInvocationStmt() );
         ctor.setBlock( block );
+        ASTHelper.addStmt( block,
+                new MethodCallExpr( null,
+                        "init" + newClassDecl.getName()
+                                + "Custom" ) );
         ASTHelper.addStmt( block,
                            new MethodCallExpr( null,
                                                "init" + newClassDecl.getName()
@@ -1212,6 +1217,10 @@ public class KtoJava {
             ASTHelper.addMember( newClassDecl, methodDecl );
         }
 
+        MethodDeclaration initCustom =
+                createPublicVoidMethod( "init" + newClassDecl.getName()
+                        + "Custom" );
+
         MethodDeclaration initMembers =
                 createPublicVoidMethod( "init" + newClassDecl.getName()
                                         + "Members" );
@@ -1259,6 +1268,7 @@ public class KtoJava {
         for ( FieldDeclaration f : members ) {
             ASTHelper.addMember( newClassDecl, f );
         }
+        ASTHelper.addMember( newClassDecl, initCustom );
         ASTHelper.addMember( newClassDecl, initMembers );
         ASTHelper.addMember( newClassDecl, initCollections );
         ASTHelper.addMember( newClassDecl, initDependencies );
@@ -2650,6 +2660,15 @@ public class KtoJava {
                 new MethodDeclaration( mods, new VoidType(), "setup" );
         BlockStmt setupBody = new BlockStmt();
         setupMethodDecl.setBody( setupBody );
+
+        MethodDeclaration initCustomMethodDecl =
+                new MethodDeclaration( ModifierSet.PUBLIC, new VoidType(), "init" + globalName + "Custom" );
+        BlockStmt initCustomBody = new BlockStmt();
+        initCustomMethodDecl.setBody( initCustomBody );
+        // TODO -- REVIEW -- Is the horizon timepoint protected from getting changed?  Consider changing it's construction in Timepoint to restrict its domain.
+        addStatements(initCustomBody, "addDependency(startTime, new Expression<Long>(0L));\n" +
+                                      "addDependency(duration, new Expression<Long>(Timepoint.getHorizonTimepoint()));");
+
         MethodDeclaration runMethodDecl =
                 new MethodDeclaration( mods, new ClassOrInterfaceType("Main"), "run" );
         BlockStmt runBody = new BlockStmt();
@@ -2676,6 +2695,7 @@ public class KtoJava {
         ASTHelper.addMember( newClassDecl, setupMethodDecl );
         ASTHelper.addMember( newClassDecl, runMethodDecl );
         ASTHelper.addMember( newClassDecl, mainMethodDecl );
+        ASTHelper.addMember( newClassDecl, initCustomMethodDecl );
 
         // List< PropertyDecl > topLevelProperties =
         // new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection(
