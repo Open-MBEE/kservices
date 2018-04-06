@@ -1689,8 +1689,13 @@ public class KtoJava {
     public ArrayList<Pair<String, FieldDeclaration>>
     getEffects(MemberDecl entity, MethodDeclaration initMembers, boolean deep) {
         ArrayList<Pair<String, FieldDeclaration>> effects = new ArrayList<Pair<String, FieldDeclaration>>();
-        if ( entity == null || entity.children() == null ) return effects;
-        Collection<Object> children = JavaConversions.asJavaCollection(entity.children());
+        Collection<Object> children = null;
+        if ( entity == null ) {
+            children = JavaConversions.asJavaCollection(this.model().children());
+        } else {
+            children = JavaConversions.asJavaCollection(entity.children());
+        }
+        if ( children == null ) return effects;
         for ( Object c : children ) {
             Exp exp = null;
             if ( c instanceof PropertyDecl ) {
@@ -1835,18 +1840,26 @@ public class KtoJava {
                     getExpressionTranslator(), getClassData());
         }
         */
-        if ( entity == null || entity.children() == null ) return elaborations;
+        Collection<Object> children = null;
+        if ( entity == null ) {
+            children = JavaConversions.asJavaCollection(this.model().children());
+        } else {
+            Collection<TopDecl> foo = JavaConversions.asJavaCollection(entity.children());
+            children.addAll(foo);
+        }
+        if ( children == null ) return elaborations;
 
         // Now get elaborations specified like function/constructor calls.
-        Collection<TopDecl> children = JavaConversions.asJavaCollection(entity.children());
-        for ( TopDecl c : children ) {
-            ArrayList<FieldDeclaration> elabs = getElaborations(c, initMembers, deep);
-            elaborations.addAll(elabs);
+        //Collection<TopDecl> children = JavaConversions.asJavaCollection(entity.children());
+        for ( Object c : children ) {
+            if ( c instanceof TopDecl ) {
+                ArrayList<FieldDeclaration> elabs = getElaborations((TopDecl) c, initMembers, deep);
+                elaborations.addAll(elabs);
+            }
         }
 
         return elaborations;
     }
-
 
     public ArrayList<FieldDeclaration> getElaborations( TopDecl decl,
                                                        MethodDeclaration initMembers,
