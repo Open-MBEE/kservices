@@ -3,10 +3,7 @@ package gov.nasa.jpl.kservices;
 import com.microsoft.z3.BoolExpr;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
-import gov.nasa.jpl.ae.event.ConstructorCall;
-import gov.nasa.jpl.ae.event.DurativeEvent;
-import gov.nasa.jpl.ae.event.TimeVarying;
-import gov.nasa.jpl.ae.event.TimeVaryingMap;
+import gov.nasa.jpl.ae.event.*;
 //import org.apache.commons.lang3.reflect.MethodUtils;
 
 import gov.nasa.jpl.ae.util.CaptureStdoutStderr;
@@ -743,9 +740,84 @@ public class KtoJava {
             
         } else {
             if (exp == null) {
-                int x = 1;
+                return null;
             }
+            checkForSetupConfig(exp);
             return exp.toJavaString();
+        }
+    }
+
+    protected String getArgString( Exp exp ) {
+        if ( exp instanceof StringLiteral ) {
+            return ((StringLiteral)exp).s();
+        }
+        return exp.toJavaString();
+    }
+
+    protected Long getLong( Exp exp ) {
+        if ( exp instanceof IntegerLiteral ) {
+            return ((IntegerLiteral)exp).i();
+        }
+        String s = getArgString(exp);
+        if ( s != null ) {
+            try {
+                return Long.valueOf(s);
+            } catch (Throwable t) {}
+        }
+        return null;
+    }
+
+    static HashSet<String> setupMethodNames = new HashSet<String>() {
+        {
+            add("setEpoch");
+            add("setUnits");
+            add("setHorizonDuration");
+        }
+    };
+
+    protected void checkForSetupConfig(Exp exp) {
+        if ( exp == null ) return;
+        if ( exp instanceof FunApplExp ) {
+            FunApplExp fae = (FunApplExp)exp;
+            if ( fae.name() != null ) {
+                if (setupMethodNames.contains(fae.name())) {
+                    if ( fae.args() != null ) {
+                        Collection<Argument> coll =
+                                JavaConversions.asJavaCollection(fae.args());
+                        Exp firstArgExp = null;
+                        for ( Argument a : coll ) {
+                            if ( a instanceof NamedArgument ) {
+                                firstArgExp = ((NamedArgument)a).exp();
+                            } else if ( a instanceof PositionalArgument){
+                                firstArgExp = ((PositionalArgument)a).exp();
+                            } else {
+                                Debug.error(true, "Say what?!!");
+                            }
+                            if ( firstArgExp != null ) {
+                                try {
+                                    if ( fae.name().equals("setEpoch") ) {
+                                        String s = getArgString(firstArgExp);
+                                        if ( s != null ) {
+                                            Timepoint.setEpoch(s);
+                                        }
+                                    } else if ( fae.name().equals("setUnits") ) {
+                                        String s = getArgString(firstArgExp);
+                                        if ( s != null ) {
+                                            Timepoint.setUnits(s);
+                                        }
+                                    } else if ( fae.name().equals("setHorizonDuration") ) {
+                                        Long lng = getLong(firstArgExp);
+                                        if ( lng != null ) {
+                                            Timepoint.setHorizonDuration(lng);
+                                        }
+                                    }
+                                    return;
+                                } catch (Throwable t) {}
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -1338,6 +1410,13 @@ public class KtoJava {
             FieldDeclaration f;
             for ( ExpressionDecl expressionDecl : expressionList ) {
                 Exp exp = expressionDecl.exp();
+
+                // we don't want elaborations firing on their own.
+                if ( hasElaboration(exp) ) continue;
+
+                // we don't want effects firing on their own.
+                if ( hasEffect(exp) ) continue;
+
                 String name = new String( "expression" + expressionCounter++ );
                 // String type =
                 // JavaToConstraintExpression.typeToClass(
@@ -1417,8 +1496,11 @@ public class KtoJava {
         return null;
     }
 
-    public boolean isEffect(Exp exp) {
+    public boolean hasEffect(Exp exp) {
         return getEffect(exp) != null;
+    }
+    public boolean isEffect(Exp exp) {
+        return hasEffect(exp);
     }
     public FunApplExp getEffect(HasChildren exp) {
         if ( exp == null ) return null;
@@ -1845,6 +1927,7 @@ public class KtoJava {
             children = JavaConversions.asJavaCollection(this.model().children());
         } else {
             Collection<TopDecl> foo = JavaConversions.asJavaCollection(entity.children());
+            children = new ArrayList<>();
             children.addAll(foo);
         }
         if ( children == null ) return elaborations;
@@ -2732,9 +2815,9 @@ public class KtoJava {
         // stmtsMain.append( "System.out.println(scenario.kSolutionString());"
         // );
         String targetDirectory = getPackageSourcePath( null );
-        String x = "Timepoint.setUnits(\"milliseconds\");\n" +
-                "Timepoint.setEpoch(\"Mon Mar 10 03:00:00 PDT 2028\");\n" +
-                "Timepoint.setHorizonDuration(10928118000L);\n";
+        String x = "Timepoint.setUnits(\"" + Timepoint.getUnits().toString() + "\");\n" +
+                "Timepoint.setEpoch(\"" + TimeUtils.toAspenTimeString(Timepoint.getEpoch()) + "\");\n" +
+                "Timepoint.setHorizonDuration(" + Timepoint.getHorizonDuration() + "L);\n";
         addStatements( setupBody, x );
         String y = "      JSONObject json = new JSONObject();\n";
         if ( !this.processStdoutAndStderr ) {
@@ -3409,6 +3492,11 @@ public class KtoJava {
             final boolean containmentTreeC = containmentTree;
             final boolean verboseC = verbose;
             final boolean runSmtC = runSMT;
+
+            // These are defaults that may need to be overridden in the K model.
+            Timepoint.setUnits("milliseconds");
+            Timepoint.setEpoch("2020-001T00:00:00.000");
+            Timepoint.setHorizonDuration(Timepoint.days(365.0));
 
             if ( !processStdoutAndStderr ) {
                 try {
