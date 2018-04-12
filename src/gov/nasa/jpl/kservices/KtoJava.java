@@ -771,6 +771,7 @@ public class KtoJava {
         {
             add("setEpoch");
             add("setUnits");
+            add("setHorizon");
             add("setHorizonDuration");
         }
     };
@@ -804,6 +805,11 @@ public class KtoJava {
                                         String s = getArgString(firstArgExp);
                                         if ( s != null ) {
                                             Timepoint.setUnits(s);
+                                        }
+                                    } else if ( fae.name().equals("setHorizon") ) {
+                                        String s = getArgString(firstArgExp);
+                                        if ( s != null ) {
+                                            Timepoint.setHorizon(s);
                                         }
                                     } else if ( fae.name().equals("setHorizonDuration") ) {
                                         Long lng = getLong(firstArgExp);
