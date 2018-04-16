@@ -1,0 +1,10 @@
+{"result": {
+    "solution": "x = [h, ell, o]\ny = [[h, ell, o], [ wor, ld]]\nz = [h, ell, o,  wor, ld]\nw = [h, ell, o,  wor, ld]\n",
+    "satisfied": "true",
+    "constraints": [
+        "req x = [h, ell, o]",
+        "req y = [[h, ell, o], [ wor, ld]]",
+        "req z = [h, ell, o,  wor, ld]",
+        "req w = [h, ell, o,  wor, ld]"
+    ]
+}}

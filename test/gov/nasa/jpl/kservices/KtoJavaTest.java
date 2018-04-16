@@ -38,11 +38,15 @@ public class KtoJavaTest {
         checkSolution("batteryDemo");
     }
 
-    // fails
-     @Test
-     public void testAbsFunction() throws FileNotFoundException {
-         checkSolution("absFunction");
-     }
+    @Test
+    public void testFlattenFunction() throws FileNotFoundException {
+        checkSolution("flatten");
+    }
+
+    @Test
+    public void testAbsFunction() throws FileNotFoundException {
+        checkSolution("absFunction");
+    }
 
     public void checkSolution(String kFileName) throws  FileNotFoundException {
         Random.reset();
