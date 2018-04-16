@@ -1128,6 +1128,8 @@ public class KtoJava {
                                                      ClassUtils.simpleName( currentClass ) );
 
             getSuperClasses( entity, newClassDecl );
+            getImports();
+
             createDefaultConstructor( newClassDecl );
         } else {
             // getClassData().setCurrentCompilationUnit(
