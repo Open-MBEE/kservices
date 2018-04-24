@@ -5,10 +5,11 @@ class A {
 		else
 			x
 	}
-		
+
 	value : Int
 	req value < 2
-	req value = abs(value)
+	req value > -2
+	req value = -abs(value)
 }
 
 a:A
