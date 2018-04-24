@@ -104,7 +104,7 @@ public class KtoJava {
     static protected DistributionHelper dh = new DistributionHelper();
 
 
-    protected JSONObject json = new JSONObject();
+    public JSONObject json = new JSONObject();
 
     //boolean containmentTree = false;
     //boolean errorInfo = false;
@@ -2649,19 +2649,7 @@ public class KtoJava {
     }
 
     private void addImport( String impName ) {
-        NameExpr ne = new NameExpr( impName );
-        ImportDeclaration d = new ImportDeclaration( ne, false, false );
-        if ( getClassData().getCurrentCompilationUnit().getImports() == null ) {
-            getClassData().getCurrentCompilationUnit()
-                          .setImports( new ArrayList< ImportDeclaration >() );
-        }
-        // check for duplicates -- REVIEW - inefficient linear search
-        // TODO -- never finds duplicates!
-        for ( ImportDeclaration i : getClassData().getCurrentCompilationUnit()
-                                                  .getImports() ) {
-            if ( i.getName().getName().equals( impName ) ) return;
-        }
-        getClassData().getCurrentCompilationUnit().getImports().add( d );
+        EventXmlToJava.addImport( impName, getClassData() );
     }
 
     private void addTryCatchToInitMembers( MethodDeclaration initMembers ) {
