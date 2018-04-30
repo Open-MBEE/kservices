@@ -777,6 +777,18 @@ public class KtoJava {
     };
 
     protected void checkForSetupConfig(Exp exp) {
+        if ( !processStdoutAndStderr ) {
+            checkForSetupConfigImpl(exp);
+        } else {
+            CaptureStdoutStderr c = new CaptureStdoutStderr() {
+                @Override public Object run() {
+                    checkForSetupConfigImpl(exp);
+                    return null;
+                }
+            };
+        }
+    }
+    protected void checkForSetupConfigImpl(Exp exp) {
         if ( exp == null ) return;
         if ( exp instanceof FunApplExp ) {
             FunApplExp fae = (FunApplExp)exp;
