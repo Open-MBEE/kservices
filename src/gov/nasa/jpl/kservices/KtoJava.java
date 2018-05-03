@@ -875,10 +875,14 @@ public class KtoJava {
                 }
             }
         } else {
-            value = makeExpressionString(p.expr().get()); 
             if ( isConstructorDecl( p ) ) {
                 //value = "new " + value;
                 value = "null";
+            } else {
+                value = makeExpressionString(p.expr().get());
+                //if ( isConstructorDecl( p ) ) {
+                //    value = "new " + value;
+                //}
             }
         }
         String entityName = e == null ? null : getClassName(e);
@@ -1337,7 +1341,7 @@ public class KtoJava {
         ArrayList<Pair<String, FieldDeclaration>> effects = null;
         effects = getEffects( entity, initMembers, false);  // TODO -- should deep be true?
         Collection< FieldDeclaration > elaborations = null;
-        elaborations = getElaborations( entity, initElaborations, false );
+        //elaborations = getElaborations( entity, initElaborations, false );
 
         
         parameters.addAll( getExpressions( entity, initMembers ) );
@@ -1347,7 +1351,7 @@ public class KtoJava {
         for ( Pair< String, FieldDeclaration > p : effects ) {
             members.add( p.second );
         }
-        members.addAll( elaborations );
+        if ( elaborations != null ) members.addAll( elaborations );
 
         addTryCatchToInitMembers( initMembers );
         
@@ -1414,6 +1418,9 @@ public class KtoJava {
 
     protected boolean initializingNull(PropertyDecl propertDecl) {
         Exp exp = get(propertDecl.expr());
+        if ( isEvent( propertDecl.ty().toJavaString() ) ) {
+            return true;
+        }
         if ( hasElaboration( exp ) ) {
             return true;
         }
@@ -2082,6 +2089,9 @@ public class KtoJava {
                 ArrayList<FieldDeclaration> elabs =
                         getElaborations( (Exp) c, condition, enclosingInstance,
                                         initMembers);
+                if ( elabs != null ) {
+                    elaborations.addAll( elabs );
+                }
             }
         }
         return elaborations;
