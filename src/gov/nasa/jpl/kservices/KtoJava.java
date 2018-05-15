@@ -132,6 +132,10 @@ public class KtoJava {
         this.expressionTranslators = new LinkedHashMap<String, JavaToConstraintExpression>();
                 //new JavaToConstraintExpression( packageName );
 
+        // Clear out data from previous k parses.  The type checker is a singleton.
+        if ( typeChecker != null ) typeChecker.reset();
+        TypeChecker.reset();
+
         if ( verbose ) {
             System.out.println();
         }
@@ -350,6 +354,8 @@ public class KtoJava {
 
     public boolean typeCheckForReal() {
         try {
+            if ( typeChecker != null ) typeChecker.reset();
+            TypeChecker.reset();
             typeChecker = new TypeChecker(this.model());
             typeCheckSucceeded = true;
         } catch (Throwable e) {
