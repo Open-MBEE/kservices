@@ -1,0 +1,9 @@
+{"result": {
+    "solution": "x = X {\n   i = 3\n}\ny = Y {\n   i = 3\n}\nz = hello world\n",
+    "satisfied": "true",
+    "constraints": [
+        "req x.i = 3",
+        "req y.i = 3",
+        "req z = hello world"
+    ]
+}}

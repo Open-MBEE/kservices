@@ -1,0 +1,5 @@
+{"result": {
+    "solution": "x = 6.2816215383664655\n",
+    "satisfied": "true",
+    "constraints": ["req x = 6.2816215383664655"]
+}}
