@@ -1,5 +1,5 @@
 {"result": {
-    "solution": "netPower = STEP TimeVaryingMap( ... 2000 entries  ... )\nnetPowerIntegrated = LINEAR Integral( ... 2001 entries  ... )\nnetDeltaWattHours = plottable unowned NONE delta_Integral( ... 2001 entries  ... )\nbatteryVoltage = STEP TimeVaryingMap( ... 2000 entries  ... )\nrechargeEfficiency = 0.95\nahCapacityBattery = 183.0\nnetDeltaAmpHours = plottable unowned STEP delta_Integral( ... 2001 entries  ... )\nrechargeDeltaEnergy = plottable unowned STEP delta_Integral_times_0.95_div_183.0( ... 2001 entries  ... )\nnegativeDeltaEnergy = plottable unowned STEP delta_Integral( ... 2001 entries  ... )\ndeltaEnergy = plottable unowned STEP delta_Integral_times_0.95_div_183.0( ... 2001 entries  ... )\nstateOfCharge = plottable unowned STEP delta_Integral_times_0.95_div_183.0{(0=0.0)}\n",
+    "solution": "netPower = STEP TimeVaryingMap( ... 2000 entries  ... )\nnetPowerIntegrated = LINEAR Integral( ... 2001 entries  ... )\nnetDeltaWattHours = plottable unowned NONE delta_Integral( ... 2001 entries  ... )\nbatteryVoltage = STEP TimeVaryingMap( ... 2000 entries  ... )\nrechargeEfficiency = 0.95\nahCapacityBattery = 183.0\nnetDeltaAmpHours = plottable unowned STEP delta_Integral( ... 2001 entries  ... )\nrechargeDeltaEnergy = plottable unowned STEP delta_Integral_times_0.95_div_183.0( ... 2001 entries  ... )\nnegativeDeltaEnergy = plottable unowned STEP delta_Integral( ... 2001 entries  ... )\ndeltaEnergy = plottable unowned STEP delta_Integral_times_0.95_div_183.0( ... 2001 entries  ... )\nstateOfCharge = plottable unowned STEP delta_Integral_times_0.95_div_183.0( ... 2001 entries  ... )\n",
     "satisfied": "true",
     "constraints": [
         "req netPower = STEP TimeVaryingMap( ... 2000 entries  ... )",
@@ -12,6 +12,6 @@
         "req rechargeDeltaEnergy = plottable unowned STEP delta_Integral_times_0.95_div_183.0( ... 2001 entries  ... )",
         "req negativeDeltaEnergy = plottable unowned STEP delta_Integral( ... 2001 entries  ... )",
         "req deltaEnergy = plottable unowned STEP delta_Integral_times_0.95_div_183.0( ... 2001 entries  ... )",
-        "req stateOfCharge = plottable unowned STEP delta_Integral_times_0.95_div_183.0{(0=0.0)}"
+        "req stateOfCharge = plottable unowned STEP delta_Integral_times_0.95_div_183.0( ... 2001 entries  ... )"
     ]
 }}

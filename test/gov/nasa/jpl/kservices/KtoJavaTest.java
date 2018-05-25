@@ -62,7 +62,7 @@ public class KtoJavaTest {
         }
         assertTrue( f.exists() );
         String[] input = new String[]{inputFile};
-        KtoJava.main(input);
+        KtoJava kToJava = KtoJava.runMain(input);
         String outputSolnPath = EventXmlToJava.generatedCodeLocation + fs + "generatedCode" + fs + "solution.log";
         String expectedSolnPath = testSolnDir + kFileName + "Solution";
         File outputSolnFile = new File( outputSolnPath );
