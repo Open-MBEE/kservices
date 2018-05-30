@@ -21,11 +21,7 @@ These websites may be available to try out:
 
 ###Set up
   1. Install git, maven, and Java 1.8.
-  1. Clone the develop branches of kservices, bae, and klang into the same directory. 
-     If cloning the k repository instead of klang, name the directory klang.
-  
-    git clone git@ggithub.com/k klang 
-  
+  1. Clone the develop branches of kservices, bae, and klang into the same directory.   
   3. Set the `JAVA_HOME` environment variable to the installation directory of Java 1.8.
      For Mac OS, the path ends in `Content/Home`.
   2. To build the repositories from a terminal, in each of the \[`util`, `sysml`,\]
