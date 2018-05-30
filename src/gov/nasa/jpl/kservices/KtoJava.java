@@ -875,12 +875,17 @@ public class KtoJava {
                             clsString = typeParameter + ".class";
                         }
                     }
-                    value = "new " + type + "(\"" + p.name()+ "\", (String)null, null, " + clsString + ")";
+                    if ( type.equals( "Consumable" ) ) {
+                        value =  "new " + type + "(\"" + p.name() + "\")";
+                    } else {
+                        value = "new " + type + "(\"" + p.name() + "\", (String)null, null, " + clsString + ")";
+                    }
                 } else {
                     value = "new " + type + "()";
                 }
             }
         } else {
+            //if (p.expr().canBeNull())
             if ( isConstructorDecl( p ) ) {
                 //value = "new " + value;
                 value = "null";
