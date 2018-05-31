@@ -1,8 +1,6 @@
 package gov.nasa.jpl.kservices;
 
 import com.microsoft.z3.BoolExpr;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.reflect.ClassPath;
 import gov.nasa.jpl.ae.event.*;
 //import org.apache.commons.lang3.reflect.MethodUtils;
 
@@ -16,7 +14,6 @@ import japa.parser.*;
 import japa.parser.ASTParser;
 import japa.parser.ParseException;
 import japa.parser.ast.CompilationUnit;
-import japa.parser.ast.ImportDeclaration;
 import japa.parser.ast.PackageDeclaration;
 import japa.parser.ast.body.ClassOrInterfaceDeclaration;
 import japa.parser.ast.body.ConstructorDeclaration;
@@ -220,11 +217,11 @@ public class KtoJava {
         this.classToParentNames = new TreeMap< String, Set< String > >();
         // FIXME -- Why are we traversing lists that are guaranteed to be empty.  Should these be somwwhere else?
         for ( EntityDecl e : topLevelClasses ) {
-            this.topLevelClassNames.add( e.ident() );
+            this.topLevelClassNames.add( e.fqName() );
         }
         for ( EntityDecl e : allClasses ) {
-            this.allClassNames.add( e.ident() );
-            this.classToParentNames.put( e.ident(),
+            this.allClassNames.add( e.fqName() );
+            this.classToParentNames.put( e.fqName(),
                                          new TreeSet< String >( JavaConversions.asJavaCollection( e.getExtendingNames() ) ) );
 
         }
@@ -417,9 +414,14 @@ public class KtoJava {
         if ( Utils.isNullOrEmpty(classes) ) return allEntities;
         Deque< EntityDecl > entitiesToGo =
                 new ArrayDeque< EntityDecl >( classes );
+        for(EntityDecl entity : entitiesToGo) {
+            entity.qualifyTopLevelName();
+        }
+
         EntityDecl entity;
         while ( !entitiesToGo.isEmpty() ) {
             entity = entitiesToGo.pop();
+            entity.qualifyMemberNames();
             allEntities.add( entity );
             entitiesToGo.addAll( JavaConversions.asJavaCollection( entity.getEntityDecls() ) );
         }
@@ -450,17 +452,48 @@ public class KtoJava {
 
     }
 
+    /**
+     * Given the simple name of the type of a parameter and the class in which it was declared, finds the fully qualified name
+     * of the type based on scoping rules.
+     * @param type (simple) name of the type
+     * @param containingClass (fully qualified) name of the class containing the parameter
+     * @return (fully qualified) name of the type, null if no matching name was found
+     */
+    public String findQualifiedTypeInScope(String type, String containingClass) {
+        // start in deepest scope
+        String candidate = containingClass + "." + type;
+        int lastPeriod = candidate.lastIndexOf('.');
+
+        // while there is still a period in the name. Once there are no periods, we have reached "Global"
+        // and the type was not found
+        while(lastPeriod >= 0) {
+            if(this.allClassNames.contains(candidate)) {
+                return candidate;
+            }
+
+            // cut off everything after the last level of scope and add the type back on
+            // i.e. Global.A.B.C.type becomes Global.A.B.type
+            int cutPoint = candidate.lastIndexOf('.', lastPeriod - 1);
+            if(cutPoint < 0) break; // if there are no more periods before the last one - reached "Global"
+
+            candidate = candidate.substring(0, cutPoint) + "." + type; //reattach the type
+            lastPeriod = candidate.lastIndexOf('.'); // check for period (probably redundant)
+        }
+
+        return null;
+    }
+
     public void buildNestingTable( Map< String, String > nestingTable ) {
         // true nested classes:
         for ( EntityDecl entity : this.allClasses ) {
             for ( EntityDecl innerEntity : JavaConversions.asJavaCollection( entity.getEntityDecls() ) ) {
-                nestingTable.put( innerEntity.ident(), entity.ident() );
+                nestingTable.put( innerEntity.fqName(), entity.fqName() );
             }
         }
 
         for ( EntityDecl entity : this.allClasses ) {
-            if ( !nestingTable.containsKey( entity.ident() ) ) {
-                nestingTable.put( entity.ident(), globalName );
+            if ( !nestingTable.containsKey( entity.fqName() ) ) {
+                nestingTable.put( entity.fqName(), globalName );
             }
         }
     }
@@ -472,20 +505,29 @@ public class KtoJava {
         ClassData.Param param;
         addGlobalParams( paramTable );
 
+        // get params from all the classes
         for ( EntityDecl entity : this.allClasses ) { // pass 1
-            String entityName = getClassName( entity );
+            String entityName = entity.fqName();
             params = new TreeMap< String, ClassData.Param >();
+
+            //go through all the parameters declared in a class
             ArrayList< PropertyDecl > propertyList =
                     new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDeclsNoIgnore() ) );
             for ( PropertyDecl p : propertyList ) {
                 param = makeParam( p, entity );
                 if (param.scope == null) param.scope = entityName;
+
                 String type = p.ty().toJavaString();
-                if ( this.allClassNames.contains( type ) ) {
-                    this.instantiatedClassNames.add( type );
+                String fqType = findQualifiedTypeInScope(type, entityName); // get the fully qualified type name
+
+                if (fqType != null) {
+                    this.instantiatedClassNames.add( fqType );
                 }
+
                 params.put( p.name(), param );
             }
+
+            // add functions to the parameter table
             ArrayList< FunDecl > funList =
                     new ArrayList< FunDecl >( JavaConversions.asJavaCollection( entity.getFunDecls() ) );
             for ( FunDecl funDecl : funList ) {
@@ -500,19 +542,23 @@ public class KtoJava {
                 }
 
             }
+
             paramTable.put( entityName, params );
 
         }
+
         // Add inherited parameters.
         for ( EntityDecl entity : this.allClasses ) { // pass 2
-            String entityName = getClassName( entity );
+            String entityName = entity.fqName();
             params = paramTable.get( entityName );
+
             Set< String > extendingList =
-                    classToParentNames.get( entity.ident() );
+                    classToParentNames.get( entity.fqName() );
             for ( String e : extendingList ) {
                 if ( "Event".equals(e) || "DurativeEvent".equals(e) ) {
                     EventXmlToJava.isEventMap.put(entityName, true);
                 }
+
                 Map< String, ClassData.Param > otherParams =
                         paramTable.get( getClassName( e ) );
                 if ( otherParams != null ) {
@@ -539,15 +585,19 @@ public class KtoJava {
                 new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model() ) ) );
         List< FunDecl > topLevelFunctions =
                 new ArrayList< FunDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelFunctions( this.model() ) ) );
+
         for ( PropertyDecl p : topLevelProperties ) {
             param = makeParam( p, null );
             param.scope = globalName;
             String type = p.ty().toJavaString();
-            if ( this.allClassNames.contains( type ) ) {
-                this.instantiatedClassNames.add( type );
+            String fqType = globalName + "." + type; // at top level, types are all going to be prefixed with globalName
+
+            if ( this.allClassNames.contains( fqType ) ) {
+                this.instantiatedClassNames.add( fqType );
             }
             params.put( p.name(), param );
         }
+
         for ( FunDecl funDecl : topLevelFunctions ) {
             List< Param > funParams =
                     new ArrayList< Param >( JavaConversions.asJavaCollection( funDecl.params() ) );
@@ -1135,7 +1185,7 @@ public class KtoJava {
         } else {
             innerEntities =
                     JavaConversions.asJavaCollection( entity.getEntityDecls() );
-            enclosingIdent = entity.ident();
+            enclosingIdent = entity.fqName();
         }
 
         for ( EntityDecl innerEntity : innerEntities ) {
@@ -1143,7 +1193,7 @@ public class KtoJava {
                                                           justClassDeclarations ) );
         }
 
-        String currentClass = getClassName( entity );
+        String currentClass = entity == null ? "Global" : entity.fqName();
 
         getClassData().setCurrentClass( currentClass );
 
@@ -2451,11 +2501,15 @@ public class KtoJava {
     public void
            createEnclosingInstanceStatment( EntityDecl entity,
                                             MethodDeclaration initMembers ) {
-        String entityName = null;
+        //String simpleName = null;
+        String fqName = null;
+
         if (entity != null) {
-            entityName = entity.ident();
+            //simpleName = entity.ident();
+            fqName = entity.fqName();
         }
-        String enclosing = getClassData().getEnclosingClassName( entityName);
+
+        String enclosing = getClassData().getEnclosingClassName(fqName);
         if (enclosing != null) {
             String stmtString = "enclosingInstance = " + enclosing + ".this;";
             ASTParser parser = new ASTParser( new StringReader( stmtString ) );
