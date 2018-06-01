@@ -618,7 +618,7 @@ public class KtoJava {
            buildMethodTable( Map< String, Map< String, Set< MethodDeclaration > > > methodTable ) {
         addGlobalMethods( methodTable );
         for ( EntityDecl entity : this.allClasses ) {
-            String entityName = getClassName( entity );
+            String entityName = entity.fqName();
 
             Map< String, Set< MethodDeclaration > > classMethods =
                     methodTable.get( entityName );
@@ -1237,7 +1237,7 @@ public class KtoJava {
             funDecls =
                     new ArrayList< FunDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelFunctions( this.model() ) ) );
         } else {
-            String entityName = getClassName( entity );
+            String entityName = entity.fqName();
             classMethods = getClassData().getMethodTable().get( entityName );
             funDecls =
                     new ArrayList< FunDecl >( JavaConversions.asJavaCollection( entity.getFunDecls() ) );
