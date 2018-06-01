@@ -132,6 +132,10 @@ public class KtoJava {
         this.expressionTranslators = new LinkedHashMap<String, JavaToConstraintExpression>();
                 //new JavaToConstraintExpression( packageName );
 
+        // Clear out data from previous k parses.  The type checker is a singleton.
+        if ( typeChecker != null ) typeChecker.reset();
+        TypeChecker.reset();
+
         if ( verbose ) {
             System.out.println();
         }
@@ -350,6 +354,8 @@ public class KtoJava {
 
     public boolean typeCheckForReal() {
         try {
+            if ( typeChecker != null ) typeChecker.reset();
+            TypeChecker.reset();
             typeChecker = new TypeChecker(this.model());
             typeCheckSucceeded = true;
         } catch (Throwable e) {
@@ -777,6 +783,18 @@ public class KtoJava {
     };
 
     protected void checkForSetupConfig(Exp exp) {
+        if ( !processStdoutAndStderr ) {
+            checkForSetupConfigImpl(exp);
+        } else {
+            CaptureStdoutStderr c = new CaptureStdoutStderr() {
+                @Override public Object run() {
+                    checkForSetupConfigImpl(exp);
+                    return null;
+                }
+            };
+        }
+    }
+    protected void checkForSetupConfigImpl(Exp exp) {
         if ( exp == null ) return;
         if ( exp instanceof FunApplExp ) {
             FunApplExp fae = (FunApplExp)exp;
@@ -857,16 +875,25 @@ public class KtoJava {
                             clsString = typeParameter + ".class";
                         }
                     }
-                    value = "new " + type + "(\"" + p.name()+ "\", (String)null, null, " + clsString + ")";
+                    if ( type.equals( "Consumable" ) ) {
+                        value =  "new " + type + "(\"" + p.name() + "\")";
+                    } else {
+                        value = "new " + type + "(\"" + p.name() + "\", (String)null, null, " + clsString + ")";
+                    }
                 } else {
                     value = "new " + type + "()";
                 }
             }
         } else {
-            value = makeExpressionString(p.expr().get()); 
+            //if (p.expr().canBeNull())
             if ( isConstructorDecl( p ) ) {
                 //value = "new " + value;
                 value = "null";
+            } else {
+                value = makeExpressionString(p.expr().get());
+                //if ( isConstructorDecl( p ) ) {
+                //    value = "new " + value;
+                //}
             }
         }
         String entityName = e == null ? null : getClassName(e);
@@ -1325,7 +1352,7 @@ public class KtoJava {
         ArrayList<Pair<String, FieldDeclaration>> effects = null;
         effects = getEffects( entity, initMembers, false);  // TODO -- should deep be true?
         Collection< FieldDeclaration > elaborations = null;
-        elaborations = getElaborations( entity, initElaborations, false );
+        //elaborations = getElaborations( entity, initElaborations, false );
 
         
         parameters.addAll( getExpressions( entity, initMembers ) );
@@ -1335,7 +1362,7 @@ public class KtoJava {
         for ( Pair< String, FieldDeclaration > p : effects ) {
             members.add( p.second );
         }
-        members.addAll( elaborations );
+        if ( elaborations != null ) members.addAll( elaborations );
 
         addTryCatchToInitMembers( initMembers );
         
@@ -1402,6 +1429,9 @@ public class KtoJava {
 
     protected boolean initializingNull(PropertyDecl propertDecl) {
         Exp exp = get(propertDecl.expr());
+        if ( isEvent( propertDecl.ty().toJavaString() ) ) {
+            return true;
+        }
         if ( hasElaboration( exp ) ) {
             return true;
         }
@@ -2070,6 +2100,9 @@ public class KtoJava {
                 ArrayList<FieldDeclaration> elabs =
                         getElaborations( (Exp) c, condition, enclosingInstance,
                                         initMembers);
+                if ( elabs != null ) {
+                    elaborations.addAll( elabs );
+                }
             }
         }
         return elaborations;
