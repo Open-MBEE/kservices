@@ -60,7 +60,7 @@ public class QueryExecutor< Model extends SystemModel<?,?,?,?,?,?,?,?,?,?,?> > i
 		List<TypeParam> typeParams = null;
 		List<Type> extending = null;
 		List<MemberDecl> members = null;
-    	EntityDecl e = new EntityDecl(annotations, token, keyword, ident, typeParams, extending, members);
+    	EntityDecl e = new EntityDecl(annotations, token, keyword, ident, null, typeParams, extending, members);
         return null;
     }
 
