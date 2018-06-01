@@ -37,4 +37,5 @@ class  Equilateral extends Triangle {
   req b.eq(c) 
 }
 
+t:Triangle
 e:Equilateral
