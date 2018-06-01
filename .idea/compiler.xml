@@ -15,7 +15,7 @@
     <bytecodeTargetLevel>
       <module name="bae" target="1.8" />
       <module name="baeModels" target="1.7" />
-      <module name="klang" target="1.8" />
+      <module name="klang" target="1.6" />
       <module name="kservices" target="1.8" />
       <module name="mbee_util" target="1.8" />
       <module name="sysml" target="1.8" />
