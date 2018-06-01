@@ -1,6 +1,8 @@
 package gov.nasa.jpl.kservices;
 
 import gov.nasa.jpl.ae.event.ParameterListenerImpl;
+import gov.nasa.jpl.ae.event.TimeVaryingMap;
+import gov.nasa.jpl.ae.solver.HasIdImpl;
 import gov.nasa.jpl.ae.xml.EventXmlToJava;
 import gov.nasa.jpl.mbee.util.FileUtils;
 import gov.nasa.jpl.mbee.util.Random;
@@ -17,6 +19,8 @@ public class Tester {
     public static final String TEST_SOLN_DIR = "test" + FS + "gov" + FS + "nasa" + FS + "jpl" + FS + "kservices" + FS + "kTestCaseSolutions" + FS;
 
     public static void checkSolution(String kFileName) throws FileNotFoundException {
+        TimeVaryingMap<Integer> tvm = new TimeVaryingMap<>( "tvm" );
+        HasIdImpl.reset();
         ParameterListenerImpl.reset();
         Random.reset();
 

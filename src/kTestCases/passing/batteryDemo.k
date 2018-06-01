@@ -1,10 +1,10 @@
--- req Timepoint.setEpoch("2020-001T00:00:00.000")
--- req Timepoint.setHorizonDuration(seconds(2.0))
+Timepoint.setEpoch("2020-001T00:00:00.000")
+Timepoint.setHorizonDuration(seconds(0.1))
 
-var netPower : TimeVaryingMap = TimeVaryingMap("", "src/kTestCases/BusPower.csv", null, Double.class)
+var netPower : TimeVaryingMap = TimeVaryingMap("", "src/kTestCases/BusPowerSmall.csv", null, Double.class)
 var netPowerIntegrated : TimeVaryingMap = netPower.integrate()
 var netDeltaWattHours : TimeVaryingMap = netPowerIntegrated.getDeltaMap()
-var batteryVoltage : TimeVaryingMap = TimeVaryingMap("", "src/kTestCases/batteryVoltage.csv", null, Double.class)
+var batteryVoltage : TimeVaryingMap = TimeVaryingMap("", "src/kTestCases/batteryVoltageSmall.csv", null, Double.class)
 var rechargeEfficiency : Real = 0.95
 var ahCapacityBattery : Real = 183.0
 
