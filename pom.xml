@@ -217,7 +217,7 @@
 					<version>1.0</version>
 					<scope>system</scope>
 					<type>so</type>
-					<systemPath>${project.basedir}/../klang/lib/libz3.so</systemPath>
+					<systemPath>${project.basedir}/../Klang (develop)/lib/libz3.so</systemPath>
 				</dependency>
 			</dependencies>
 		</profile>
