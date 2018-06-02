@@ -193,6 +193,32 @@
 					<artifactId>klang</artifactId>
 					<version>${mbee.version}</version>
 				</dependency>
+				<dependency>
+					<groupId>com.microsoft.z3</groupId>
+					<artifactId>com.microsoft.z3</artifactId>
+					<version>1.0</version>
+					<scope>system</scope>
+					<type>jar</type>
+					<systemPath>${project.basedir}/../Klang (develop)/lib/com.microsoft.z3.jar</systemPath>
+				</dependency>
+
+				<dependency>
+					<groupId>com.microsoft.z3</groupId>
+					<artifactId>libz3java</artifactId>
+					<version>1.0</version>
+					<scope>system</scope>
+					<type>so</type>
+					<systemPath>${project.basedir}/../Klang (develop)/lib/libz3java.so</systemPath>
+				</dependency>
+
+				<dependency>
+					<groupId>com.microsoft.z3</groupId>
+					<artifactId>libz3</artifactId>
+					<version>1.0</version>
+					<scope>system</scope>
+					<type>so</type>
+					<systemPath>${project.basedir}/../klang/lib/libz3.so</systemPath>
+				</dependency>
 			</dependencies>
 		</profile>
     </profiles>
