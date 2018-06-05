@@ -1557,11 +1557,24 @@ public class KtoJava {
         }
 
         for ( PropertyDecl property : propertyList ) {
-
-            if ( !property.expr().isEmpty()
-                 && (allInitsAreConstraints || isPrimitive( property.ty().toJavaString() )) ) {
-                Exp pe = get(property.expr());
-                expression = makeExpressionString(pe);
+            if (allInitsAreConstraints || (isPrimitive(property.ty().toJavaString()) && property.expr().isEmpty())) {
+                if ( property.expr().isEmpty() ) {
+                    ClassData.Param p = makeParam( property, entity );
+                    if (p.scope == null && entity != null ) p.scope = getClassName(entity);
+                    String args[] =
+                            expressionTranslator().convertToEventParameterTypeAndConstructorArgs( p, null );
+                    if ( args != null && args.length > 3 ) {
+                        expression = args[ 3 ];
+                        //                    Statement s = createAssignmentOfGenericType( p.name, args[ 0 ],
+                        //                                                                 args[ 1 ], args[ 2 ] );
+                        //                    expression = s.toString().replaceFirst( "if [(][^)]*[)][^=]*[=]", "" ).replaceFirst( ";$","" );
+                    } else {
+                        expression = null;
+                    }
+                } else {
+                    Exp pe = get(property.expr());
+                    expression = makeExpressionString( pe );
+                }
                 f = createConstraintField( null,
                                            property.name() + " == (" + expression + ")",
                                            initMembers );
