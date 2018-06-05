@@ -462,10 +462,11 @@ public class KtoJava {
     public String findQualifiedTypeInScope(String type, String containingClass) {
         // start in deepest scope
         String candidate = containingClass + "." + type;
-        int lastPeriod = candidate.lastIndexOf('.');
+        //find the last period that appears before the one directly before type
+        int lastPeriod = candidate.lastIndexOf('.', candidate.length() - type.length() - 2);
 
-        // while there is still a period in the name. Once there are no periods, we have reached "Global"
-        // and the type was not found
+
+        // while there is still a period in the name (ignores periods in type). Once there are no periods, we have reached "Global"
         while(lastPeriod >= 0) {
             if(this.allClassNames.contains(candidate)) {
                 return candidate;
@@ -473,11 +474,15 @@ public class KtoJava {
 
             // cut off everything after the last level of scope and add the type back on
             // i.e. Global.A.B.C.type becomes Global.A.B.type
-            int cutPoint = candidate.lastIndexOf('.', lastPeriod - 1);
-            if(cutPoint < 0) break; // if there are no more periods before the last one - reached "Global"
+//            int cutPoint = candidate.lastIndexOf('.', lastPeriod - 1);
+//            if(cutPoint < 0) break; // if there are no more periods before the last one - reached "Global"
 
-            candidate = candidate.substring(0, cutPoint) + "." + type; //reattach the type
-            lastPeriod = candidate.lastIndexOf('.'); // check for period (probably redundant)
+            candidate = candidate.substring(0, lastPeriod) + "." + type; //reattach the type
+            lastPeriod = candidate.lastIndexOf('.', candidate.length() - type.length() - 2);
+        }
+
+        if(this.allClassNames.contains(candidate)) {
+            return candidate;
         }
 
         return null;
@@ -1300,6 +1305,9 @@ public class KtoJava {
                            new MethodCallExpr( null,
                                                "init" + newClassDecl.getName()
                                                      + "Dependencies" ) );
+//        ASTHelper.addStmt( block,
+//                           new MethodCallExpr( null,
+//                                                "setAllConstraintsToStale"));
 
     }
 
