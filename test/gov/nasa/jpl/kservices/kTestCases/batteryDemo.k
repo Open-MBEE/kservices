@@ -1,5 +1,5 @@
 req Timepoint.setEpoch("2020-001T00:00:00.000")
-req Timepoint.setHorizonDuration(seconds(0.1))
+req Timepoint.setHorizonDuration(100)
 
 var netPower : TimeVaryingMap = TimeVaryingMap("", "src/kTestCases/BusPower.csv", null, Double.class)
 var netPowerIntegrated : TimeVaryingMap = netPower.integrate()
