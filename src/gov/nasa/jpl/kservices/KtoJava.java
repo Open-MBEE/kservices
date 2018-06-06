@@ -1573,6 +1573,8 @@ public class KtoJava {
         }
 
         for ( PropertyDecl property : propertyList ) {
+            if ( property.expr().isEmpty() && (allInitsAreConstraints || isPrimitive(property.ty().toJavaString()) )) {
+                    /*
             if (allInitsAreConstraints || (isPrimitive(property.ty().toJavaString()) && property.expr().isEmpty())) {
                 if ( property.expr().isEmpty() ) {
                     ClassData.Param p = makeParam( property, entity );
@@ -1591,6 +1593,9 @@ public class KtoJava {
                     Exp pe = get(property.expr());
                     expression = makeExpressionString( pe );
                 }
+                    */
+                Exp pe = get(property.expr());
+                expression = makeExpressionString( pe );
                 f = createConstraintField( null,
                                            property.name() + " == (" + expression + ")",
                                            initMembers );
