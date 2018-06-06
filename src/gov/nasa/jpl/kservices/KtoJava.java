@@ -880,6 +880,7 @@ public class KtoJava {
                                             Timepoint.setUnits(s);
                                         }
                                     } else if ( fae.name().equals("setHorizon") ) {
+                                        //JavaToConstraintExpression.parseExpression( firstArgExp.toJavaString() );
                                         String s = getArgString(firstArgExp);
                                         if ( s != null ) {
                                             Timepoint.setHorizon(s);
