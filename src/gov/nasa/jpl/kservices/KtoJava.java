@@ -812,6 +812,9 @@ public class KtoJava {
         if ( exp instanceof StringLiteral ) {
             return ((StringLiteral)exp).s();
         }
+        if ( exp instanceof DateLiteral ) {
+            return exp.toString();
+        }
         return exp.toJavaString();
     }
 
