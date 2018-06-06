@@ -1574,7 +1574,8 @@ public class KtoJava {
         }
 
         for ( PropertyDecl property : propertyList ) {
-            if ( property.expr().isEmpty() && (allInitsAreConstraints || isPrimitive(property.ty().toJavaString()) )) {
+            if ( !property.expr().isEmpty() &&
+                 (allInitsAreConstraints || isPrimitive(property.ty().toJavaString()) )) {
                     /*
             if (allInitsAreConstraints || (isPrimitive(property.ty().toJavaString()) && property.expr().isEmpty())) {
                 if ( property.expr().isEmpty() ) {
