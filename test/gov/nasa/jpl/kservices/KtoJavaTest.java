@@ -6,6 +6,11 @@ import java.io.*;
 public class KtoJavaTest {
 
     @Test
+    public void testBatteryDemo() throws FileNotFoundException {
+        Tester.checkSolution("batteryDemo");
+    }
+
+    @Test
     public void testSimple() throws FileNotFoundException {
         Tester.checkSolution("simple");
     }
@@ -23,11 +28,6 @@ public class KtoJavaTest {
     @Test
     public void testFactorial() throws FileNotFoundException {
         Tester.checkSolution("factorial");
-    }
-
-    @Test
-    public void testBatteryDemo() throws FileNotFoundException {
-        Tester.checkSolution("batteryDemo");
     }
 
     @Test

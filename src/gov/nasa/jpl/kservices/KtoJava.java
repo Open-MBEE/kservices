@@ -1500,34 +1500,37 @@ public class KtoJava {
            getExpressions( EntityDecl entity, MethodDeclaration initMembers ) {
         ArrayList< FieldDeclaration > parameters =
                 new ArrayList< FieldDeclaration >();
-        if ( entity == null ) {
-            ArrayList< ExpressionDecl > expressionList =
-                    new ArrayList< ExpressionDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelExpressions( this.model() ) ) );
-            FieldDeclaration f;
-            for ( ExpressionDecl expressionDecl : expressionList ) {
-                Exp exp = expressionDecl.exp();
+        ArrayList< ExpressionDecl > expressionList = null;
+        if ( entity != null ) {
+            expressionList =
+                    new ArrayList< ExpressionDecl >( JavaConversions.asJavaCollection( entity.getExpressionDecls() ) );
 
-                // we don't want elaborations firing on their own.
-                if ( hasElaboration(exp) ) continue;
+        } else {
+            expressionList = new ArrayList<ExpressionDecl>( JavaConversions.asJavaCollection(
+                    Frontend.getTopLevelExpressions( this.model() ) ) );
+        }
+        FieldDeclaration f;
+        for ( ExpressionDecl expressionDecl : expressionList ) {
+            Exp exp = expressionDecl.exp();
 
-                // we don't want effects firing on their own.
-                if ( hasEffect(exp) ) continue;
+            // we don't want elaborations firing on their own.
+            if ( hasElaboration(exp) ) continue;
 
-                String name = new String( "expression" + expressionCounter++ );
-                // String type =
-                // JavaToConstraintExpression.typeToClass(
-                // TypeChecker.exp2Type()
-                // .get( exp )
-                // .toString() );
-                String type = "Object";
-                ClassData.Param p =
-                        new ClassData.Param( name, type, exp.toJavaString(), null );
-                f = createParameterField( p, initMembers );
-                if ( f != null ) {
-                    parameters.add( f );
-                }
+            // we don't want effects firing on their own.
+            if ( hasEffect(exp) ) continue;
 
+            String name = new String( "expression" + expressionCounter++ );
+            // String type = JavaToConstraintExpression.typeToClass( TypeChecker.exp2Type().get( exp ).toString() );
+            String type = "Object";
+            String expression = exp == null ? null : makeExpressionString(exp);
+
+            ClassData.Param p =
+                    new ClassData.Param( name, type, expression, null );
+            f = createParameterField( p, initMembers );
+            if ( f != null ) {
+                parameters.add( f );
             }
+
         }
 
         return parameters;
@@ -1541,16 +1544,21 @@ public class KtoJava {
         String expression;
         ArrayList< ConstraintDecl > constraintList;
         ArrayList< PropertyDecl > propertyList;
+        //ArrayList< ExpressionDecl > exprList;
         if ( entity == null ) {
             constraintList =
                     new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelConstraints( this.model() ) ) );
             propertyList =
                     new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( Frontend.getTopLevelProperties( this.model() ) ) );
+//            exprList =
+//                    new ArrayList< ExpressionDecl>( JavaConversions.asJavaCollection( Frontend.getTopLevelExpressions( this.model() ) ) );
         } else {
             constraintList =
                     new ArrayList< ConstraintDecl >( JavaConversions.asJavaCollection( entity.getConstraintDecls() ) );
             propertyList =
                     new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( entity.getPropertyDeclsNoIgnore() ) );
+//            exprList =
+//                    new ArrayList< ExpressionDecl >( JavaConversions.asJavaCollection( entity.getExpressionDecls() ) );
         }
         for ( ConstraintDecl constraint : constraintList ) {
 
@@ -1591,6 +1599,21 @@ public class KtoJava {
                 }
             }
         }
+
+//        for ( ExpressionDecl property : exprList ) {
+//
+//            if ( !property.exp().isEmpty()
+//                 && (allInitsAreConstraints || isPrimitive( property.ty().toJavaString() )) ) {
+//                Exp pe = property.exp();
+//                expression = makeExpressionString(pe);
+//                f = createConstraintField( null,
+//                                           property.name() + " == (" + expression + ")",
+//                                           initMembers );
+//                if ( f != null ) {
+//                    constraints.add( f );
+//                }
+//            }
+//        }
 
         return constraints;
 
