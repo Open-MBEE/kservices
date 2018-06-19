@@ -1,0 +1,1 @@
+../baeModels/europa/data/deleteMpsNamespace.sh
