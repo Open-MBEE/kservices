@@ -778,34 +778,11 @@ public class KtoJava {
     }
     
     public String makeExpressionString(Exp exp) {
-        if (exp instanceof CollectionEnumExp) {
-            CollectionEnumExp collExp = (CollectionEnumExp)exp;
-            StringBuffer sb = new StringBuffer();
-            sb.append("new ");
-            sb.append (collExp.kind().toJavaString());
-            sb.append( "(Arrays.asList( ");
-            ArrayList<Exp> args = new ArrayList<Exp>(JavaConversions.asJavaCollection( collExp.exps()));
-            boolean first = true;
-            for (Exp e : args) {
-                String arg = makeExpressionString(e);
-                if (!first) {
-                    sb.append( "," + arg );
-                } else {
-                    first = false;
-                    sb.append( arg );
-                }
-                
-            }
-            sb.append( " ))");
-            return sb.toString();
-            
-        } else {
-            if (exp == null) {
-                return null;
-            }
-            checkForSetupConfig(exp);
-            return exp.toJavaString();
+        if (exp == null) {
+            return null;
         }
+        checkForSetupConfig(exp);
+        return exp.toJavaString();
     }
 
     protected String getArgString( Exp exp ) {
