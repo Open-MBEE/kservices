@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+#set -x
 
 if [ -z $pkg ]; then
   pkg=$1
