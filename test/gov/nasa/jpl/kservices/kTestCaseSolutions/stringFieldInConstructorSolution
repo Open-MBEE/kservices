@@ -1,0 +1,5 @@
+{"result": {
+    "solution": "a = A {\n   x = 2\n}\n",
+    "satisfied": "true",
+    "constraints": ["req a.x = 2"]
+}}
