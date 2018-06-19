@@ -21,6 +21,11 @@ public class KtoJavaTest {
     }
 
     @Test
+    public void testStringFieldInConstructor() throws FileNotFoundException {
+        Tester.checkSolution("stringFieldInConstructor");
+    }
+
+    @Test
     public void testAbs() throws FileNotFoundException {
         Tester.checkSolution("abs");
     }

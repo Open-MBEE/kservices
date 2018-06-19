@@ -38,6 +38,9 @@ public class Tester {
         String outputSolution  = FileUtils.fileToString( outputSolnFile );
         String expectedSolution = FileUtils.fileToString( expectedSolnFile);
 
+        outputSolution = outputSolution.replaceAll( "@[1-9][0-9]*", "" );
+        expectedSolution = expectedSolution.replaceAll( "@[1-9][0-9]*", "" );
+
         assertEquals(expectedSolution, outputSolution);
     }
 }
