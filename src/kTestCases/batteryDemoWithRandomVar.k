@@ -1,11 +1,11 @@
-import gov.nasa.jpl.ae.util.distributions
+//import gov.nasa.jpl.ae.util.distributions
 import gov.nasa.jpl.ae.util.distributions.Normal
 
-class BatteryClass {
+class Battery {
 
     var netPower : TimeVaryingMap
     var z : Long = 0
-    var setValObject : Object = netPower.setValue(z, 0.0)
+    netPower.setValue(z, 0.0)
 
     var netPowerIntegrated : TimeVaryingMap = netPower.integrate()
     var netDeltaWattHours : TimeVaryingMap = netPowerIntegrated.getDeltaMap()
@@ -26,12 +26,12 @@ class BatteryClass {
     class usePower extends DurativeEvent {
       var mu : Real
       var sigma : Real
-      var randomPower : gov.nasa.jpl.ae.util.distributions.Normal = gov.nasa.jpl.ae.util.distributions.Normal(mu.getValue(false), sigma.getValue(false))
+      var randomPower : Normal = Normal(mu.getValue(false), sigma.getValue(false))
 
       -- Needs to return a boolean
       var negRandomDist : gov.nasa.jpl.ae.util.distributions.Normal = -randomPower
-      var startRandomPower: Object = netPower.setValue(startTime, negRandomDist)
-      var endRandomPower: Object = netPower.setValue(endTime, randomPower)
+      netPower.setValue(startTime, negRandomDist)
+      netPower.setValue(endTime, randomPower)
     }
 
     var up1 : usePower
@@ -47,3 +47,6 @@ class BatteryClass {
     req up2.sigma = 4
 
 }
+
+var battery : Battery
+
