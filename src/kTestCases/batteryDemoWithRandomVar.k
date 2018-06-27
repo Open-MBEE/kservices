@@ -29,7 +29,7 @@ class Battery {
       var randomPower : Normal = Normal(mu.getValue(false), sigma.getValue(false))
 
       -- Needs to return a boolean
-      var negRandomDist : gov.nasa.jpl.ae.util.distributions.Normal = -randomPower
+      var negRandomDist : Normal = -randomPower
       netPower.setValue(startTime, negRandomDist)
       netPower.setValue(endTime, randomPower)
     }
