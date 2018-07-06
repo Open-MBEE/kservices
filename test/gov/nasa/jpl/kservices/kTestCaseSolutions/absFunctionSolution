@@ -1,5 +1,5 @@
 {"result": {
-    "solution": "a = A {\n   value = -1\n}\n",
+    "solution": "a = A {\n   value = 0\n}\n",
     "satisfied": "true",
-    "constraints": ["req a.value = -1"]
+    "constraints": ["req a.value = 0"]
 }}
