@@ -20,7 +20,7 @@ public class Tester {
 
     public static void checkSolution(String kFileName) throws FileNotFoundException {
         TimeVaryingMap<Integer> tvm = new TimeVaryingMap<>( "tvm" );
-        HasIdImpl.reset();
+        //HasIdImpl.reset();
         ParameterListenerImpl.reset();
         Random.reset();
 
