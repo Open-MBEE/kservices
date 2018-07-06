@@ -2754,6 +2754,7 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.ae.event.TimeVaryingFunctionCall" );
         addImport( "gov.nasa.jpl.ae.event.Event" );
         addImport( "gov.nasa.jpl.ae.solver.ObjectDomain" );
+        addImport( "gov.nasa.jpl.ae.solver.ClassDomain" );
         addImport( "gov.nasa.jpl.mbee.util.TimeUtils" );
         addImport( "gov.nasa.jpl.mbee.util.Utils" );
         addImport( "gov.nasa.jpl.mbee.util.Debug" );

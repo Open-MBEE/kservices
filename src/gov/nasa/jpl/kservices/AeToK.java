@@ -110,6 +110,7 @@ public class AeToK {
         DoubleDomain,
         IntegerDomain,
         ObjectDomain,
+        ClassDomain,
         RangeDomain,
         SingleValueDomain,
         StringDomain,
@@ -290,6 +291,9 @@ public class AeToK {
         }
         if ( ObjectDomain.class.isAssignableFrom( objClass ) ) {
             return ObjectDomain.class;
+        }
+        if ( ClassDomain.class.isAssignableFrom( objClass ) ) {
+            return ClassDomain.class;
         }
         if ( RangeDomain.class.isAssignableFrom( objClass ) ) {
             return RangeDomain.class;
@@ -575,6 +579,8 @@ public class AeToK {
             case NestedTimeVaryingMap:
                 break;
             case ObjectDomain:
+                break;
+            case ClassDomain:
                 break;
             case ObjectFlow:
                 break;
