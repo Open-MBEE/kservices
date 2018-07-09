@@ -209,6 +209,34 @@ public class KtoJava {
         models.put(this.packageName, m);
     }
 
+    /**
+     * Generates a set of the fully qualified names of the super classes of the class specified by thisClass
+     * @param thisClass EntityDecl corresponding to the class of which we want to find the super classes
+     * @return TreeSet of Strings containing the fully qualified names of the super classes
+     */
+    public TreeSet<String> getQualifiedSuperClassNames(EntityDecl thisClass) {
+        // scala gives the simple super class names
+        TreeSet<String> superClasses = new TreeSet<>(JavaConversions.asJavaCollection(thisClass.getExtendingNames()));
+        TreeSet<String> fqNames = new TreeSet<>();
+        Iterator<String> iter = superClasses.iterator();
+
+        while(iter.hasNext()) {
+            String name = iter.next();
+            String fqName = findQualifiedTypeInScope(name, thisClass.fqName());
+
+            // if we can't find the fully qualified name, then it's just add the original name
+            // accounts for things like DurativeEvent
+            if(fqName == null) {
+                fqNames.add(name);
+            } else {
+                fqNames.add(fqName);
+            }
+        }
+
+        return fqNames;
+
+    }
+
     public void init(boolean translate) {
         // Collect declaration info
         this.topLevelClasses = getTopLevelClasses();
@@ -223,7 +251,7 @@ public class KtoJava {
         for ( EntityDecl e : allClasses ) {
             this.allClassNames.add( e.fqName() );
             this.classToParentNames.put( e.fqName(),
-                                         new TreeSet< String >( JavaConversions.asJavaCollection( e.getExtendingNames() ) ) );
+                                         getQualifiedSuperClassNames(e));
 
         }
         for ( String e : allClassNames ) {
@@ -455,7 +483,7 @@ public class KtoJava {
 
     /**
      * Given the simple name of the type of a parameter and the class in which it was declared, finds the fully qualified name
-     * of the type based on scoping rules.
+     * of the type based on scoping rules. Also works for determining the fully qualified name of a super class.
      * @param type (simple) name of the type
      * @param containingClass (fully qualified) name of the class containing the parameter
      * @return (fully qualified) name of the type, null if no matching name was found
