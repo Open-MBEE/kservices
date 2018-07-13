@@ -2,8 +2,8 @@
     "result": {
         "solution": "x = 7860964316247212032\n",
         "satisfied": "false",
-        "violatedConstraints": ["lessThan(x=7860964316247212032,2) = false"],
+        "violatedConstraints": ["lessThan(getMember(Main000001,x),2) = false"],
         "constraints": ["req x = 7860964316247212032"]
     },
-    "Solver Errors": ["Could not resolve the following 1 constraints for Main000001:\nlessThan(x=7860964316247212032,2) = false\n"]
+    "Solver Errors": ["Could not resolve the following 1 constraints for Main000001:\nlessThan(getMember(Main000001,x),2) = false\n"]
 }
