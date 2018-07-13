@@ -3415,8 +3415,10 @@ public class KtoJava {
         entity.put( "name", e.ident() );
         entity.put( "type", "class" );
         Tuple2< Object, Object > numbers = map.get( e );
-        entity.put( "line", numbers._1() );
-        entity.put( "char", numbers._2() );
+        if ( numbers != null ) {
+            entity.put( "line", numbers._1() );
+            entity.put( "char", numbers._2() );
+        }
         JSONArray children = new JSONArray();
         List< PropertyDecl > properties =
                 new ArrayList< PropertyDecl >( JavaConversions.asJavaCollection( e.getPropertyDeclsNoIgnore() ) );
