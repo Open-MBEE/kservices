@@ -1,6 +1,12 @@
 src/generatedCode
 generatedSrc
+resources/*.java
+output/
 
+.DS_Store
+
+*.interp
+*.tokens
 *.class
 
 *.apf
