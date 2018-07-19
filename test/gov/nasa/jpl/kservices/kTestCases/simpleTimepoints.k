@@ -1,4 +1,4 @@
-ParameterListenerImpl.setArcConsistencyQuiet(false)
+// ParameterListenerImpl.setArcConsistencyQuiet(false)
 ParameterListenerImpl.setMaxLoopsWithNoProgress(10000)
 
 class A extends DurativeEvent
