@@ -232,6 +232,17 @@
 		<scope>provided</scope> is inherited for each of the following; for more 
 		info, please refer to alfresco-platform-distribution POM -->
 	<dependencies>
+
+		<dependency>
+			<groupId>gov.nasa.jpl</groupId>
+			<artifactId>k2mms</artifactId>
+			<!--<version>${mbee.version}</version>-->
+			<version>1.0</version>
+			<scope>system</scope>
+			<type>jar</type>
+			<systemPath>${project.basedir}/../k2mms/target/k2mms-1.0.0-SNAPSHOT.jar</systemPath>
+		</dependency>
+
 		<!-- Test dependencies -->
  		<dependency>
 			<groupId>junit</groupId>
