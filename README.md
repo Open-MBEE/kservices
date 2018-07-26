@@ -19,7 +19,7 @@ These websites may be available to try out:
   * http://flipper.jpl.nasa.gov:8080/ (the IDE under construction; JPL only; behavior
     and Java extensions; no documenation)
 
-###Set up
+### Set up
   1. Install git, maven, and Java 1.8.
   1. Clone the develop branches of kservices, bae, and klang into the same directory.   
   3. Set the `JAVA_HOME` environment variable to the installation directory of Java 1.8.
@@ -44,8 +44,9 @@ These websites may be available to try out:
      to point to `klang/lib`.  On Mac OS, it is `DYLIB_LIBRARY_PATH`.  If using Eclipse or
      Intellij IDEA, you can add this variable to the run configuration(s).  These may
      already be included in the `k` script.
+  6. If you want to use GLPK for a linear programming problem, you must first install GLPK v4.65 and compile the C++ code that links with it. The tarball can be downloaded from https://www.gnu.org/software/glpk/. After extracting its contents, run `make install`. Then, in the `src/gov/nasa/jpl/kservices/callGLPK` directory, run `g++ -c callGLPK.cpp`, then `g++ callGLPK.o -lglpk -lm -o callGLPK`.
  
- ###Run
+ ### Run
    * To test out the z3 solver on k files, you can run the `k` script from a
      terminal in the kservices directory like this:
      
@@ -65,7 +66,7 @@ These websites may be available to try out:
    * To skip JUnit tests with the mvn command, add `-DskipTests=true` to the arguments.
    * A webserver for accessing these services
   
-  ###Troubleshooting
+  ### Troubleshooting
 
    * See if the `MAVEN_OPTS` environment variable is set.  Options specified in `MAVEN_OPTS`
      are included with others to `mvn`.
