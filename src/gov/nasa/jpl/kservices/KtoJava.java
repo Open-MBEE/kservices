@@ -9,6 +9,7 @@ import gov.nasa.jpl.ae.util.ClassData;
 import gov.nasa.jpl.ae.util.distributions.DistributionHelper;
 import java.util.List;
 import gov.nasa.jpl.mbee.util.*;
+import gov.nasa.jpl.k2mms.MMSConnect;
 import japa.parser.*;
 //import japa.parser.ASTHelper;
 import japa.parser.ASTParser;
@@ -110,6 +111,8 @@ public class KtoJava {
     protected boolean processStdoutAndStderr = true;
     protected boolean allInitsAreConstraints = true;
     protected boolean smtSolved = false;
+
+    protected MMSConnect mmsConnect = null;
 
     //private ImmutableSet
 
@@ -2787,6 +2790,7 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.mbee.util.Utils" );
         addImport( "gov.nasa.jpl.mbee.util.Debug" );
         addImport( "gov.nasa.jpl.mbee.util.ClassUtils" );
+        addImport( "gov.nasa.jpl.k2mms.MMSConnect" );
         addImport( "java.util.Vector" );
         addImport( "java.util.Map" );
         addImport("java.util.ArrayList");
@@ -2972,6 +2976,7 @@ public class KtoJava {
                     "      s.amTopEventToSimulate = true;\n" +
                     "      System.out.println(\"===FULLOUTPUT===\" );\n" +
                     "      s.executeAndSimulate();\n" +
+                    "      if (MMSConnect.instance != null) MMSConnect.instance.pushToMMS();\n" +
                     "      System.out.println(\"===RESULTS===\" );\n" +
                     "      System.out.println(s.kSolutionString());\n" +
                     "\n";
@@ -2992,6 +2997,7 @@ public class KtoJava {
                     (verbose ?
                             "                System.out.println(\"===FULLOUTPUT===\" );\n" : "") +
                     "                    scenario.executeAndSimulate();\n" +
+                    "                    if (MMSConnect.instance != null) MMSConnect.instance.pushToMMS();\n" +
                     "                } catch( Throwable t ) {\n" +
                     "                    t.printStackTrace();\n" +
                     "                }\n" +
@@ -3544,14 +3550,31 @@ public class KtoJava {
         boolean verbose = false;
         boolean processStdoutAndStderr = true;
 
+        String mmsServer = null;
+        String mmsRef = null;
+        String mmsProject = null;
+        String mmsUsername = null;
+        String mmsPassword = null;
+
         JSONObject json = new JSONObject();  // This is now a member of KtoJava, so sync up with it!
 
         String kToExecute = "";
         ArrayList<String> kFileNames = new ArrayList<>();
         Boolean areFiles = args.length > 0;
+        final List<String> argsWithValues =
+                Arrays.asList( new String[]{"package", "server", "ref",
+                                            "project", "username", "password"} );
         for ( int i = 0; i < args.length; ++i ) {
             String arg = args[ i ];
-            if ( arg.contains( "package" ) ) {
+            String a = arg.toLowerCase();
+            boolean isArgWithValue = false;
+            for ( String s : argsWithValues ) {
+                if ( a.contains(s) ) {
+                    isArgWithValue = true;
+                    break;
+                }
+            }
+            if ( isArgWithValue ) {
                 ++i;
                 continue;
             }
@@ -3608,6 +3631,16 @@ public class KtoJava {
                     }
                 } else if ( a.contains( "package" ) ) {
                     packageName = args[ ++i ];
+                } else if ( a.contains( "server" ) ) {
+                    mmsServer = args[ ++i ];
+                } else if ( a.endsWith( "ref" ) || a.contains( "mmsref" ) || a.contains( "refid" ) ) {
+                    mmsRef = args[ ++i ];
+                } else if ( a.contains( "project" ) ) {
+                    mmsProject = args[ ++i ];
+                } else if ( a.contains( "username" ) ) {
+                    mmsUsername = args[ ++i ];
+                } else if ( a.contains( "password" ) ) {
+                    mmsPassword = args[ ++i ];
                 }
             }
         }
@@ -3640,6 +3673,11 @@ public class KtoJava {
             final boolean containmentTreeC = containmentTree;
             final boolean verboseC = verbose;
             final boolean runSmtC = runSMT;
+            final String mmsServerC = mmsServer;
+            final String mmsRefC = mmsRef;
+            final String mmsProjectC = mmsProject;
+            final String mmsUsernameC = mmsUsername;
+            final String mmsPasswordC = mmsPassword;
 
             // These are defaults that may need to be overridden in the K model.
             Timepoint.setUnits("milliseconds");
@@ -3656,12 +3694,19 @@ public class KtoJava {
                         K2Latex.convert( kFileNames.get( 0 ), kToJava.model() );
                     }
 
+                    if ( mmsServer != null ) {
+                        kToJava.mmsConnect =
+                                new MMSConnect( mmsServer, mmsRef, mmsProject,
+                                                mmsUsername, mmsPassword );
+                    }
+
                     kToJava.translateOrRunSmt(runSmtC, !translateC && solveC);
                     json = kToJava.json;
                 } catch( Throwable t) {
                     t.printStackTrace();
                 }
             } else {
+
                 CaptureStdoutStderr c = new CaptureStdoutStderr() {
                     @Override
                     public Object run() {
@@ -3676,6 +3721,12 @@ public class KtoJava {
                         try {
                             KtoJava kToJava = new KtoJava( kToExecuteC, packageNameC,
                                                 translateC, true );
+                            if ( mmsServerC != null ) {
+                                kToJava.mmsConnect =
+                                        new MMSConnect( mmsServerC, mmsRefC, mmsProjectC,
+                                                        mmsUsernameC, mmsPasswordC );
+                            }
+
                             kToJava.translateOrRunSmt(runSmtC, !translateC && solveC);
                             return kToJava;
                         } catch ( Throwable t ) {

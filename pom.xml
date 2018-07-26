@@ -234,6 +234,13 @@
 	<dependencies>
 
 		<dependency>
+			<groupId>io.swagger</groupId>
+			<artifactId>swagger-java-client</artifactId>
+			<version>1.0.0</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<dependency>
 			<groupId>gov.nasa.jpl</groupId>
 			<artifactId>k2mms</artifactId>
 			<!--<version>${mbee.version}</version>-->
