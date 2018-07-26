@@ -1582,12 +1582,14 @@ public class KtoJava {
                 constraints.add( f );
             }
 
+            Optimize.constraintList.add(expression.replace('*', ' '));
+
         }
 
         for ( PropertyDecl property : propertyList ) {
             if ( !property.expr().isEmpty() &&
                  (allInitsAreConstraints || isPrimitive(property.ty().toJavaString()) )) {
-                    /*
+                /*
             if (allInitsAreConstraints || (isPrimitive(property.ty().toJavaString()) && property.expr().isEmpty())) {
                 if ( property.expr().isEmpty() ) {
                     ClassData.Param p = makeParam( property, entity );
@@ -1616,6 +1618,19 @@ public class KtoJava {
                     constraints.add( f );
                 }
             }
+
+            Pair<String, VarType> var = new Pair<>(property.name(), VarType.REAL);
+            if(property.ty().toString().equals("Real")) {
+                var.second = VarType.REAL;
+            } else if(property.ty().toString().equals("Int")) {
+                var.second = VarType.INT;
+            } else if(property.ty().toString().equals("Bool")) {
+                var.second = VarType.BOOL;
+            } else {
+                continue;
+            }
+
+            Optimize.variableList.add(var);
         }
 
 //        for ( ExpressionDecl property : exprList ) {
