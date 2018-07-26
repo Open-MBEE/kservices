@@ -930,7 +930,8 @@ public class KtoJava {
         String value;
         if ( p.expr().isEmpty() ) {
             value = "null";
-            if (!ClassUtils.getNonPrimitives().keySet().contains(typeOld) ) {
+            if (!ClassUtils.getNonPrimitives().keySet().contains(typeOld) &&
+                !typeOld.equalsIgnoreCase("Time") ) {
 //            if ( !( typeOld.equals( "Boolean" ) || typeOld.equals( "Double" )
 //                    || typeOld.equals( "Integer" ) || typeOld.equals( "Long" )
 //                    || typeOld.equals( "String" ) ) ) {
