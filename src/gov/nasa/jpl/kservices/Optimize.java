@@ -96,6 +96,8 @@ public class Optimize {
             System.out.println(line);
         }
 
+        br.close();
+
         return result;
     }
 

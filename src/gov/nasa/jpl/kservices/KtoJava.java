@@ -1586,7 +1586,7 @@ public class KtoJava {
                 constraints.add( f );
             }
 
-            Optimize.constraintList.add(expression.replace('*', ' '));
+            Optimize.constraintList.add(expression.replace('*', ' ').replace("==", "="));
 
         }
 
