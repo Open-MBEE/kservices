@@ -1119,8 +1119,8 @@ public class KtoJava {
     public void translateClasses() {
         // Translate class (and other?) declarations.
         processClassDeclarations( true );
-        processClassDeclarations( false );
         addConstructors();
+        processClassDeclarations( false );
         processExecutionEvent();
     }
 
