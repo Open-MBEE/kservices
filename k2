@@ -1,0 +1,4 @@
+#!/bin/bash
+
+mvn -q -B -Pmbee-dev -DskipTests exec:java@generate -Dexec.args="--tree --solve --error $*"
+mvn -q -B -DskipTests -Pmbee-dev compile exec:java@solve
