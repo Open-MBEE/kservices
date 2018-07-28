@@ -3580,6 +3580,8 @@ public class KtoJava {
         // System.setOut(new PrintStream(baosOut));
         // System.setErr(new PrintStream(baosErr));
 
+        System.out.println( "args = " +MoreToString.Helper.toString( args ) );
+
         boolean solve = false;
         boolean containmentTree = false;
         boolean errorInfo = false;
