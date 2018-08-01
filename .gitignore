@@ -3,6 +3,9 @@ generatedSrc
 resources/*.java
 output/
 
+.gradle/
+.idea/
+
 .DS_Store
 
 *.interp
@@ -33,6 +36,8 @@ rebel.xml
 
 # Log file
 *.log
+
+*.out
 
 # BlueJ files
 *.ctxt
