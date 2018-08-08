@@ -2793,6 +2793,7 @@ public class KtoJava {
         addImport("java.util.ArrayList");
         addImport("java.util.Arrays");
         addImport( "java.util.TimeZone" );
+        addImport( "java.lang.Math" );
         if ( Utils.getJavaVersion() >= 1.8 ) {
             addImport("java.time.Duration");
         }
