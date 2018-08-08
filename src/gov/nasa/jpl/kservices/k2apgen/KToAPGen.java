@@ -293,12 +293,19 @@ public class KToAPGen {
         activity.attributes.put("Description", "activity for class " + nameWithScope);
         activity.attributes.put("Legend", activity.name);
         activity.attributes.put("Color", "Orange");
-
+        
         Collection<Annotation> annotations = JavaConversions.asJavaCollection( e.annotations() );
         for ( Annotation a: annotations ) {
             translate(a, activity);
         }
         Collection<MemberDecl> members = JavaConversions.asJavaCollection( e.members() );
+        // HACK - adds all parameters, so that State arrays are detected
+        // problem is that some of the "modeling" strings get dup'd
+        for ( MemberDecl member : members ) {
+            if (member instanceof PropertyDecl) {
+                translate(member, activity);
+            }
+        }
         for ( MemberDecl member : members ) {
             translate(member, activity);
         }
@@ -311,7 +318,16 @@ public class KToAPGen {
         // fix parameters to meet constructors
         fixParameters(e, activity, parent);
     }
-
+//
+//    private void addParametersToActivity(EntityDecl e, Activity activity) {
+//        Collection<MemberDecl> members = JavaConversions.asJavaCollection( e.members() );
+//        for ( MemberDecl member : members ) {
+//            if (member instanceof PropertyDecl) {
+//                translate((PropertyDecl) member, activity);
+//            }
+//        }
+//    }
+    
     protected void fixParameters(EntityDecl e, Activity activity, Object parent) {
         String className = e.ident();
         // find the longest constructor

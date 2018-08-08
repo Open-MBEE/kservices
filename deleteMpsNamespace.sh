@@ -1,1 +1,1 @@
-../baeModels/europa/data/deleteMpsNamespace.sh
+../baeModels/europa/data/deleteMpsTmsNamespace.sh
