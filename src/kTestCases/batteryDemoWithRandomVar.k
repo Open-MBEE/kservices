@@ -9,7 +9,7 @@ class Battery {
 
     var netPowerIntegrated : TimeVaryingMap = netPower.integrate()
     var netDeltaWattHours : TimeVaryingMap = netPowerIntegrated.getDeltaMap()
-    var batteryVoltage : TimeVaryingMap = TimeVaryingMap("", "/Users/dank/git/kservices/src/kTestCases/batteryVoltage.csv", null, Double.class)
+    var batteryVoltage : TimeVaryingMap = TimeVaryingMap("", "src/kTestCases/batteryVoltage.csv", null, Double.class)
     var rechargeEfficiency : Real = 0.95
     var ahCapacityBattery : Real = 183.0
 
