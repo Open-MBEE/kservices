@@ -30,10 +30,10 @@ public class KtoJavaTest {
         Tester.checkSolution("abs");
     }
 
-    @Test
-    public void testFactorial() throws FileNotFoundException {
-        Tester.checkSolution("factorial");
-    }
+//     @Test
+//     public void testFactorial() throws FileNotFoundException {
+//         Tester.checkSolution("factorial");
+//     }
 
     @Test
     public void testFlattenFunction() throws FileNotFoundException {
