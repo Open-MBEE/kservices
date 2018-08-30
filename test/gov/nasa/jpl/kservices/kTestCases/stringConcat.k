@@ -1,28 +1,37 @@
-var z : Bool = Parameter.setAllowPickValue(true)
+ParameterListenerImpl.setArcConsistencyQuiet(false)
 
-class A {
-  var x: String
-  var prefix: String = "|||"
-  var suffix: String = "___"
-  var foo : String = prefix + x + suffix
-}
+// var z : Bool = Parameter.setAllowPickValue(true)
 
-var bar : String = a.prefix + a.x + a.suffix
+// class A {
+//   var x: String
+//   // var prefix: String = "|||"
+//   // var suffix: String = "___"
+//   // var foo : String = prefix + x + suffix
+//   var foo : String = "|||" + x
+// }
 
-var a : A = A(x :: "RRRR")
-var rrrr : String = "TTTT"
-var aa : A = A(x :: rrrr)
-var aaa : A
-req aaa.x = "SSSS"
+// var bar : String = a.prefix + a.x + a.suffix
 
+// var a : A = A(x :: "RRRR")
+// var rrrr : String = "TTTT"
+// var aa : A = A(x :: rrrr)
+// var aaa : A
+// req aaa.x = "SSSS"
+// 
+// 
+// var pref: String = "@@@"
+// class B {
+//   var x: String
+//   var suffix: String = "^^^"
+//   var foofoo : String = pref + x + suffix
+// }
+// 
+// var b : B = B( x :: "BBB" )
+// var bb : B
+// req bb.x = "CCC"
 
-var pref: String = "@@@"
-class B {
-  var x: String
-  var suffix: String = "^^^"
-  var foofoo : String = pref + x + suffix
-}
-
-var b : B = B( x :: "BBB" )
-var bb : B
-req bb.x = "CCC"
+// var s : String = "foo "
+var t : String // = "bar"
+var u : String
+req u = "foo " + t
+req u = "foo bar"

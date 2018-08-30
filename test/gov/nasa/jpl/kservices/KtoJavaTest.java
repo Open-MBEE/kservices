@@ -19,6 +19,11 @@ public class KtoJavaTest {
     public void testSimpleString() throws FileNotFoundException {
         Tester.checkSolution("simpleString");
     }
+    
+    @Test
+    public void testStringConcat() throws FileNotFoundException {
+        Tester.checkSolution("stringConcat");
+    }
 
     @Test
     public void testStringFieldInConstructor() throws FileNotFoundException {

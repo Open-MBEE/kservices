@@ -3,11 +3,11 @@
 var start : Time = seconds(1.0)
 var end   : Time = seconds(5.0)
 
-var x : TimeVaryingMap = time * 2
+var x : TimeVaryingMap[Real] // = time * 2
 // x.setValue(start, start * 2)
 // x.setValue(end  , end   * 2)
 
-req time >= start && time <= end => x > 0
+req time <= end => x = 42.0
 
-var r1 : TimeVaryingMap[boolean] = time >= start && time <= end => x < 0
-var r2 : TimeVaryingMap[boolean] = time >= start
+// var r1 : TimeVaryingMap[boolean] = time >= start && time <= end => x < 0
+// var r2 : TimeVaryingMap[boolean] = time >= start

@@ -100,10 +100,6 @@ public class Tester {
       JSONObject jexp = null;
       JSONObject jact = null;
       try {
-        jexp = new JSONObject(expected);
-      } catch (JSONException e) {
-      }
-      try {
         jact = new JSONObject(actual);
       } catch (JSONException e) {
       }
@@ -119,8 +115,18 @@ public class Tester {
         assertTrue(jact.getJSONObject("result").has("satisfied"));
         assertTrue(Utils.isFalse( jact.getJSONObject("result").get("satisfied") ));
         return;
-      }// else, do a full solution check:
+      } // else assert that we succeed, and do a full solution check:
+      
+      assertTrue(jact.getJSONObject("result").has("satisfied"));
+      assertTrue(Utils.isTrue( jact.getJSONObject("result").get("satisfied") ));
 
+      try {
+        jexp = new JSONObject(expected);
+      } catch (JSONException e) {
+        System.err.println("Could not parse expected as JSON object.");
+        e.printStackTrace();
+      }
+      
       assertNotNull(jexp);
       assertTrue(jact.getJSONObject("result").has("constraints"));
       assertTrue(jact.getJSONObject("result").get("constraints") instanceof JSONArray);

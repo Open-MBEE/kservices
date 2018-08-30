@@ -1,3 +1,7 @@
+ParameterListenerImpl.setArcConsistencyQuiet(false) // DEBUG
+Parameter.setPrintOnSetValue(true) // DEBUG
+Parameter.setPrintOnRestrictDomain(true) // DEBUG
+
 ============================================================================================
 The following is an attempt to describe a LISP parser using the
 LISP 1.5 programmer's manual, found here:
@@ -17,12 +21,12 @@ class Atom extends S_Exp {
     // LPM: An atomic symbol is 
     // a string of no more than thirty numerals and capital letters;
     // the first character must be a letter.
-    val FIRSTCHAR : Seq[Char] = Seq{'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'}
-    val OTHERCHAR : Seq[Char] = Seq{'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','0','1','2','3','4','5','6','7','8','9'}
+    // val FIRSTCHAR : Seq[Char] = Seq{'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'}
+    // val OTHERCHAR : Seq[Char] = Seq{'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','0','1','2','3','4','5','6','7','8','9'}
 
     var name : String
     // req name.length() <= 30
-    req name.charAt(0) isin FIRSTCHAR
+    // req name.charAt(0) isin FIRSTCHAR
     // req forall i : Int :-
     //     1 <= i && i < name.length() => name.charAt(i) isin OTHERCHAR
 
@@ -36,11 +40,15 @@ class ListExp extends S_Exp {
     var leftExp  : S_Exp
     var rightExp : S_Exp
 
-    req text = "(" + leftExp.text + "." + rightExp.text + ")"
+    // req text = "(" + leftExp.text + "." + rightExp.text + ")"
+    var e1 : String = "(" + leftExp.text
+    var e2 : String = e1 + "."
+    var e3 : String = e2 + rightExp.text
+    req text = e3 + ")"
 }
 
 // LPM: An S-expression is either an atomic symbol or [a list expression]
-// forall s : S_Exp :-
+// req forall s : S_Exp :-
 //     s is Atom || s is ListExp
 
 ===========================================
@@ -49,9 +57,10 @@ cons, car, cdr, etc.
 ===========================================
 
 
-================================
-Rnning the implicit Lisp parser.
-================================
+=================================
+Running the implicit Lisp parser.
+=================================
 
-var myList : S_Exp
-myList.text = "(A.((B.C).D)"
+var myList : ListExp
+// req myList.text = "(A.((B.C).D)"
+req myList.text = "(A.B)"
