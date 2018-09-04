@@ -1,22 +1,3 @@
-y = 2
-for i in 0..len(arr):
-  y += arr[i] * arr2[i]
-z = y
-
-or
-
-y = 2 + sum(map(lambda x,y: x*y, arr, arr2))
-z = y
-
-
-var y : Seq[Real]
-y[0] = 2 
-forall i : Int :- i in 1..len(arr) ->
-   y[i] = y[i-1] + arr[i] * arr2[i]
-var z = y[len[arr]]
-
-
-
 -- K protocol executive
 
 class packet {
