@@ -1,0 +1,15 @@
+{
+    "a.x": "RRRR",
+    "a.prefix": "|||",
+    "a.suffix": "___",
+    "a.foo": "|||RRRR___",
+    "bar": "|||RRRR___",
+    "aaa.x": "SSSS",
+    "aaa.foo": "|||SSSS___",
+    "pref": "@@@",
+    "b.x": "BBB",
+    "b.suffix": "^^^",
+    "b.foofoo": "@@@BBB^^^",
+    "bb.x": "CCC",
+    "bb.foofoo": "@@@CCC^^^"
+}

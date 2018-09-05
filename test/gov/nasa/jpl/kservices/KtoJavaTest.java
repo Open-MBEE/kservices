@@ -19,6 +19,11 @@ public class KtoJavaTest {
     public void testSimpleString() throws FileNotFoundException {
         Tester.checkSolution("simpleString");
     }
+    
+    @Test
+    public void testStringConcat() throws FileNotFoundException {
+        Tester.checkSolution("stringConcat");
+    }
 
     @Test
     public void testStringFieldInConstructor() throws FileNotFoundException {
@@ -30,10 +35,10 @@ public class KtoJavaTest {
         Tester.checkSolution("abs");
     }
 
-    @Test
-    public void testFactorial() throws FileNotFoundException {
-        Tester.checkSolution("factorial");
-    }
+//     @Test
+//     public void testFactorial() throws FileNotFoundException {
+//         Tester.checkSolution("factorial");
+//     }
 
     @Test
     public void testFlattenFunction() throws FileNotFoundException {
