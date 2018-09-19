@@ -593,6 +593,9 @@ public class KToAPGen {
         if ( type != null ) {
             r.behavior = Resource.Behavior.nonconsumable;
             String apgType = javaToApgenType(type);
+            if ("float".equals(apgType)) {
+                r.behavior = Resource.Behavior.consumable;
+            }
             if ( primTypes.contains(apgType) ) {
                 r.type = apgType;
             } else {
