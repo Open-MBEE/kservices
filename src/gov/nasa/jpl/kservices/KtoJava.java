@@ -1999,7 +1999,9 @@ public class KtoJava {
             Expression expr = expressionTranslator().parseExpression( exp.toJavaString() );
             List<Pair<String, FieldDeclaration>> fields =
                     EventXmlToJava.createEffectField(expr, initMembers, getExpressionTranslator());
-            effects.addAll(fields);
+            if ( fields != null ) {
+                effects.addAll( fields );
+            }
         }
         if ( exp == null || exp.children() == null ) return effects;
         Collection<Object> children = JavaConversions.asJavaCollection(exp.children());
@@ -2007,7 +2009,9 @@ public class KtoJava {
             if (c instanceof HasChildren) {
                 if (c instanceof Exp ) {
                     ArrayList<Pair<String, FieldDeclaration>> someEffects = getEffects((Exp)c, initMembers);
-                    effects.addAll(someEffects);
+                    if ( someEffects != null ) {
+                        effects.addAll( someEffects );
+                    }
                 }
             }
         }
