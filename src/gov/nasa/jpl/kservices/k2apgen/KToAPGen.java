@@ -19,6 +19,8 @@ import scala.collection.JavaConversions;
 import java.util.*;
 import java.util.List;
 import java.util.Collection;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.sun.jmx.snmp.ThreadContext.contains;
 
@@ -878,9 +880,27 @@ public class KToAPGen {
             String pScope = ktoJava.getClassData().scopeForParameter(className, resourceStr, false, false);
             pScope = kToApgenClassName(pScope);
 
-            String modeling =
-                    ("start".equals(timeExpStr) ? "" : "wait for " + timeExpStr + " - start;\n") +
-                            "set " + (pScope == null ? "" : pScope + "_") + resourceStr.replace(".currentval()", "") + "(" + valueStr + ");";
+            // REVIEW -- TODO -- should we fix resourceStr before call to scopeForParameter() above?
+            resourceStr = resourceStr.replace(".currentval()", "");
+            Resource r = this.apgenModel.resources.get( resourceStr );
+
+            String modeling = null;
+            if ( r != null && (r.behavior == Resource.Behavior.consumable ||
+                               r.behavior == Resource.Behavior.nonconsumable ) ) {
+                valueStr = resourceStr + ".value(start - 00:00:00.001) -  " + valueStr;
+                modeling = ( "start".equals( timeExpStr ) ? "" :
+                             "wait for " + timeExpStr + " - start;\n" ) +
+                             "use " +
+                             ( pScope == null ? "" : pScope + "_" ) +
+                             resourceStr + "(" + valueStr + ")" +
+                             ( ( r.behavior == Resource.Behavior.consumable ) ? "" : " from start to finish") +
+                             ";";
+            } else {
+                modeling = ( "start".equals( timeExpStr ) ? "" :
+                             "wait for " + timeExpStr + " - start;\n" ) + "set "
+                           + ( pScope == null ? "" : pScope + "_" )
+                           + resourceStr + "(" + valueStr + ");";
+            }
             return modeling;  // TODO - Do we want to continue and add a constraint for this, too?  If it's 'req foo = setValue(t,v)' and foo isn't used elsewhere, then no, else probably.
         } else {
             // TODO!!! add(), . . .
@@ -892,10 +912,15 @@ public class KToAPGen {
         if ( constraintsInPropertDecls.contains( d ) ) {
             return "";
         }
-        // Create a timeline and constraint
         if ( d.toString().contains("Timepoint.set") ) {
             return "";
         }
+        if ( d.toString().contains("elaborates(") ) {
+            return "";
+        }
+
+        // Create a timeline and constraint
+
         String modeling  = translateEffect(d, parent);
         if ( !Utils.isNullOrEmpty(modeling) ) {
             return modeling;  // TODO - Do we want to continue and add a constraint for this, too?  If it's 'req foo = setValue(t,v)' and foo isn't used elsewhere, then no, else probably.
@@ -1230,6 +1255,56 @@ public class KToAPGen {
             Debug.error(true, false, "constructor at top level ignored! " + d.toJavaString());
         }
     }
+
+    Set<String> shiftNames = new LinkedHashSet<>( Utils.newList( "shift", "translate" ) );
+    /**
+     * Correct for time shifting timelines.
+     * For example, translateShift("tl.currentval().shift(-1)") returns
+     * "tl.value(now - 00:00:00.001" if the time units are milliseconds.
+     */
+    public String translateShift(String fCall) {
+        final String sub = ".currentval().";
+        int pos = fCall.indexOf( sub );
+        if ( pos <= 0 ) {
+            return fCall;
+        }
+        String first = fCall.substring( 0, pos );
+        String rest = fCall.substring( pos + sub.length() );
+        Pattern p = Pattern.compile( "^(\\w*)[(](.*)[)]$" );
+        Matcher m = p.matcher( rest );
+        if ( !m.matches() ) return fCall;
+        if ( m.groupCount() != 2 ) return fCall;
+        if ( !shiftNames.contains( m.group( 1 ) ) ) return fCall;
+        String arg = m.group( 2 );
+        if ( Utils.isNumber( arg ) ) {
+            Double d = Utils.toDouble( arg );
+            if ( d != null ) {
+                long l = d.longValue();
+                if ( l == 0 ) {
+                    String result = fCall.substring( 0, pos + sub.length() - 1 );
+                    return result;
+                } else {
+                    boolean negative = l < 0;
+                    if ( negative ) {
+                        l = l * -1;
+                    }
+                    Double nanos = Timepoint.asNanoseconds( l );
+                    if ( nanos != null ) {
+                        String durStr = TimeUtils.nanosToDurationStringHHMMSS(
+                                nanos.longValue() );
+                        // Reverse positive and negative -- need to subtract shift from now.
+                        String result = first + ".value(now" + (negative ? " + " : " - ") + durStr + ")";
+                        return result;
+                    }
+                }
+            }
+        } else {
+            String result = first + ".value(now - (" + arg + "))";
+            return result;
+        }
+        return fCall;
+    }
+
     public String translate(FunApplExp d, Object parent) {
         boolean isCtor = isConstructorAppl(d);
             // create decmposition
@@ -1308,7 +1383,12 @@ public class KToAPGen {
         if ( isCtor ) {
             sb.append(" at " + startAt);
         }
-        return sb.toString();
+        String s1 = sb.toString();
+        if ( !isCtor ) {
+            String s2 = translateShift( s1 );
+            if ( s2 != null ) return s2;
+        }
+        return s1;
     }
 
     public String addIfTheElseFunction(String type) {
