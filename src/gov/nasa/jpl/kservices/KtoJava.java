@@ -928,6 +928,7 @@ public class KtoJava {
 //            type = typeOld;
 //        }
         String value;
+        boolean isConstructor = false;
         if ( p.expr().isEmpty() ) {
             value = "null";
             if (!ClassUtils.getNonPrimitives().keySet().contains(typeOld) &&
@@ -956,6 +957,7 @@ public class KtoJava {
         } else {
             //if (p.expr().canBeNull())
             if ( isConstructorDecl( p ) ) {
+                isConstructor = true;
                 //value = "new " + value;
                 value = "null";
             } else {
@@ -966,7 +968,7 @@ public class KtoJava {
             }
         }
         String entityName = e == null ? null : getClassName(e);
-        return new ClassData.Param( name, type, value, entityName );
+        return new ClassData.Param( name, type, value, entityName, isConstructor );
     }
 
     public ClassData.Param makeParam( PropertyDecl p, EntityDecl e,
