@@ -65,4 +65,9 @@ public class KtoJavaTest {
         Tester.checkSolution("abstractFunction");
     }
 
+    @Test
+    public void testRandomVar() throws FileNotFoundException {
+        Tester.checkSolution("randomVar");
+    }
+
 }
