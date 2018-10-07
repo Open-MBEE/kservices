@@ -72,8 +72,8 @@ public class Tester {
         File outputSolnFile = new File( outputSolnPath );
         String outputSolution  = FileUtils.fileToString( outputSolnFile );
 
-        outputSolution = outputSolution.replaceAll( "@[1-9][0-9]*", "" );
-        expectedSolution = expectedSolution.replaceAll( "@[1-9][0-9]*", "" );
+        outputSolution = outputSolution.replaceAll( "@[a-f1-9][a-f0-9]*", "" );
+        expectedSolution = expectedSolution.replaceAll( "@[a-f1-9][a-f0-9]*", "" );
 
         if (useNewFormat) {
           assertSolution(expectedSolution, outputSolution);
