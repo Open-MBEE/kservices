@@ -33,5 +33,12 @@ ParameterListenerImpl.setArcConsistencyQuiet(false)
 // var s : String = "foo "
 var t : String // = "bar"
 var u : String
-req u = "foo " + t
-req u = "foo bar"
+
+var x : String // = "got"
+//req u = "foo " + t + " monkey " + x + " hungry"
+//req u = "foo bar monkey got hungry"
+req u = t + " monkey " + x
+req u = "bar monkey hungry"
+
+//req u = "foo " + t + " monkey"
+//req u = "foo bar monkey"
