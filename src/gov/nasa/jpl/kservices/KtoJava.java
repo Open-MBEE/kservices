@@ -799,11 +799,14 @@ public class KtoJava {
     }
 
     public boolean isConstructorDecl( PropertyDecl p ) {
+        if ( p.expr().isEmpty() ) {
+            return false;
+        }
         String type =
                 JavaToConstraintExpression.typeToClass( p.ty().toJavaString() );
         String value = p.expr().get().toJavaString();
-        if ( value.matches("[_A-Za-z0-9.]*" + type + "[(].*") ) {
-        //if ( value.startsWith( type + "(" ) ) {
+        // TODO -- REVIEW -- Consider making below, if ( value.matches("new " + type + "[(].*") ) {
+        if ( value.matches("(.*[^A-Za-z0-9_]|^)" + type + "[(].*") ) {
             return true;
         }
         return false;
@@ -919,52 +922,37 @@ public class KtoJava {
                 JavaToConstraintExpression.typeToClass(p.ty().toJavaString());
 
         String type = typeOld;
-//        if ( e != null ) {
-//            type = getClassName( type );
-//        }
-//        if ( ( typeOld.equals( "Boolean" ) || typeOld.equals( "Double" )
-//               || typeOld.equals( "Integer" ) || typeOld.equals( "Long" )
-//               || typeOld.equals( "String" ) ) ) {
-//            type = typeOld;
-//        }
         String value;
-        boolean isConstructor = false;
-        if ( p.expr().isEmpty() ) {
+        boolean isConstructor = isConstructorDecl( p );
+        if ( isConstructor ) {
+            // Set constructors to null to avoid infinite loops on object creation.
+            // The construction will take place from the equals constraint.
             value = "null";
-            if (!ClassUtils.getNonPrimitives().keySet().contains(typeOld) &&
-                !typeOld.equalsIgnoreCase("Time") ) {
-//            if ( !( typeOld.equals( "Boolean" ) || typeOld.equals( "Double" )
-//                    || typeOld.equals( "Integer" ) || typeOld.equals( "Long" )
-//                    || typeOld.equals( "String" ) ) ) {
-                String clsString = "(Class)null";
-                if ( isStateVariableType( typeOld ) ) {
-                    if ( type.startsWith("TimeVarying") && type.contains("<") || (type.contains("[") && type.contains("]") ) ) {
-                        String t2 = type.replaceAll("\\[", "<").replaceAll("\\]", ">");
-                        String typeParameter = ClassUtils.parameterPartOfName( t2, false );
-                        if ( !Utils.isNullOrEmpty(typeParameter) ) {
-                            clsString = typeParameter + ".class";
-                        }
-                    }
-                    if ( type.equals( "Consumable" ) ) {
-                        value =  "new " + type + "(\"" + p.name() + "\")";
-                    } else {
-                        value = "new " + type + "(\"" + p.name() + "\", (String)null, null, " + clsString + ")";
-                    }
-                } else {
-                    value = "new " + type + "()";
-                }
-            }
         } else {
-            //if (p.expr().canBeNull())
-            if ( isConstructorDecl( p ) ) {
-                isConstructor = true;
-                //value = "new " + value;
+            if ( p.expr().isEmpty() ) {
                 value = "null";
+                if (!ClassUtils.getNonPrimitives().keySet().contains(typeOld) &&
+                    !typeOld.equalsIgnoreCase("Time") ) {
+                    String clsString = "(Class)null";
+                    if ( isStateVariableType( typeOld ) ) {
+                        if ( type.startsWith("TimeVarying") && type.contains("<") || (type.contains("[") && type.contains("]") ) ) {
+                            String t2 = type.replaceAll("\\[", "<").replaceAll("\\]", ">");
+                            String typeParameter = ClassUtils.parameterPartOfName( t2, false );
+                            if ( !Utils.isNullOrEmpty(typeParameter) ) {
+                                clsString = typeParameter + ".class";
+                            }
+                        }
+                        if ( type.equals( "Consumable" ) ) {
+                            value =  "new " + type + "(\"" + p.name() + "\")";
+                        } else {
+                            value = "new " + type + "(\"" + p.name() + "\", (String)null, null, " + clsString + ")";
+                        }
+                    } else {
+                        value = "new " + type + "()";
+                    }
+                }
             } else {
                 value = makeExpressionString(p.expr().get());
-                //if ( isConstructorDecl( p ) ) {
-                //    value = "new " + value;
-                //}
             }
         }
         String entityName = e == null ? null : getClassName(e);
@@ -1488,19 +1476,25 @@ public class KtoJava {
         }
 
         for ( PropertyDecl property : propertyList ) {
-            ClassData.Param p = makeParam( property, entity );
-            if (p.scope == null && entity != null ) p.scope = getClassName(entity);
-            if ( initializingNull( property ) ) {
-                p.value = "null";
-            }
-            f = createParameterField( p, initMembers );
-            if ( f != null ) {
-                parameters.add( f );
-            }
-
+            getParameter( property, entity, initMembers,parameters );
         }
 
         return parameters;
+    }
+
+    protected void getParameter(PropertyDecl property, EntityDecl entity,
+                                MethodDeclaration initMembers,
+                                ArrayList< FieldDeclaration > parameters) {
+        FieldDeclaration f;
+        ClassData.Param p = makeParam( property, entity );
+        if (p.scope == null && entity != null ) p.scope = getClassName(entity);
+        if ( initializingNull( property ) ) {
+            p.value = "null";
+        }
+        f = createParameterField( p, initMembers );
+        if ( f != null ) {
+            parameters.add( f );
+        }
     }
 
     protected boolean initializingNull(PropertyDecl propertDecl) {
