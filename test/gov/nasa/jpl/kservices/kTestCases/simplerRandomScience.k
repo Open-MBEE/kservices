@@ -1,7 +1,6 @@
 import gov.nasa.jpl.ae.util.distributions.Distribution
 import gov.nasa.jpl.ae.util.distributions.Exponential
 import gov.nasa.jpl.ae.util.distributions.Normal
-import gov.nasa.jpl.ae.solver.ClassDomain
 
 req Timepoint.setEpoch("2027-365T00:00:00.000")
 req Timepoint.setHorizon("2028-220T00:00:00.000")
@@ -20,26 +19,30 @@ var meanTimeBetweenFaults : Duration = years(0.1)
 
 var maxSucceeded : Int = Timepoint.getHorizonDuration() / periodBetweenScience
 
-var firstFault : Fault = Fault(prevFault::null)
-var lastFault : Fault
+var s : Normal = Normal(0.0, 0.0000001)
+var f1 : Fault = Fault(lastTime::s)
+var f2 : Fault = Fault(lastTime::f1.distStartTime)
+var f3 : Fault = Fault(lastTime::f2.distStartTime)
+//var lastFault : Fault = f3
 class Fault extends DurativeEvent {
-    var prevFault : Fault
+    //var prevFault : Fault
     req duration = 1
 
-    var lastTime : Distribution = if prevFault = null then Normal(epoch,0.0000001) else prevFault.distStartTime
+    var lastTime : Distribution //= if prevFault = null then Normal(epoch,0.0000001) else prevFault.distStartTime
     var timeToNextFault : Exponential = Exponential(meanTimeBetweenFaults)
     var distStartTime : Distribution = lastTime + timeToNextFault
     req startTime = distStartTime.mean() as Time
 
     var failure : Distribution = ((distStartTime - firstScience) % periodBetweenScience) < scienceDuration
-    var lastNumFail : Distribution[Int] = if prevFault = null then Normal(0,0.000000001) else prevFault.numFail
-    var numFail : Distribution[Int] = lastNumFail + if failure then 1 else 0
+    //var lastNumFail : Distribution[Int] = if prevFault = null then Normal(0,0.000000001) else prevFault.numFail
+    //var numFail : Distribution[Int] = lastNumFail + if failure then 1 else 0
+    var numFail : Distribution[Int] = if failure then 1 else 0
 
-    var pastHorizon : Bool = startTime > Timepoint.getHorizonDuration()  // try getHorizon()
+    //var pastHorizon : Bool = startTime > Timepoint.getHorizonDuration()  // try getHorizon()
 
-    req if pastHorizon then lastFault = prevFault else true
+    //req if pastHorizon then lastFault = prevFault else true
 
-    var nextFault : Fault = if pastHorizon then null else Fault(prevFault::this)
+    //var nextFault : Fault = if pastHorizon then null else Fault(prevFault::this)
 //    var setLastFault : MakeEq =  if pastHorizon then MakeEq(v1::lastFault, v2::prevFault) else null
 
 //    var o1 : Object = (setLastFault.getDomain() as ClassDomain).setNullInDomain(true)
@@ -47,7 +50,9 @@ class Fault extends DurativeEvent {
 //    var o3 : Object = (nextFault.getDomain() as ClassDomain).setNullInDomain(true)
 }
 
-var numSucceeded : Distribution[Int] = maxSucceeded - if lastFault = null then 0 else lastFault.numFail
+var numFail : Distribution[Int] = f1.numFail + f2.numFail + f3.numFail
+//var numSucceeded : Distribution[Int] = maxSucceeded - if lastFault = null then 0 else lastFault.numFail
+var numSucceeded : Distribution[Int] = maxSucceeded - numFail
 
 var p : Real = P( numSucceeded > 0.95 * maxSucceeded )
 

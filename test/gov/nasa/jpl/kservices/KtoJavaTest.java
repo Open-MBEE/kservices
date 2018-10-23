@@ -70,4 +70,8 @@ public class KtoJavaTest {
         Tester.checkSolution("randomVar");
     }
 
+    @Test
+    public void testRandomIfThenElse() throws FileNotFoundException {
+        Tester.checkSolution("randomIfThenElse");
+    }
 }
