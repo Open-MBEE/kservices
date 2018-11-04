@@ -119,6 +119,23 @@
 								</configuration>
 							</execution>
 							<execution>
+								<id>k2apgen</id>
+								<!--<phase>test</phase>-->
+								<goals>
+									<goal>java</goal>
+								</goals>
+								<configuration>
+									<includePluginDependencies>true</includePluginDependencies>
+									<mainClass>gov.nasa.jpl.kservices.KToAPGen</mainClass>
+									<arguments>
+										<!--<argument>&#45;&#45;captureOff</argument>-->
+										<argument>--package</argument>
+										<argument>${kPackageName}</argument>
+										<argument>src/kTestCases/abs.k</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
 								<id>solve</id>
 								<!--<phase>test</phase>-->
 								<goals>
