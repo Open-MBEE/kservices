@@ -126,7 +126,7 @@
 								</goals>
 								<configuration>
 									<includePluginDependencies>true</includePluginDependencies>
-									<mainClass>gov.nasa.jpl.kservices.KToAPGen</mainClass>
+									<mainClass>gov.nasa.jpl.kservices.k2apgen.KToAPGen</mainClass>
 									<arguments>
 										<!--<argument>&#45;&#45;captureOff</argument>-->
 										<argument>--package</argument>
@@ -182,6 +182,30 @@
 								<type>jar</type>
 								<systemPath>${project.basedir}/../klang/target/klang-${mbee.version}.jar</systemPath>
 							</dependency>
+		<dependency>
+			<groupId>io.swagger</groupId>
+			<artifactId>swagger-java-client</artifactId>
+			<version>1.0.0</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>gov.nasa.jpl</groupId>
+			<artifactId>k2mms</artifactId>
+			<!--<version>${mbee.version}</version>-->
+			<version>1.0</version>
+			<scope>system</scope>
+			<type>jar</type>
+			<systemPath>${project.basedir}/../k2mms/target/k2mms-1.0.0-SNAPSHOT.jar</systemPath>
+		</dependency>
+
+		<!-- Test dependencies -->
+ 		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.8.1</version>
+			<scope>compile</scope>
+		</dependency>
 						</dependencies>
 					</plugin>
 				</plugins>
