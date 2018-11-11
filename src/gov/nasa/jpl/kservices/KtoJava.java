@@ -1778,11 +1778,14 @@ public class KtoJava {
 
     public ClassData.Param getMember( IdentExp e, String classScope ) {
         String oldCurrentClass = getClassData().getCurrentClass();
-        getClassData().setCurrentClass( classScope );
+        if ( classScope != null ) {
+            getClassData().setCurrentClass( classScope );
+        }
         ClassData.Param p = null;
         try {  // This try/catch/finally is probably not necessary.
-            p = getClassData().getParam(null, e.ident(), true, true,
-                    false, false);
+            p = getClassData().lookupMemberByName( null, e.ident(), true, false );
+//            p = getClassData().getParam(null, e.ident(), true, true,
+//                    false, false);
         } catch (Throwable t) {
             // ignore
         } finally {
