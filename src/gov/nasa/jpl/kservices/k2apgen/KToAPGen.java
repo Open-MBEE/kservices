@@ -49,10 +49,6 @@ import static com.sun.jmx.snmp.ThreadContext.contains;
  *
  */
 public class KToAPGen {
-//    /**
-//     * The k model.
-//     */
-//    String k = null;
     /**
      * APGen activity and resource declaration output.
      */
@@ -249,7 +245,7 @@ public class KToAPGen {
 
     public APGenModel translate(Model model) {
         // Preprocess top level to find constraints that could be merged with property declarations.
-        unitePropertiesAndConstraints( model ); // ok to call multiple times for same parent
+        unitePropertiesAndConstraints( model, true ); // ok to call multiple times for same parent
 
         // TODO -- model.packageName() -- use package as prefix of on names of contained elements?
         Collection<PackageDecl> packages = JavaConversions.asJavaCollection( model.packages() );
@@ -458,6 +454,9 @@ public class KToAPGen {
      * @param parent
      */
     protected void unitePropertiesAndConstraints( HasChildren parent ) {
+        unitePropertiesAndConstraints( parent, false );
+    }
+    protected void unitePropertiesAndConstraints( HasChildren parent, boolean recursive ) {
         if ( parent == null ) return;
         String x = null;
         if ( parent instanceof EntityDecl ) {
@@ -467,7 +466,7 @@ public class KToAPGen {
         }
         if ( propertyValuesInConstraints.containsKey( x ) ) {
             // Already did this computation.
-            return;
+            //return;
         }
 
         // Make maps for efficient, simple lookup
@@ -487,6 +486,27 @@ public class KToAPGen {
                         String name = ((IdentExp)be.exp1()).ident();
                         constrs.put(name, c);
                         constrRHSs.put(name, be.exp2());
+                    } else if ( be.exp1() instanceof DotExp ) {
+                        DotExp dexp = (DotExp)be.exp1();
+                        Exp scope = dexp.exp();
+                        String type = getType( scope, x );
+                        String typeInParent = getType( scope, parent );
+                        if ( type == null ||
+                             ( type.equals("Global") && typeInParent != null &&
+                               !typeInParent.equals("Main") ) ) {
+                            type = typeInParent;
+                        }
+                        String name = dexp.ident();  // TODO -- need to differentiate same-named members!
+                        //String name = be.exp1().toJavaString();
+                        if ( type != null ) {
+                            Utils.put( propertyValuesInConstraints,
+                                       type,
+                                       name,
+                                       new Pair<>(c, be.exp2()) );
+                        } else {
+                            constrs.put( name, c );
+                            constrRHSs.put( name, be.exp2() );
+                        }
                     }
                 }
             } else if ( child instanceof PropertyDecl ) {
@@ -504,11 +524,13 @@ public class KToAPGen {
                            x,
                            name,
                            new Pair<>(constrs.get(name), entry.getValue()) );
-//                        Option<Exp> val = Option.apply(entry.getValue());
-//                        PropertyDecl newProp =
-//                        new PropertyDecl(prop.modifiers(), prop.name(),
-//                                prop.ty(), prop.multiplicity(), prop.assignment(),
-//                                val);
+            }
+        }
+        if ( recursive ) {
+            for ( Object child : children ) {
+                if ( child instanceof HasChildren ) {
+                    unitePropertiesAndConstraints( (HasChildren)child, recursive );
+                }
             }
         }
     }
@@ -537,9 +559,19 @@ public class KToAPGen {
                 }
             }
         }
-        if ( expr != null && containsConstructorCall( expr ) ) {
-            addDecomposition(expr, parent);
-            return null;
+        if ( expr != null ) {
+            if ( containsConstructorCall( expr ) ) {
+                addDecomposition( expr, parent );
+                return null;
+            }
+        }
+        if ( parent instanceof Activity && isSimpleObjectDecl( d ) ) {
+            String n = d.ty().toJavaString();
+            n = kToApgenClassName(n);
+            Collection<Argument> args = new ArrayList();
+            String ctorStr = translateCall(n, args, parent, true);
+            ((Activity)parent).decomposition.append( ctorStr + ";\n" );
+//            return null;
         }
 
         String modeling = translateEffect(expr, parent);
@@ -562,6 +594,24 @@ public class KToAPGen {
                                 val);
         translateResource(newProp, parent);
         return modeling;
+    }
+
+    /**
+     * Is the declaration of the form, var x : SomeClass, with no assignment,
+     * and SomeClass is a class defined in K.
+     * @param d
+     * @return
+     */
+    private boolean isSimpleObjectDecl( PropertyDecl d ) {
+        if ( d == null ) return false;
+        Exp expr = get(d.expr()); // the property value
+        // The declaration should have no assignment
+        if ( expr != null && expr.toJavaString().length() > 0 ) return false;
+        String n = d.ty().toJavaString();
+        if ( ktoJava.getClassData().isClassName(n) ) {
+            return true;
+        }
+        return false;
     }
 
     public void addAttributes( Resource resource, PropertyDecl propertyDecl ) {
@@ -1099,9 +1149,9 @@ public class KToAPGen {
         String name = d.toJavaString();
         // If the object is a mode/state value (often an object and not a primitive), translate to a string value.
         if ( (type == null || !Parameter.apgenTypes.contains(type)) && !Utils.valuesEqual(name, type) && isResourceState( name ) ) {
-            return "\"" + d.toJavaString() + "\"";
+            return "\"" + name + "\"";
         }
-        return d.toJavaString();
+        return name;
     }
 
     public boolean isResourceState( String ident ) {
@@ -1166,6 +1216,12 @@ public class KToAPGen {
         ClassData.Param p = null;
         for ( String className : classNames ) {
             ClassData.Param p1 = ktoJava.getMember(exp, className);
+            if (p1 != null && (p == null || (p.type == null && p1.type != null))) {
+                p = p1;
+            }
+        }
+        if ( p == null ) {
+            ClassData.Param p1 = ktoJava.getMember(exp, null);
             if (p1 != null && (p == null || (p.type == null && p1.type != null))) {
                 p = p1;
             }
@@ -1252,7 +1308,7 @@ public class KToAPGen {
             a.decomposition.append( ctorStr + ";\n" );// + " at start;\n");
         } else {
             // TODO -- Should instantiations at the global level be wrapped in a global activity?
-            Debug.error(true, false, "constructor at top level ignored! " + d.toJavaString());
+            Debug.error(true, false, "constructor at top level not added as a decomposition: " + d.toJavaString());
         }
     }
 
@@ -1391,7 +1447,7 @@ public class KToAPGen {
         return s1;
     }
 
-    public String addIfTheElseFunction(String type) {
+    public String addIfThenElseFunction(String type) {
         String fName = "ifThenElse" + Utils.capitalize(type);
         if ( !apgenModel.functions.containsKey(fName) ) {
             Function f = new Function();
@@ -1417,7 +1473,7 @@ public class KToAPGen {
         String tbType = getType(d.trueBranch(), parent);
         String fbType = getType(get(d.falseBranch()), parent);
         String type = mostSpecificCommonSuperclass( tbType, fbType );
-        String fName = addIfTheElseFunction(type);
+        String fName = addIfThenElseFunction(type);
         sb.append( fName );
         sb.append("(");
         //sb.append("if (");
