@@ -1,9 +1,9 @@
 {"result": {
-    "solution": "three = 3.0\nx = gov.nasa.jpl.ae.util.distributions.Exponential@265adfad\np = 0.3558189185373419\n",
+    "solution": "three = 3.0\nx = Exponential(3.0)\np = 0.3558189185373419\n",
     "satisfied": "true",
     "constraints": [
         "req three = 3.0",
-        "req x = gov.nasa.jpl.ae.util.distributions.Exponential@265adfad",
+        "req x = Exponential(3.0)",
         "req p = 0.3558189185373419"
     ]
 }}
