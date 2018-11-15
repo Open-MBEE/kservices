@@ -1,10 +1,10 @@
 {"result": {
-    "solution": "x = X {\n   s = Hello World!\n}\nc = C {\n   y = Y {\n      s = Hello World!\n      s2 = Hello World! again\n   }\n   z = STEP Hello World! again@238{(_@240=0=1.0)}\n}\n",
+    "solution": "x = X {\n   s = Hello World!\n}\nc = C {\n   y = Y {\n      s = Hello World!\n      s2 = Hello World! again\n   }\n   z = STEP Hello World! again{(_=0=1.0)}\n}\n",
     "satisfied": "true",
     "constraints": [
         "req x.s = Hello World!",
         "req c.y.s = Hello World!",
         "req c.y.s2 = Hello World! again",
-        "req c.z = STEP Hello World! again{(0=1.0)}"
+        "req c.z = STEP Hello World! again{(Hello World! again:_=0=1.0)}"
     ]
 }}

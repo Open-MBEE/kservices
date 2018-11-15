@@ -13,9 +13,9 @@ var zeroi : EnumeratedDistribution[Long] = EnumeratedDistribution(epoch)
 // scenario constants
 
 var firstScience : Time = 2028-001T00:00:00.000
-var periodBetweenScience : Duration = weeks(13.5)
+var periodBetweenScience : Duration = days(13.5)
 var scienceDuration : Duration = hours(6.0)
-var meanTimeBetweenFaults : Duration = years(0.1)
+var meanTimeBetweenFaults : Duration = days(100.0)
 
 // main model
 
@@ -30,12 +30,14 @@ class Fault extends DurativeEvent {
     req duration = 1
 
     var lastTime : Distribution //= if prevFault = null then zeroi else prevFault.distStartTime
-    var timeToNextFault : Exponential = Exponential(meanTimeBetweenFaults, Exponential(meanTimeBetweenFaults/2))
+    //var timeToNextFault : Exponential = Exponential(meanTimeBetweenFaults)
+    var timeToNextFault : Exponential = Exponential(meanTimeBetweenFaults, Exponential(2*meanTimeBetweenFaults))
     var distStartTime : FunctionOfDistributions = lastTime + timeToNextFault
     req distStartTime.setMaxSamples(10)
     req startTime = distStartTime.mean() as Time
 
-    var failure : Distribution = ((distStartTime - firstScience) % periodBetweenScience) < scienceDuration
+    var failure : Distribution = //(distStartTime > firstScience) &&
+                                 (((distStartTime - firstScience) % periodBetweenScience) < scienceDuration)
     //var lastNumFail : Distribution[Int] = if prevFault = null then zeroi else prevFault.numFail
     //var numFail : Distribution[Int] = lastNumFail + if failure then 1 else 0
     var numFail : Distribution[Int] = if failure then 1 else 0

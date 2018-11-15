@@ -51,6 +51,11 @@ public class KtoJavaTest {
     }
 
     @Test
+    public void testMod() throws FileNotFoundException {
+        Tester.checkSolution("mod");
+    }
+
+    @Test
     public void testComments() throws FileNotFoundException {
         Tester.checkSolution("comments");
     }
