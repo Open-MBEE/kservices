@@ -30,7 +30,7 @@ class Fault extends DurativeEvent {
     req duration = 1
 
     var lastTime : Distribution = if prevFault = null then zeroi else prevFault.distStartTime
-    var timeToNextFault : Exponential = Exponential(meanTimeBetweenFaults)
+    var timeToNextFault : Exponential = Exponential(meanTimeBetweenFaults, Exponential(meanTimeBetweenFaults/2))
     var distStartTime : Distribution = lastTime + timeToNextFault
     req startTime = distStartTime.mean() as Time
 
@@ -52,7 +52,16 @@ class Fault extends DurativeEvent {
 
 var numSucceeded : Distribution[Int] = EnumeratedDistribution(maxSucceeded) - if lastFault = null then zeroi else lastFault.numFail
 
-var p : Real = P( numSucceeded > 0.95 * maxSucceeded )
+//var goal : FunctionOfDistributions = numSucceeded > 0.95 * maxSucceeded
+//
+//req goal.setMaxSamples(100000)
+//
+//var p : Real = P( numSucceeded > 0.95 * maxSucceeded )
+
+var goal : FunctionOfDistributions = numSucceeded > 0.95 * maxSucceeded
+req goal.setMaxSamples(100000)
+var p : Real = P( goal )
+
 
 //class MakeEq extends DurativeEvent {
 //    req startTime = epoch
