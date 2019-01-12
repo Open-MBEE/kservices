@@ -2,6 +2,7 @@ src/generatedCode
 generatedSrc
 resources/*.java
 output/
+/*.csv
 
 .gradle/
 .idea/
