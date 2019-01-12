@@ -1,0 +1,12 @@
+{
+    "result": {
+        "solution": "t = bar\nu = foo bar monkey\nexpression0 = setArcConsistencyQuiet(false)\n",
+        "satisfied": "true",
+        "constraints": [
+            "req t = bar",
+            "req u = foo bar monkey",
+            "req expression0 = setArcConsistencyQuiet(false)"
+        ]
+    },
+    "Solver Errors": ["WARNING! restricted * with [\"foo  monkey\" \"foo ÿÿÿÿÿÿÿÿ monkey\"] as ranges!  Result = [\"foo  monkey\" \"ÿÿÿÿÿÿÿÿ\"]\n"]
+}
