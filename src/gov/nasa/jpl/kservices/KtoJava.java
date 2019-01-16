@@ -264,8 +264,9 @@ public class KtoJava {
         this.instantiatedClassNames = new TreeSet< String >();
         //Debug.turnOn();
         buildNestingTable( getClassData().getNestedToEnclosingClassNames() );
-        buildParamTable( getClassData().getParamTable() );
+        buildParamTable( getClassData().getParamTable(), getClassData().getFunctionParamTable() );
         buildMethodTable( getClassData().getMethodTable() );
+        //buildFunctionParamTable( getClassData().getFunctionParamTable() );
 
         // Translate to Java
         if ( translate ) {
@@ -536,11 +537,12 @@ public class KtoJava {
     }
 
     public void
-           buildParamTable( Map< String, Map< String, ClassData.Param > > paramTable ) {
+           buildParamTable( Map< String, Map< String, ClassData.Param > > paramTable,
+                            Map< String, Map< Object, Map< String, ClassData.Param > > > functionParamTable ) {
         Map< String, ClassData.Param > params =
                 new TreeMap< String, ClassData.Param >();
         ClassData.Param param;
-        addGlobalParams( paramTable );
+        addGlobalParams( paramTable, functionParamTable );
 
         // get params from all the classes
         for ( EntityDecl entity : this.allClasses ) { // pass 1
@@ -564,24 +566,28 @@ public class KtoJava {
                 params.put( p.name(), param );
             }
 
+            paramTable.put( entityName, params );
+
             // add functions to the parameter table
             ArrayList< FunDecl > funList =
                     new ArrayList< FunDecl >( JavaConversions.asJavaCollection( entity.getFunDecls() ) );
             for ( FunDecl funDecl : funList ) {
+                Map< String, ClassData.Param > fparams =
+                        new TreeMap< String, ClassData.Param >();
+                String fEntityName = entityName + funDecl.ident();
+                // TODO -- REVIEW -- If the function name is overloaded,
+
                 Collection<Param> prms = JavaConversions.asJavaCollection(funDecl.params());
                 List< Param > funParams = new ArrayList< Param >( prms );
                 for ( Param p : funParams ) {
                     param = new ClassData.Param( p.name(),
                                                  JavaToConstraintExpression.typeToClass( p.ty()
                                                                                           .toJavaString() ),
-                                                 null, entityName );
-                    params.put( p.name(), param );
+                                                 null, fEntityName );
+                    fparams.put( p.name(), param );
                 }
-
+                Utils.put(functionParamTable, fEntityName, funDecl, fparams);
             }
-
-            paramTable.put( entityName, params );
-
         }
 
         // Add inherited parameters.
@@ -614,7 +620,8 @@ public class KtoJava {
     }
 
     public void
-           addGlobalParams( Map< String, Map< String, ClassData.Param > > paramTable ) {
+           addGlobalParams( Map< String, Map< String, ClassData.Param > > paramTable,
+                            Map< String, Map< Object, Map< String, ClassData.Param > > > functionParamTable ) {
         ClassData.Param param;
         Map< String, ClassData.Param > params =
                 new TreeMap< String, ClassData.Param >();
@@ -636,15 +643,19 @@ public class KtoJava {
         }
 
         for ( FunDecl funDecl : topLevelFunctions ) {
+            String fqName = globalName + "." + funDecl.ident();
+            Map< String, ClassData.Param > fparams =
+                    new TreeMap< String, ClassData.Param >();
             List< Param > funParams =
                     new ArrayList< Param >( JavaConversions.asJavaCollection( funDecl.params() ) );
             for ( Param p : funParams ) {
                 param = new ClassData.Param( p.name(),
                                              JavaToConstraintExpression.typeToClass( p.ty()
                                                                                       .toJavaString() ),
-                                             null, globalName );
-                params.put( p.name(), param );
+                                             null, fqName );
+                fparams.put( p.name(), param );
             }
+            Utils.put(functionParamTable, fqName, funDecl, fparams );
         }
 
         paramTable.put( globalName, params );
