@@ -21,6 +21,7 @@ import japa.parser.ast.body.ConstructorDeclaration;
 import japa.parser.ast.body.FieldDeclaration;
 import japa.parser.ast.body.MethodDeclaration;
 import japa.parser.ast.body.ModifierSet;
+import japa.parser.ast.body.Parameter;
 import japa.parser.ast.body.TypeDeclaration;
 import japa.parser.ast.body.VariableDeclarator;
 import japa.parser.ast.body.VariableDeclaratorId;
@@ -574,7 +575,7 @@ public class KtoJava {
             for ( FunDecl funDecl : funList ) {
                 Map< String, ClassData.Param > fparams =
                         new TreeMap< String, ClassData.Param >();
-                String fEntityName = entityName + funDecl.ident();
+                String fEntityName = entityName + "." + funDecl.ident();
                 // TODO -- REVIEW -- If the function name is overloaded,
 
                 Collection<Param> prms = JavaConversions.asJavaCollection(funDecl.params());
@@ -584,6 +585,11 @@ public class KtoJava {
                                                  JavaToConstraintExpression.typeToClass( p.ty()
                                                                                           .toJavaString() ),
                                                  null, fEntityName );
+//                    ClassData.Param paramN = new ClassData.Param( p.name(),
+//                                                 JavaToConstraintExpression.typeToClass( p.ty()
+//                                                                                          .toJavaString() ),
+//                                                 null, entityName );
+//                    params.put( p.name(), paramN );
                     fparams.put( p.name(), param );
                 }
                 Utils.put(functionParamTable, fEntityName, funDecl, fparams);
@@ -653,6 +659,12 @@ public class KtoJava {
                                              JavaToConstraintExpression.typeToClass( p.ty()
                                                                                       .toJavaString() ),
                                              null, fqName );
+//                ClassData.Param paramG =
+//                        new ClassData.Param( p.name(),
+//                                             JavaToConstraintExpression.typeToClass( p.ty()
+//                                                                                      .toJavaString() ),
+//                                             null, globalName );
+//                params.put( p.name(), paramG );
                 fparams.put( p.name(), param );
             }
             Utils.put(functionParamTable, fqName, funDecl, fparams );
@@ -714,15 +726,6 @@ public class KtoJava {
 
     }
 
-    // Delete this!  We're looking for a call not a declaration!
-//    public boolean isElaboratesMethod( MethodDeclaration m ) {
-//        if ( m == null ) return false;
-//        if ( !m.getName().equals("elaborates") ) return false;
-//        if ( m.getParameters() == null ) return false;
-//        if ( m.getParameters().size() < 2 ) return false;
-//        if ( m.)
-//        return true;
-//    }
 
     public Collection< MethodDeclaration > getMethods( EntityDecl entity ) {
         ArrayList< MethodDeclaration > methodDeclarations =
@@ -1263,9 +1266,12 @@ public class KtoJava {
                     new ArrayList< FunDecl >( JavaConversions.asJavaCollection( entity.getFunDecls() ) );
         }
 
+        String origCurrentMethod = getClassData().getCurrentMethod();
+
         for ( FunDecl funDecl : funDecls ) {
             Set< MethodDeclaration > methodSet =
                     classMethods.get( funDecl.ident() );
+            getClassData().setCurrentMethod(funDecl.ident());
             if ( methodSet != null ) {
                 for ( MethodDeclaration methodDecl : methodSet ) {
                     BlockStmt body = new BlockStmt();
@@ -1284,6 +1290,23 @@ public class KtoJava {
                                                                   true, true,
                                                                   false,
                                                                   true, false );
+
+                        // Replace GetMembers on function parameters with just the parameter names.
+                        List<Parameter> params =
+                                methodDecl.getParameters();
+                        for ( Parameter p : params ) {
+                            String pName = p.getId().getName();
+                            NameExpr ne = new NameExpr( pName );
+                            //String t = p.getType().toString();
+                            String paramString = expressionTranslator()
+                                    .astToAeExpr( ne, null, true, true,
+                                                  false, false, false );
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           if ( !Utils.isNullOrEmpty( paramString ) ) {
+                                String replacement = "new Expression((Object)" + pName + ")";
+                                aeString = aeString.replace( paramString, replacement );
+                            }
+                        }
+
                         addStatements( body, "return " + aeString + ";" );
 
                         methodDecl.setBody( body );
@@ -1293,9 +1316,9 @@ public class KtoJava {
 
         }
 
+        getClassData().setCurrentMethod(origCurrentMethod);
     }
-//        addDependency(startTime, new Expression<Long>(0L));
-//        addDependency(duration, new Expression<Long>(Timepoint.getHorizonDuration()));
+
     protected void createDefaultConstructor( TypeDeclaration newClassDecl ) {
         ConstructorDeclaration ctor =
                 new ConstructorDeclaration( ModifierSet.PUBLIC,
