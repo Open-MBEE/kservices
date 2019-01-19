@@ -1,14 +1,11 @@
-{
-    "result": {
-        "solution": "x = Normal(0.0, 1.0)\ny = FunctionOfDistributions(ifThenElse(BooleanDistribution(0.5),1,0))\nyz = FunctionOfDistributions(compare(FunctionOfDistributions(ifThenElse(BooleanDistribution(0.5),1,0)),0.5,GT))\nz = 0.5021\nzz = FunctionOfDistributions(ifThenElse(BooleanDistribution(0.5),1,0))\n",
-        "satisfied": "true",
-        "constraints": [
-            "req x = Normal(0.0, 1.0)",
-            "req y = FunctionOfDistributions(ifThenElse(BooleanDistribution(0.5),1,0))",
-            "req yz = FunctionOfDistributions(compare(FunctionOfDistributions(ifThenElse(BooleanDistribution(0.5),1,0)),0.5,GT))",
-            "req z = 0.5021",
-            "req zz = FunctionOfDistributions(ifThenElse(BooleanDistribution(0.5),1,0))"
-        ]
-    },
-    "Solver Errors": ["Could not evaluate condition of if-then-else as true/false; got null\nCould not evaluate condition of if-then-else as true/false; got null\nCould not evaluate condition of if-then-else as true/false; got null\nCould not evaluate condition of if-then-else as true/false; got null\nCould not evaluate condition of if-then-else as true/false; got null\n"]
-}
+{"result": {
+    "solution": "x = Normal(0.0, 1.0)\ny = ifThenElse(BooleanDistribution(0.5), 1, 0) = ifThenElse(BooleanDistribution(0.5),1,0)\nyz = compare(ifThenElse(BooleanDistribution(0.5),1,0), 0.5, GT)\nz = 0.49771428571428433\nzz = ifThenElse(BooleanDistribution(0.5), 1, 0)\n",
+    "satisfied": "true",
+    "constraints": [
+        "req x = Normal(0.0, 1.0)",
+        "req y = ifThenElse(BooleanDistribution(0.5), 1, 0) = ifThenElse(BooleanDistribution(0.5),1,0)",
+        "req yz = compare(ifThenElse(BooleanDistribution(0.5),1,0), 0.5, GT)",
+        "req z = 0.49771428571428433",
+        "req zz = ifThenElse(BooleanDistribution(0.5), 1, 0)"
+    ]
+}}
