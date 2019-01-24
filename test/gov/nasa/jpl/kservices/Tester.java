@@ -70,7 +70,13 @@ public class Tester {
 
         String outputSolnPath = EventXmlToJava.generatedCodeLocation + FS + "generatedCode" + FS + "solution.log";
         File outputSolnFile = new File( outputSolnPath );
-        String outputSolution  = FileUtils.fileToString( outputSolnFile );
+
+        String outputSolution = "";
+        if ( outputSolnFile.length() > 2 ){
+            outputSolution = FileUtils.fileToString( outputSolnFile );
+        } else {
+            System.err.println("ERROR! Solution file is empty! " + outputSolnPath);
+        }
 
         outputSolution = outputSolution.replaceAll( "@[a-f1-9][a-f0-9]*", "" );
         expectedSolution = expectedSolution.replaceAll( "@[a-f1-9][a-f0-9]*", "" );
@@ -94,7 +100,7 @@ public class Tester {
      * the extracted value is checked for membership in that range.
      * @param expected The String representation of the expected (gold standard) solution
      * @param actual The String representation of the actual output
-     * @see {@link #assertSolution(Object, Object)}
+     * @see {@link #assertSolutionEquals(Object, Object)}
      */
     public static void assertSolution(String expected, String actual) {
       JSONObject jexp = null;

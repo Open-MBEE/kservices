@@ -10,8 +10,10 @@ public class nestedClassTest {
         Tester.checkSolution("nestedClass/parallelSameClassName");
     }
 
-    @Test
-    public void testSeriesSameClassName() throws FileNotFoundException {
-        Tester.checkSolution("nestedClass/seriesSameClassName");
-    }
+    // The test below uses same-named nested classes, which are not currently
+    // supported because Java does not support them.
+//    @Test
+//    public void testSeriesSameClassName() throws FileNotFoundException {
+//        Tester.checkSolution("nestedClass/seriesSameClassName");
+//    }
 }

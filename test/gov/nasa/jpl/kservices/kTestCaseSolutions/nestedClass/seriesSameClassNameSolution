@@ -1,0 +1,5 @@
+{"result": {
+    "solution": "a = A {\n   x = X {\n   }\n}\nb = B {\n   x = X {\n   }\n}\n",
+    "satisfied": "true",
+    "constraints": []
+}}
