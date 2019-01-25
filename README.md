@@ -9,23 +9,27 @@ branches following repositories are also checked out into `$HOME/git`:
   * [bae](https://github.com/Open-MBEE/bae/tree/develop)
   * [util](https://github.com/Open-MBEE/util/tree/develop)
   * [sysml](https://github.com/Open-MBEE/sysml/tree/develop)
+
+Also check out the master branch of k2mms:
+  * [k2mms](https://github.com/Open-MBEE/k2mms)
   
 A web-based IDE for K is slowly under construction:
-[k_webeditor](https://github.jpl.nasa.gov/mbee-dev/k_webeditor).
+  * [k_webeditor](https://github.jpl.nasa.gov/mbee-dev/k_webeditor).
 
 These websites may be available to try out: 
   * http://theklanguage.com (server from the K repository; has documentation, but 
     running may be broken.)
   * http://flipper.jpl.nasa.gov:8080/ (the IDE under construction; JPL only; behavior
-    and Java extensions; no documenation)
+    and Java extensions; no documentation)
 
 ### Set up
   1. Install git, maven, and Java 1.8.
   1. Clone the develop branches of kservices, bae, and klang into the same directory.   
   3. Set the `JAVA_HOME` environment variable to the installation directory of Java 1.8.
      For Mac OS, the path ends in `Content/Home`.
-  2. To build the repositories from a terminal, in each of the \[`util`, `sysml`,\]
-     `klang` and `bae` directories, enter
+  2. Follow the instructions in `k2mms/README.md` for setting up k2mms.
+  2. To build the repositories from a terminal, in each of the `util`, `sysml`,
+     `klang` (or `k`), `bae`, and `k2mms` directories, enter
   
     mvn clean package
     
