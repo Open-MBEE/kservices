@@ -1,0 +1,9 @@
+{{"result": {
+     "solution": "x = 2343799024545392640\ny = 1\nb2 = true\n",
+     "satisfied": "true",
+     "constraints": [
+         "req x = 2343799024545392640",
+         "req y = 1",
+         "req b2 = true"
+     ]
+ }}

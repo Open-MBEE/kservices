@@ -3,6 +3,7 @@ package gov.nasa.jpl.kservices;
 import gov.nasa.jpl.ae.event.ParameterListenerImpl;
 import gov.nasa.jpl.ae.event.TimeVaryingMap;
 import gov.nasa.jpl.ae.solver.HasIdImpl;
+import gov.nasa.jpl.ae.util.distributions.Distribution;
 import gov.nasa.jpl.ae.xml.EventXmlToJava;
 import gov.nasa.jpl.mbee.util.FileUtils;
 import gov.nasa.jpl.mbee.util.Random;
@@ -53,6 +54,7 @@ public class Tester {
         HasIdImpl.reset();
         ParameterListenerImpl.reset();
         Random.reset();
+        Distribution.reset();
         
         String expectedSolnPath = TEST_SOLN_DIR + kFileName + (useNewFormat ? TEST_SOLN_EXT_NEW : TEST_SOLN_EXT_OLD);
         File expectedSolnFile = new File(expectedSolnPath);

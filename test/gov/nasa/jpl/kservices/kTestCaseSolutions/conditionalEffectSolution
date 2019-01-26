@@ -1,0 +1,12 @@
+{"result": {
+    "solution": "",
+    "satisfied": "true",
+    "constraints": [
+        "req b = true",
+        "req x = STEP x{(t=0=3)}",
+        "req t = 0",
+        "req v1 = 3",
+        "req v2 = 5",
+        "req y = STEP y{(t=0=5)}"
+    ]
+}}

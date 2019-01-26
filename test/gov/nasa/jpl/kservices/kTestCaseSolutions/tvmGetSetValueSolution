@@ -1,0 +1,12 @@
+{"result": {
+    "solution": "epoch = 0\nx = STEP x{(epoch=0=1.5),(ten=10=4.4)}\nten = 10\nt = 20\ny = 4.4\nexpression0 = setHorizonDuration(100) = true\n",
+    "satisfied": "true",
+    "constraints": [
+        "req epoch = 0",
+        "req x = STEP x{(epoch=0=1.5),(ten=10=4.4)}",
+        "req ten = 10",
+        "req t = 20",
+        "req y = 4.4",
+        "req expression0 = setHorizonDuration(100) = true"
+    ]
+}}

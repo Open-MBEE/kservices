@@ -1,0 +1,13 @@
+{"result": {
+    "solution": "x1 = Exponential(1.0)\nx1b2 = Exponential(1.0, Exponential(2.0))\nx1bu = Exponential(1.0, UniformReal(0.0, 4.0))\nanalytic = 0.950212931632136\npx1LT3 = 0.9535714285714286\npx1b2LT3 = 0.9511545071191532\npx1buLT3 = 0.950541966517282\n",
+    "satisfied": "true",
+    "constraints": [
+        "req x1 = Exponential(1.0)",
+        "req x1b2 = Exponential(1.0, Exponential(2.0))",
+        "req x1bu = Exponential(1.0, UniformReal(0.0, 4.0))",
+        "req analytic = 0.950212931632136",
+        "req px1LT3 = 0.9535714285714286",
+        "req px1b2LT3 = 0.9511545071191532",
+        "req px1buLT3 = 0.950541966517282"
+    ]
+}}

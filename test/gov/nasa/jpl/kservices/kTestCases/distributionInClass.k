@@ -1,7 +1,5 @@
 import gov.nasa.jpl.ae.util.distributions.Normal
 
-//ParameterListenerImpl.setMaxLoopsWithNoProgress(300)
-
 class A {
     var mu : Integer
     var sigma : Real

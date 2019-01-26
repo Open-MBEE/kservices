@@ -1,0 +1,9 @@
+{"result": {
+    "solution": "a = A {\n   mu = -297019264\n   sigma = 0.18986512059881744\n   y = Normal(-2.97019264E8, 0.03604876402000349)\n}\n",
+    "satisfied": "true",
+    "constraints": [
+        "req a.mu = -297019264",
+        "req a.sigma = 0.18986512059881744",
+        "req a.y = Normal(-2.97019264E8, 0.03604876402000349)"
+    ]
+}}
