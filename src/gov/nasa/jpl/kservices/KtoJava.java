@@ -46,6 +46,7 @@ import java.util.*;
 import java.util.Collection;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import kTestCases.GNC;
 
 
 // Keep these for resolving class references.
@@ -2854,6 +2855,7 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.ae.event.EventInvocation" );
         addImport( "gov.nasa.jpl.ae.event.DurativeEvent" );
         addImport( "gov.nasa.jpl.ae.event.ParameterListenerImpl" );
+        addImport( "gov.nasa.jpl.ae.event.TimeVarying" );
         addImport( "gov.nasa.jpl.ae.event.TimeVaryingMap" );
         addImport( "gov.nasa.jpl.ae.event.Consumable" );
         addImport( "gov.nasa.jpl.ae.event.Timeline" );
@@ -2861,6 +2863,7 @@ public class KtoJava {
         addImport( "gov.nasa.jpl.ae.event.Event" );
         addImport( "gov.nasa.jpl.ae.solver.ObjectDomain" );
         addImport( "gov.nasa.jpl.ae.solver.ClassDomain" );
+        addImport( "gov.nasa.jpl.ae.event.DistributionFunctionCall" );
         addImport( "gov.nasa.jpl.mbee.util.TimeUtils" );
         addImport( "gov.nasa.jpl.mbee.util.Utils" );
         addImport( "gov.nasa.jpl.mbee.util.Debug" );
