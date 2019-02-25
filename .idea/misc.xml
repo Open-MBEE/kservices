@@ -9,11 +9,12 @@
         <option value="$PROJECT_DIR$/../sysml/pom.xml" />
         <option value="$PROJECT_DIR$/../bae/pom.xml" />
         <option value="$PROJECT_DIR$/pom.xml" />
+        <option value="$PROJECT_DIR$/../k2mms/pom.xml" />
+        <option value="$PROJECT_DIR$/../mms-java-client/pom.xml" />
       </list>
     </option>
   </component>
   <component name="ProjectPlainTextFileTypeManager">
-    <file url="file://$PROJECT_DIR$/src/kTestCases/factorial.k" />
     <file url="file://$PROJECT_DIR$/src/kTestCases/simple.k" />
     <file url="file://$PROJECT_DIR$/test/gov/nasa/jpl/kservices/kTestCases/simple.k" />
   </component>
