@@ -43,7 +43,7 @@ These websites may be available to try out:
      same directory as the others.  You may also need to change the pom.xml files in bae,
      klang, and kservices to find the jars for util and sysml at 
      ../{util|sysml}/target/???-SNAPSHOT???.jar.  You should be able to see examples of 
-     this for getting the bae and klang jars from 
+     this for getting the bae and klang jars from the mbee-dev profile in kservices/pom.xml.
   5. If having trouble with microsoft z3 integration, you may need to set `LD_LIBRARY_PATH`
      to point to `klang/lib`.  On Mac OS, it is `DYLIB_LIBRARY_PATH`.  If using Eclipse or
      Intellij IDEA, you can add this variable to the run configuration(s).  These may
