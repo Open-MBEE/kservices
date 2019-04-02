@@ -114,6 +114,7 @@ public class AeToK {
         RangeDomain,
         SingleValueDomain,
         StringDomain,
+        RegexDomainString,
         TimeDomain,
 
         //Node,
@@ -303,6 +304,9 @@ public class AeToK {
         }
         if ( StringDomain.class.isAssignableFrom( objClass ) ) {
             return StringDomain.class;
+        }
+        if ( RegexDomainString.class.isAssignableFrom( objClass ) ) {
+            return RegexDomainString.class;
         }
         if ( TimeDomain.class.isAssignableFrom( objClass ) ) {
             return TimeDomain.class;
@@ -597,6 +601,8 @@ public class AeToK {
             case SingleValueDomain:
                 break;
             case StringDomain:
+                break;
+            case RegexDomainString:
                 break;
             case StringParameter:
                 break;
