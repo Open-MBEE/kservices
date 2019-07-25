@@ -1661,7 +1661,14 @@ public class KtoJava {
                     // parse out the name of the parameter to minimize or maximize
                     int firstQuote = rhs.indexOf("\"");
                     int secondQuote = rhs.indexOf("\"", firstQuote+1);
-                    ParameterListenerImpl.objectiveParamName = rhs.substring(firstQuote+1, secondQuote);
+                    if ( firstQuote == -1 || secondQuote == -1 ) {
+                        firstQuote = rhs.lastIndexOf( "(" );
+                        secondQuote = rhs.lastIndexOf( ")", firstQuote + 1 );
+                    }
+                    if ( firstQuote != -1 && secondQuote != -1 ) {
+                        ParameterListenerImpl.objectiveParamName =
+                                rhs.substring( firstQuote + 1, secondQuote );
+                    }
 
                     continue; // don't add constraint for minimize/maximize
                 }
