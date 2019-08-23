@@ -764,7 +764,7 @@ public class KtoJava {
         String typeString = (tyg == null ? null :
                 JavaToConstraintExpression.typeToClass(tyg
                         .toJavaString()));
-        if ( typeString.toLowerCase().equals( "time" ) ) {
+        if ( typeString != null && typeString.toLowerCase().equals( "time" ) ) {
             typeString = "Timepoint";
         }
         methodDecl.setType( new ClassOrInterfaceType( "Expression<" + typeString
