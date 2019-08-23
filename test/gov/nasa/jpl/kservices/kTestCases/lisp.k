@@ -1,3 +1,5 @@
+import java.util.TreeMap
+
 ParameterListenerImpl.setArcConsistencyQuiet(false) // DEBUG
 Parameter.setPrintOnSetValue(true) // DEBUG
 Parameter.setPrintOnRestrictDomain(true) // DEBUG
@@ -44,7 +46,7 @@ class ListExp extends S_Exp {
     var fancyText : String = "(" + leftExp.text + (
         if rightExp.text = "NIL" then ")" else
             " " + (
-                if rightExp is ListExp then rightExp.fancyText.substr(1) else rightExp.text + ")"
+                (if rightExp is ListExp then rightExp.fancyText.substring(1) else rightExp.text) + ")"
             )
     )
     req (text = simpleText) || (text = fancyText)
@@ -59,30 +61,33 @@ TODO: Define a Lisp interpreter by defining
 cons, car, cdr, etc.
 ===========================================
 
-fun evalquote( sExp ) {
+// symbol table
+symbols: TreeMap[S_Exp, ListExp]
+
+fun evalquote( sExp: S_Exp ) : S_Exp {
     // start out evaluating the expression with an empty symbol table
-    eval(sExp, {})
+    eval(sExp, symbols)
 }
 
 ============================================================
 LPM p. 13:
-eval[e;a] = [atom[e] -> cdr[assoc[e;a]];
+eval[e;a] = [atom[e] -> cdr[associate[e;a]];
              atom[car[e]] -> [
                 eq[car[e]; QUOTE] -> cadr[el];
                 eq[car[e]; COND] -> evcon[cdr[el]; a];
                 T -> apply[car[el]; evlis[cdr[el]; a]; a]];
              T -> apply[car[el]; evlis[cdr[el]; a]; a]] 
 ============================================================
-fun eval( sExp, symbols ) {
-    return (
-        if sExp is Atom then symbols[sExp].rightExp else
-        if sExp.leftExp is Atom then (
-            if sExp.leftExp.name = "QUOTE" then sExp.rightExp.leftExp else
-            if sExp.leftExp.name = "COND" then evcon(sExp.rightExp, symbols) else
-                apply(sExp.leftExp, evlis(sExp.rightExp, symbols))
+fun eval( sExp: S_Exp, symbols: TreeMap[S_Exp, ListExp] ) : S_Exp {
+    //return (
+        if sExp is Atom then symbols.get(sExp).rightExp else
+        if (sExp as ListExp).leftExp is Atom then (
+            if (sExp as ListExp).leftExp.name = "QUOTE" then ((sExp as ListExp).rightExp as ListExp).leftExp else
+            if (sExp as ListExp).leftExp.name = "COND" then evcon((sExp as ListExp).rightExp, symbols) else
+                apply((sExp as ListExp).leftExp, evlis((sExp as ListExp).rightExp, symbols))
         ) else
-            apply(sExp.leftExp, evlis(sExp.rightExp, symbols))
-    )
+            apply((sExp as ListExp).leftExp, evlis((sExp as ListExp).rightExp, symbols))
+    //)
 }
 
 ============================================================
@@ -98,22 +103,20 @@ apply [fn;x; a] =
      eq[car[fn]; LAMBDA] -> eval[caddr[fn]; pairlis[cadr[fn];x;a]];
      eq[car[fn]; LABEL] -> apply[caddr[fn]; x; cons[cons[cadr[fn]; caddr[fn]]; a]]]
 ============================================================
-fun apply( fn, sExp, symbols ) {
-    return (
+fun apply( fn: S_Exp, sExp: ListExp, symbols: TreeMap[S_Exp, ListExp] ) : S_Exp {
         if fn is Atom then (
-            if fn.name = "CAR" then sExp.leftExp.leftExp else
-            if fn.name = "CDR" then sExp.leftExp.rightExp else
-            if fn.name = "CONS" then cons(sExp.leftExp, sExp.rightExp.leftExp) else
-            if fn.name = "ATOM" then sExp.leftExp is Atom else
-            if fn.name = "EQ" then eq(sExp.leftExp, sExp.rightExp.leftExp) else
+            if (fn as Atom).name = "CAR" then (sExp.leftExp as ListExp).leftExp else
+            if (fn as Atom).name = "CDR" then (sExp.leftExp as ListExp).rightExp else
+            if (fn as Atom).name = "CONS" then cons(sExp.leftExp, (sExp.rightExp as ListExp).leftExp) else
+            if (fn as Atom).name = "ATOM" then sExp.leftExp is Atom else
+            if (fn as Atom).name = "EQ" then eq(sExp.leftExp, (sExp.rightExp as ListExp).leftExp) else
                 apply(eval(fn, symbols), sExp, symbols)
         ) else
-        if fn.leftExp is Atom and fn.leftExp.name = "LAMBDA" then
-            eval(fn.rightExp.rightExp.leftExp, pairlis(fn.rightExp.leftExp, sExp, symbols)) else
-        if fn.leftExp is Atom and fn.leftExp.name = "LABEL" then
-            apply(fn.rightExp.rightExp.leftExp, sExp, cons(cons(fn.rightExp.leftExp, fn.rightExp.rightExp.leftExp), symbols)) else
+        if (fn as ListExp).leftExp is Atom && (fn as ListExp).leftExp.name = "LAMBDA" then
+            eval((((fn as ListExp).rightExp as ListExp).rightExp as ListExp).leftExp, pairlis(((fn as ListExp).rightExp as ListExp).leftExp, sExp, symbols)) else
+        if (fn as ListExp).leftExp is Atom && (fn as ListExp).leftExp.name = "LABEL" then
+            apply((((fn as ListExp).rightExp as ListExp).rightExp as ListExp).leftExp, sExp, cons(cons(((fn as ListExp).rightExp as ListExp).leftExp, (((fn as ListExp).rightExp as ListExp).rightExp as ListExp).leftExp), symbols)) else
         Atom(name::"NIL") // error condition
-    )
 }
 
 ============================================================
@@ -122,10 +125,10 @@ evcon[c; a] =
     [eval[caar[c]; a] -> eval[cadar[c]; a];
      T -> evcon[cdr[c]; a]] 
 ============================================================
-fun evcon(c, a) {
-    return if eval(c.leftExp.leftExp, a)
-        then eval(c.leftExp.rightExp.leftExp, a)
-        else evcon(c.rightExp, a)
+fun evcon(c: ListExp, a: ListExp) : S_Exp {
+    if eval((c.leftExp as ListExp).leftExp, a)
+    then eval(((c.leftExp as ListExp).rightExp as ListExp).leftExp, a)
+    else evcon(c.rightExp, a)
 }
 
 ============================================================
@@ -134,9 +137,9 @@ evlis[m;a] =
     [null[m] -> NIL;
      T -> cons[eval[car[m]; a]; evlis[cdr[m]; a]]] 
 ============================================================
-fun evlis(m, a) {
-    return if m is Atom and m.name = "NIL" then "NIL" else
-        cons(eval(m.leftExp, a), evlis(m.rightExp, a))
+fun evlis(m: S_Exp, a: ListExp) : S_Exp {
+    if m is Atom && m.name = "NIL" then "NIL" else
+       cons(eval((m as ListExp).leftExp, a), evlis((m as ListExp).rightExp, a))
 }
 
 ============================================================
@@ -150,12 +153,12 @@ memory.
 4. The value of - eq is always *T* or NIL. It is never undefined even if its arguments
 are bad. 
 ============================================================
-fun eq(x, y) {
-    return if (x is Atom && y is Atom && x.name = y.name) then Atom(name::"*T*") else x = y
+fun eq(x: S_Exp, y: S_Exp) : Bool {
+    if (x is Atom && y is Atom && x.name = y.name) then Atom(name::"*T*") else x = y
 }
 
-fun cons(l, r) {
-    return ListExp(leftExp::l, rightExp::r)
+fun cons(l: S_Exp, r: S_Exp) : S_Exp {
+    ListExp(leftExp::l, rightExp::r)
 }
 
 ============================================================
@@ -164,11 +167,9 @@ pairlis [x; y; a] =
     [null[x] -> a;
      T -> cons[cons[car[x]; car[y]]; pairlis[cdr[x]; cdr [y]; a]]]
 ============================================================
-fun pairlis(x, y, a) {
-    return (
+fun pairlis(x: S_Exp, y: ListExp, a: S_Exp) : S_Exp{
         if x is Atom && x.name = "NIL" then a else
             cons(cons(x.leftExp, y.leftExp), pairlis(x.rightExp, y.rightExp, a))
-    )
 }
 
 ============================================================
@@ -177,8 +178,8 @@ assoc[x; a] =
     [equal[caar[a]; x] -> car[a];
      T -> assoc[x; cdr[a]]]
 ============================================================
-fun assoc(x, a) {
-    return if a.leftExp.leftExp = x then a.leftExp else assoc(x, a.rightExp)
+fun associate(x: S_Exp, a: ListExp) : S_Exp {
+    if (a.leftExp as ListExp).leftExp = x then a.leftExp else associate(x, a.rightExp)
 }
 
 =================================
@@ -209,7 +210,6 @@ var myProgramOutput : S_Exp = evalquote(myProgram)
 
 ============
 
-============
 
 var fibFunction : String = "(defun fibonacci (n) " + theRest + " )"
 var theRest : String
@@ -227,3 +227,5 @@ req forall y : Int :- y > 2 => fibList (y) = fibList(y-2) .size() = x
 
 req fibList(5) = Seq{ 1, 1, 2, 3, 5 }
 req fibList(5) = Seq{ 1, 1, 2, 3, 5 }
+
+============
