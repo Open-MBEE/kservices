@@ -40,11 +40,11 @@ class ListExp extends S_Exp {
     var leftExp  : S_Exp
     var rightExp : S_Exp
 
-    // req text = "(" + leftExp.text + "." + rightExp.text + ")"
-    var e1 : String = "(" + leftExp.text
-    var e2 : String = e1 + "."
-    var e3 : String = e2 + rightExp.text
-    req text = e3 + ")"
+    req text = "(" + leftExp.text + "." + rightExp.text + ")"
+    //var e1 : String = "(" + leftExp.text
+    //var e2 : String = e1 + "."
+    //var e3 : String = e2 + rightExp.text
+    //req text = e3 + ")"
 }
 
 // LPM: An S-expression is either an atomic symbol or [a list expression]
