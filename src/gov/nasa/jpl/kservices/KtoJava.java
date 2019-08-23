@@ -764,6 +764,9 @@ public class KtoJava {
         String typeString = (tyg == null ? null :
                 JavaToConstraintExpression.typeToClass(tyg
                         .toJavaString()));
+        if ( typeString.toLowerCase().equals( "time" ) ) {
+            typeString = "Timepoint";
+        }
         methodDecl.setType( new ClassOrInterfaceType( "Expression<" + typeString
                                                       + ">" ) );
         methodDecl.setModifiers( 1 );
@@ -772,9 +775,27 @@ public class KtoJava {
                 new ArrayList< Param >( JavaConversions.asJavaCollection( funDecl.params() ) );
         List< japa.parser.ast.body.Parameter > params =
                 new ArrayList< japa.parser.ast.body.Parameter >();
+        // REVIEW -- Would it be best to call  getClassData().lookupMethodByName()
+        // and get the stored params instead of regenerating?
+//        Map<String, List<Object>> mmm = getClassData()
+//                .lookupMethodByName( getClassData().getCurrentClass(),
+//                                     funDecl.ident(), false, false );
+//        Map<String,ClassData.Param> savedParms = null;
+//        if ( mmm != null ) {
+//            for ( List<Object> plist : mmm.values() ) {
+//                if ( !Utils.isNullOrEmpty( plist ) ) {
+//                    Object pp = plist.get( 0 );
+//                }
+//            }
+//        }
         japa.parser.ast.body.Parameter param;
         for ( Param p : funParams ) {
-            param = ASTHelper.createParameter( makeType( p.ty().toJavaString() ),
+            String type =
+                    JavaToConstraintExpression.typeToClass( p.ty().toJavaString() );
+            if ( type.toLowerCase().equals( "time" ) ) {
+                type = "Timepoint";
+            }
+            param = ASTHelper.createParameter( makeType(type),
                                                p.name() );
             params.add( param );
         }
