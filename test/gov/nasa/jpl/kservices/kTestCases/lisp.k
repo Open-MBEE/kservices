@@ -15,8 +15,6 @@ Defining the Lisp parser:
 
 class S_Exp {
     var text : String
-    var fancyText : String
-    req (text = simpleText) || (text = fancyText)
 }
 
 class Atom extends S_Exp {
@@ -33,7 +31,6 @@ class Atom extends S_Exp {
     //     1 <= i && i < name.length() => name.charAt(i) isin OTHERCHAR
 
     req text = name
-    req fancyText = text
 }
 
 class ListExp extends S_Exp {
@@ -45,11 +42,10 @@ class ListExp extends S_Exp {
 
     var simpleText : String = "(" + leftExp.text + "." + rightExp.text + ")"
     var fancyText : String = "(" + leftExp.text + (
-        if rightExp.text = "NIL" then ")" else
-            " " + (
-                (if rightExp is ListExp then rightExp.fancyText.substring(1) else rightExp.text) + ")"
-            )
-    )
+        if rightExp.text = "NIL" then ")" else ( rightExp.text + ")" )
+        )
+    //req (text = simpleText) || (text = fancyText)
+    req text = fancyText
 }
 
 fun car( sExp: S_Exp ) : S_Exp {
@@ -74,10 +70,11 @@ TODO: Define a Lisp interpreter by defining
 cons, car, cdr, etc.
 ===========================================
 
+var a: ListExp
 
 fun evalquote( sExp: S_Exp ) : S_Exp {
     // start out evaluating the expression with an empty symbol table
-    if sExp is Atom then evalAtom(sExp as Atom, ListExp())
+    if sExp is Atom then evalAtom(sExp as Atom, a)
     else if sExp is ListExp then evalList(sExp as ListExp, a)
     else null
 }
@@ -209,26 +206,30 @@ fun associate(x: S_Exp, a: ListExp) : S_Exp {
 Running the implicit Lisp parser.
 =================================
 
+// just making sure solver doesn't autogenerate objects to test all classes
+var m : Atom = Atom(name::"ignore")
+var se: S_Exp = m
+
 // simpleText format, using the . separator to explicitly denote each cons cell
 
-var myList : ListExp
-// req myList.text = "(A.((B.C).D)"
-req myList.text = "(A.B)"
+//var myList : ListExp
+//// req myList.text = "(A.((B.C).D)"
+//req myList.simpleText = "(A.B)"
 
 // fancyText format, using the condensed list format and implicit NIL list terminator
 
 var myFancyList : ListExp
-req myFancyList.text = "(A B C D)"
+req myFancyList.text = "(A B)"
 
 
 ==============
 Executing Lisp
 ==============
 
-var myProgram : ListExp
-req myProgram.text =
-    "(EQ (CAR (CDR (CDR (QUOTE (A B C D))))) (QUOTE C))"
-var myProgramOutput : S_Exp = evalquote(myProgram)
+//var myProgram : ListExp
+//req myProgram.text =
+//    "(EQ (CAR (CDR (CDR (QUOTE (A B C D))))) (QUOTE C))"
+//var myProgramOutput : S_Exp = evalquote(myProgram)
 
 
 ============

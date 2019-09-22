@@ -17,18 +17,27 @@ class S_Exp {
     var text : String
 }
 
+
+fun nameGen(prefix: String) : String {
+}
+
 class Atom extends S_Exp {
     // LPM: An atomic symbol is 
     // a string of no more than thirty numerals and capital letters;
     // the first character must be a letter.
-    // val FIRSTCHAR : Seq[Char] = Seq{'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'}
-    // val OTHERCHAR : Seq[Char] = Seq{'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','0','1','2','3','4','5','6','7','8','9'}
+     val FIRSTCHAR : Seq[Char] = Seq{'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'}
+     val OTHERCHAR : Seq[Char] = Seq{'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','0','1','2','3','4','5','6','7','8','9'}
 
-    var name : String
-    // req name.length() <= 30
-    // req name.charAt(0) isin FIRSTCHAR
-    // req forall i : Int :-
-    //     1 <= i && i < name.length() => name.charAt(i) isin OTHERCHAR
+    var firstChar : Char
+    var someOtherChars : String
+
+    req firstChar isin FIRSTCHAR
+    var name : String = firstChar + someOtherChars
+    //req name >= "A" && name <= "Z"
+    req name.length() <= 30
+    req name.charAt(0) isin FIRSTCHAR
+    req forall i : Int :-
+        1 <= i && i < name.length() => name.charAt(i) isin OTHERCHAR
 
     req text = name
 }
@@ -62,5 +71,5 @@ Running the implicit Lisp parser.
 =================================
 
 var myList : ListExp
-// req myList.text = "(A.((B.C).D)"
-req myList.text = "(A.B)"
+req myList.text = "(A.((B.C).D)"
+//req myList.text = "(A.B)"
