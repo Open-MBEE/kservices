@@ -7,17 +7,24 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="sysml" />
-        <module name="baeModels" />
-        <module name="mbee_util" />
         <module name="bae" />
+        <module name="k2mms" />
+        <module name="swagger-java-client" />
+        <module name="mbee_util" />
+        <module name="baeModels" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="bae" target="8" />
       <module name="baeModels" target="1.7" />
+      <module name="k2mms" target="6" />
       <module name="klang" target="1.6" />
       <module name="kservices" target="1.8" />
       <module name="mbee_util" target="1.8" />
+      <module name="repositories-parent-pom" target="1.5" />
+      <module name="repositories-parent-pom (1)" target="1.5" />
+      <module name="repositories-parent-pom (2)" target="1.5" />
+      <module name="swagger-java-client" target="1.8" />
       <module name="sysml" target="1.8" />
     </bytecodeTargetLevel>
   </component>

@@ -22,7 +22,7 @@ import java.util.Collection;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.sun.jmx.snmp.ThreadContext.contains;
+//import static com.sun.jmx.snmp.ThreadContext.contains;
 
 /**
  * Translates a K model and partial solution to APGen input.
