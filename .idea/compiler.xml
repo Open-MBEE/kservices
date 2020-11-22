@@ -6,19 +6,25 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="bae" />
+        <module name="sysml" />
         <module name="baeModels" />
         <module name="mbee_util" />
-        <module name="sysml" />
+        <module name="bae" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="bae" target="1.8" />
+      <module name="bae" target="8" />
       <module name="baeModels" target="1.7" />
       <module name="klang" target="1.6" />
       <module name="kservices" target="1.8" />
       <module name="mbee_util" target="1.8" />
       <module name="sysml" target="1.8" />
     </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="klang" options="-proc:none" />
+      <module name="kservices" options="-proc:none" />
+    </option>
   </component>
 </project>

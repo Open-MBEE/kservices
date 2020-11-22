@@ -4,8 +4,6 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/../bae/bae.iml" filepath="$PROJECT_DIR$/../bae/bae.iml" />
       <module fileurl="file://$PROJECT_DIR$/../baeModels/baeModels.iml" filepath="$PROJECT_DIR$/../baeModels/baeModels.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../baeModels/baeModels.iml" filepath="$PROJECT_DIR$/../baeModels/baeModels.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../klang/klang.iml" filepath="$PROJECT_DIR$/../klang/klang.iml" />
       <module fileurl="file://$PROJECT_DIR$/../Klang/klang.iml" filepath="$PROJECT_DIR$/../Klang/klang.iml" />
       <module fileurl="file://$PROJECT_DIR$/kservices.iml" filepath="$PROJECT_DIR$/kservices.iml" />
       <module fileurl="file://$PROJECT_DIR$/../util/mbee_util.iml" filepath="$PROJECT_DIR$/../util/mbee_util.iml" />
