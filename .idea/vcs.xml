@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="VcsDirectoryMappings">
-    <mapping directory="$PROJECT_DIR$/../Klang" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../bae" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../baeModels" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../k2mms" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../klang" vcs="Git" />
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../sysml" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../util" vcs="Git" />

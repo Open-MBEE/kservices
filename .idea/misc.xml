@@ -3,7 +3,6 @@
   <component name="MavenProjectsManager">
     <option name="originalFiles">
       <list>
-        <option value="$PROJECT_DIR$/../baeModels/pom.xml" />
         <option value="$PROJECT_DIR$/../Klang/pom.xml" />
         <option value="$PROJECT_DIR$/../util/pom.xml" />
         <option value="$PROJECT_DIR$/../sysml/pom.xml" />
@@ -11,6 +10,7 @@
         <option value="$PROJECT_DIR$/pom.xml" />
         <option value="$PROJECT_DIR$/../k2mms/pom.xml" />
         <option value="$PROJECT_DIR$/../mms-java-client/pom.xml" />
+        <option value="$PROJECT_DIR$/../baeModels/pom.xml" />
       </list>
     </option>
   </component>
@@ -18,7 +18,7 @@
     <file url="file://$PROJECT_DIR$/src/kTestCases/simple.k" />
     <file url="file://$PROJECT_DIR$/test/gov/nasa/jpl/kservices/kTestCases/simple.k" />
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" default="true" project-jdk-name="1.8" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" default="false" project-jdk-name="1.8" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
 </project>
