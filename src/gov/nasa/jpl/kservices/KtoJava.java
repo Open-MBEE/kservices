@@ -1103,6 +1103,9 @@ public class KtoJava {
 
 
     public void translatePackage() {
+        // reset solving mode to default -- the translation will set this
+        // since it is specified as part of the K program.
+        ParameterListenerImpl.mode = ParameterListenerImpl.SolvingMode.SATISFY;
         // Translate current package
         translatePackage(this.packageName);
     }
