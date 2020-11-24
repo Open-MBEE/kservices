@@ -5,7 +5,7 @@ The [k](https://github.com/Open-MBEE/kservices/blob/develop/k) script. will run 
 services from the command line.  It assumes that the this repository is cloned in a
 `$HOME/git` directory, that maven and java are installed, and that the `develop`
 branches following repositories are also checked out into `$HOME/git`:
-  * [K](https://github.com/Open-MBEE/K/tree/develop)
+  * [klang](https://github.com/Open-MBEE/klang/tree/develop)
   * [bae](https://github.com/Open-MBEE/bae/tree/develop)
   * [util](https://github.com/Open-MBEE/util/tree/develop)
   * [sysml](https://github.com/Open-MBEE/sysml/tree/develop)
@@ -17,7 +17,7 @@ A web-based IDE for K is slowly under construction:
   * [k_webeditor](https://github.jpl.nasa.gov/mbee-dev/k_webeditor).
 
 These websites may be available to try out: 
-  * http://theklanguage.com (server from the K repository; has documentation, but 
+  * http://theklanguage.com (server from the klang repository; has documentation, but 
     running may be broken.)
   * http://flipper.jpl.nasa.gov:8080/ (the IDE under construction; JPL only; behavior
     and Java extensions; no documentation)
@@ -29,7 +29,7 @@ These websites may be available to try out:
      For Mac OS, the path ends in `Content/Home`.
   2. Follow the instructions in `k2mms/README.md` for setting up k2mms.
   2. To build the repositories from a terminal, in each of the `util`, `sysml`,
-     `klang` (or `k`), `bae`, and `k2mms` directories, enter
+     `klang`, `bae`, and `k2mms` directories, enter
   
     mvn clean package
     
@@ -43,7 +43,7 @@ These websites may be available to try out:
      same directory as the others.  You may also need to change the pom.xml files in bae,
      klang, and kservices to find the jars for util and sysml at 
      ../{util|sysml}/target/???-SNAPSHOT???.jar.  You should be able to see examples of 
-     this for getting the bae and klang jars from 
+     this for getting the bae and klang jars from the mbee-dev profile in kservices/pom.xml.
   5. If having trouble with microsoft z3 integration, you may need to set `LD_LIBRARY_PATH`
      to point to `klang/lib`.  On Mac OS, it is `DYLIB_LIBRARY_PATH`.  If using Eclipse or
      Intellij IDEA, you can add this variable to the run configuration(s).  These may
