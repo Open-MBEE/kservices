@@ -36,7 +36,7 @@ class Battery {
 
   var voltage : TimeVaryingMap[Real]  -- volts
   var SOC : Consumable  -- fraction of amp-hour capacity
-  var SOC_Ah : Consumable = SOC * ahCapacityBattery  -- amp-hours
+  var SOC_Ah : TimeVaryingMap[Real] = SOC * ahCapacityBattery  -- amp-hours
 
   -- Behavior constraints
 

@@ -1,5 +1,5 @@
 {"result": {
-    "solution": "x = 7\n",
+    "solution": "x = 12\n",
     "satisfied": "true",
-    "constraints": ["req x = 7"]
+    "constraints": ["req x = 12"]
 }}
